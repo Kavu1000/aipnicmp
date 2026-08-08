@@ -1,0 +1,28 @@
+# Git on Windows checks files out with CRLF by default. Inside a Linux
+# container that makes a shell script fail with "bad interpreter: no such file
+# or directory" — the \r is part of the interpreter path. Force LF on anything
+# that is executed rather than read.
+
+*.sh            text eol=lf
+gradlew         text eol=lf
+Dockerfile      text eol=lf
+*.dockerfile    text eol=lf
+docker-entrypoint.sh text eol=lf
+
+# nginx and compose configs are read by Linux tools too.
+*.conf          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+
+# Windows-side scripts must keep CRLF.
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# Binary: never touch line endings.
+*.png           binary
+*.jpg           binary
+*.apk           binary
+*.jar           binary
+*.docx          binary
+*.zip           binary
