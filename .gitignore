@@ -16,7 +16,11 @@ venv/
 !*.pub.pem
 
 # Data and models
-data/
+# Anchored to the repository root on purpose. An unanchored "data/" matches a
+# directory of that name at any depth, and it silently swallowed the Android
+# app's own la.aipnicmp.collector.data package — the code compiled locally and
+# failed in CI with "Unresolved reference 'data'".
+/data/
 *.tif
 *.tiff
 *.hgt
