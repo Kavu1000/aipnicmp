@@ -97,10 +97,11 @@ the case worth protecting. Cap is 20,000 records, roughly 20 MB.
 
 ### Views and plain SQLite, not Compose and Room
 
-Both of those bring compiler plugins or annotation processors. Since this code
-ships without ever having been compiled, every removable build dependency is one
-less thing that can fail on a machine I cannot see. The UI is a status screen and
-one button; it does not need more.
+Both bring compiler plugins or annotation processors. The app was written before
+there was any way to compile it here, so every removable build dependency was
+one less thing that could fail unseen. That bet paid off — the only build
+failures turned out to be environmental (see [TOOLCHAIN.md](TOOLCHAIN.md)), not
+in the code. The UI is a status screen and one button; it does not need more.
 
 ## Platform constraints that shaped this
 
