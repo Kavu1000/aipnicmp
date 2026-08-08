@@ -65,7 +65,25 @@ Portainer → **Stacks** → **Add stack** → **Repository**, pointing at the G
 repo with compose path `docker-compose.yml`. Or choose **Web editor** and paste
 the contents of that file.
 
-Then fill in **Environment variables**:
+Then fill in **Environment variables**. Portainer offers two modes:
+
+- **Simple mode** — a `name` box and a `value` box per row, and an "add
+  environment variable" button for the next one.
+- **Advanced mode** — one textarea taking `KEY=value` lines. Far quicker for a
+  stack this size; paste [portainer.env.example](portainer.env.example) and
+  edit.
+
+Four things Portainer will not warn you about:
+
+- **No quotes.** The value is stored literally, so `"secret"` arrives as eight
+  characters including the quote marks — and the password looks right in the UI
+  while authentication fails.
+- **No spaces around `=`.**
+- **No trailing spaces.** Invisible, and part of the value.
+- **A literal `$` must be doubled to `$$`**, since compose reads a single `$`
+  as the start of a variable reference.
+
+
 
 | Variable | Value | Notes |
 | --- | --- | --- |
