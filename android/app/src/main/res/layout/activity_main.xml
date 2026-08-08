@@ -184,11 +184,28 @@
             android:textSize="12sp"
             android:textAllCaps="true" />
 
-        <TextView
+        <EditText
             android:id="@+id/serverValue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="13sp" />
+            android:hint="@string/hint_server"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:maxLines="1"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/saveServerButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/action_save_server" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/hint_server_help"
+            android:textSize="12sp" />
 
         <TextView
             android:layout_width="match_parent"

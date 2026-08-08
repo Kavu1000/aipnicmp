@@ -73,7 +73,8 @@ class MainActivity : AppCompatActivity() {
         prefs = CollectorPrefs(this)
         store = MeasurementStore(this)
 
-        binding.serverValue.text = prefs.apiBaseUrl
+        binding.serverValue.setText(prefs.apiBaseUrl)
+        binding.saveServerButton.setOnClickListener { onSaveServer() }
         binding.toggleButton.setOnClickListener { onToggle() }
         binding.uploadButton.setOnClickListener {
             UploadScheduler.requestUpload(this)
@@ -148,6 +149,36 @@ class MainActivity : AppCompatActivity() {
             }
             refresh()
         }
+    }
+
+    /**
+     * Repoint the collector at a different backend.
+     *
+     * Changing the server also resets enrolment, because the new server has
+     * never seen this device's public key: without re-enrolling, every upload
+     * would be refused with "device is not enrolled". The queue is kept — those
+     * records are signed by a key the new server will hold once enrolment
+     * completes, so they remain valid evidence.
+     */
+    private fun onSaveServer() {
+        if (CollectionService.isRunning) {
+            showMessage(getString(R.string.error_server_while_running))
+            return
+        }
+
+        val entered = binding.serverValue.text.toString().trim().trimEnd('/')
+        if (!entered.startsWith("http://") && !entered.startsWith("https://")) {
+            showMessage(getString(R.string.error_server_invalid))
+            return
+        }
+
+        if (entered != prefs.apiBaseUrl) {
+            prefs.apiBaseUrl = entered
+            prefs.enrolled = false
+        }
+        binding.serverValue.setText(prefs.apiBaseUrl)
+        showMessage(getString(R.string.server_saved))
+        refresh()
     }
 
     private fun hasForegroundLocation(): Boolean =

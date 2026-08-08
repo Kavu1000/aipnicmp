@@ -25,9 +25,11 @@ android {
 
     buildTypes {
         debug {
-            // Convenience for testing against a laptop on the same wifi.
-            // 10.0.2.2 is the host machine as seen from the Android emulator.
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000\"")
+            // The development laptop on the current wifi. This is only the
+            // starting value — the address is editable in the app, because a
+            // hardcoded one strands the phone the moment the network changes
+            // or a tunnel hostname is issued.
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.33.252:8000\"")
         }
         release {
             isMinifyEnabled = true

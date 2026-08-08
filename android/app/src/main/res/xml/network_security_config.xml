@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release policy: TLS only.
+
+  Measurements identify where a person travelled. Sending them in clear text
+  over whatever wifi a collector happens to be on would leak exactly the data
+  proposal 2.6 promises to protect, so cleartext is refused outright here.
+
+  The debug build overrides this file (app/src/debug/res/xml/) to allow plain
+  HTTP to private addresses, so a phone can talk to a laptop on the same wifi
+  during testing.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

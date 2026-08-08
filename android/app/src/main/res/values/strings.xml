@@ -27,6 +27,12 @@
     <string name="label_rejected">Rejected</string>
     <string name="label_last_upload">Last successful upload</string>
     <string name="label_server">Server</string>
+    <string name="hint_server">https://example.com</string>
+    <string name="action_save_server">Save server address</string>
+    <string name="hint_server_help">Change this if the server moves. The address must start with http:// or https://, with no path after the host.</string>
+    <string name="server_saved">Server address saved.</string>
+    <string name="error_server_invalid">Enter a full address starting with http:// or https://, for example https://api.example.com</string>
+    <string name="error_server_while_running">Stop recording before changing the server. Records already waiting were signed for the old one.</string>
 
     <string name="upload_requested">Upload requested. It will run as soon as this phone has internet.</string>
 
