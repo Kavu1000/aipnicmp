@@ -4,36 +4,37 @@ The app that turns this project from an architecture into evidence. It measures
 mobile signal wherever the phone travels, holds readings taken where there is no
 network, and uploads them when coverage returns.
 
-> **Not yet compiled.** This code was written in an environment with no JDK,
-> Gradle or Android SDK, so it has never been through a compiler. Everything
-> else in the repository was verified by running it; this was not. Expect to fix
-> small things on the first build, and start with `./gradlew test` (below),
-> which checks the part that matters most.
+**Status:** compiles and its unit tests pass. Debug APK 7.4 MB, release
+(R8-minified) 2.5 MB. It has not yet run on a physical handset — everything
+below the compiler is still unproven.
 
 ## Building
 
-Open `android/` in Android Studio (Ladybug or newer) and let it sync. Or:
+No Android Studio required. A portable JDK and SDK live under
+`~/android-toolchain`; see [TOOLCHAIN.md](TOOLCHAIN.md) to recreate them.
 
 ```bash
-cd android && ./gradlew assembleDebug
+cd android && ./build.sh
 ```
 
-The APK lands in `app/build/outputs/apk/debug/`.
+That runs the tests and produces `app/build/outputs/apk/debug/app-debug.apk`.
+Android Studio also works — open `android/` and let it sync.
 
-### Run the tests first
+### The tests matter more than they look
 
 ```bash
-cd android && ./gradlew test
+cd android && ./build.sh test
 ```
 
-These are plain JVM tests — no device needed — and they check the single most
-dangerous piece of the system: that the canonical string this app signs matches
-the one the server verifies, byte for byte. The expected values are pinned
-against `backend/tests/test_signing.py`, and both sides have been confirmed to
-produce identical output for the same inputs.
+Six plain JVM tests, no device needed, checking the single most dangerous piece
+of the system: that the canonical string this app signs matches the one the
+server verifies, byte for byte. The expected values are pinned against
+`backend/tests/test_signing.py`, and both sides were confirmed to produce
+identical output for the same five inputs — including the locale and rounding
+traps.
 
-If those tests fail, **stop**. Every record the app produces would be rejected
-as `bad_signature`, with no other symptom — the records themselves look
+If those fail, **stop**. Every record the app produced would be rejected as
+`bad_signature`, with no other symptom, because the records themselves look
 perfectly well-formed.
 
 ## Pointing it at a server

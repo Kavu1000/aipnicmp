@@ -18,7 +18,7 @@ system rather than blank gaps on the map.
 | Path | Contents | Status |
 | --- | --- | --- |
 | `backend/` | FastAPI ingestion + map API, schema, H3 aggregation (Layers 2, 3, 5) | working on live Postgres, 75 tests passing |
-| `android/` | Kotlin collector app (Layer 1) | written, **not yet compiled** — needs Android Studio |
+| `android/` | Kotlin collector app (Layer 1) | builds; 6 tests passing; not yet run on a handset |
 | `ml/` | Coverage prediction, satellite CV, site ranking (Layer 4) | not started |
 | `web/` | MapLibre public coverage map (Layer 5) | working; operator dashboard not started |
 | `docs/` | Proposal, architecture figures, API contract, decisions | written |
