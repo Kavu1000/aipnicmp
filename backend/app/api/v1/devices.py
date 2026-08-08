@@ -23,13 +23,17 @@ async def enroll_device(
 
     Re-enrolment with the same ``install_id`` is allowed but never rotates the
     key: if it did, anyone who learned an install id could replace the key and
-    then sign whatever they liked. A device that loses its key must enrol as a
-    new installation.
+    then sign whatever they liked. A device that loses its key — reinstall,
+    factory reset, cleared Keystore — must enrol as a new installation.
     """
-    if load_public_key(payload.public_key) is None:
+    if load_public_key(payload.public_key, payload.key_algorithm) is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="public_key must be a base64-encoded 32-byte Ed25519 key",
+            detail=(
+                "public_key is not a valid base64 key for "
+                f"{payload.key_algorithm} (ed25519 expects raw 32 bytes; "
+                "ecdsa_p256 expects X.509 SubjectPublicKeyInfo DER on the P-256 curve)"
+            ),
         )
 
     install_id = payload.device.install_id
@@ -38,12 +42,14 @@ async def enroll_device(
     if existing is not None:
         if existing.is_blocked:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="device is blocked")
-        if existing.public_key and existing.public_key != payload.public_key:
+        if existing.public_key and (
+            existing.public_key != payload.public_key
+            or existing.key_algorithm != payload.key_algorithm
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="this install_id is already enrolled with a different key",
             )
-        existing.public_key = payload.public_key
         existing.app_version = payload.device.app_version or existing.app_version
         existing.last_seen_at = datetime.now(timezone.utc)
         await session.commit()
@@ -51,12 +57,14 @@ async def enroll_device(
             install_id=existing.install_id,
             enrolled_at=existing.enrolled_at,
             trust_level=existing.trust_level,
+            key_algorithm=existing.key_algorithm,
             signature_required=True,
         )
 
     device = Device(
         install_id=install_id,
         public_key=payload.public_key,
+        key_algorithm=payload.key_algorithm,
         manufacturer=payload.device.manufacturer,
         model=payload.device.model,
         android_api=payload.device.android_api,
@@ -74,5 +82,6 @@ async def enroll_device(
         install_id=device.install_id,
         enrolled_at=device.enrolled_at,
         trust_level=device.trust_level,
+        key_algorithm=device.key_algorithm,
         signature_required=True,
     )

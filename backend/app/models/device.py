@@ -21,8 +21,15 @@ class Device(Base):
 
     install_id: Mapped[str] = mapped_column(String(64), primary_key=True)
 
-    # Base64 raw Ed25519 public key. Records are verified against this.
-    public_key: Mapped[str | None] = mapped_column(String(128))
+    # The enrolled public key, base64. Encoding depends on key_algorithm:
+    # raw 32 bytes for ed25519, X.509 SubjectPublicKeyInfo DER for ecdsa_p256.
+    public_key: Mapped[str | None] = mapped_column(String(256))
+
+    # Real Android devices enrol ecdsa_p256, because the Keystore can hold that
+    # in hardware and cannot hold Ed25519 at all.
+    key_algorithm: Mapped[str] = mapped_column(
+        String(16), default="ed25519", server_default="ed25519"
+    )
 
     manufacturer: Mapped[str | None] = mapped_column(String(120))
     model: Mapped[str | None] = mapped_column(String(120))

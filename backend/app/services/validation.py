@@ -60,6 +60,7 @@ def validate_record(
     record: MeasurementIn,
     *,
     public_key: str | None,
+    key_algorithm: str = "ed25519",
     now: datetime | None = None,
 ) -> ValidationOutcome:
     """Check one record in isolation. Raises `Rejection` if it cannot be used."""
@@ -102,7 +103,7 @@ def validate_record(
     if record.active_test is not None and not record.registered:
         raise Rejection("inconsistent_state", "active test result without registration")
 
-    outcome.signature_valid = verify_record(record, public_key)
+    outcome.signature_valid = verify_record(record, public_key, key_algorithm)
     if not outcome.signature_valid:
         if settings.require_record_signature:
             raise Rejection("bad_signature", "signature missing or does not verify")

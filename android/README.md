@@ -1,83 +1,146 @@
 # Android collector — Layer 1
 
-Not built yet. This file records what the app must do and the platform
-constraints that will shape it, so the design work is not redone later.
+The app that turns this project from an architecture into evidence. It measures
+mobile signal wherever the phone travels, holds readings taken where there is no
+network, and uploads them when coverage returns.
+
+> **Not yet compiled.** This code was written in an environment with no JDK,
+> Gradle or Android SDK, so it has never been through a compiler. Everything
+> else in the repository was verified by running it; this was not. Expect to fix
+> small things on the first build, and start with `./gradlew test` (below),
+> which checks the part that matters most.
+
+## Building
+
+Open `android/` in Android Studio (Ladybug or newer) and let it sync. Or:
+
+```bash
+cd android && ./gradlew assembleDebug
+```
+
+The APK lands in `app/build/outputs/apk/debug/`.
+
+### Run the tests first
+
+```bash
+cd android && ./gradlew test
+```
+
+These are plain JVM tests — no device needed — and they check the single most
+dangerous piece of the system: that the canonical string this app signs matches
+the one the server verifies, byte for byte. The expected values are pinned
+against `backend/tests/test_signing.py`, and both sides have been confirmed to
+produce identical output for the same inputs.
+
+If those tests fail, **stop**. Every record the app produces would be rejected
+as `bad_signature`, with no other symptom — the records themselves look
+perfectly well-formed.
+
+## Pointing it at a server
+
+`app/build.gradle.kts` sets `API_BASE_URL` per build type:
+
+| Build | Default | Use |
+| --- | --- | --- |
+| debug | `http://10.0.2.2:8000` | Emulator talking to a backend on this machine |
+| release | `https://api.chax.site` | The pilot server — **change this to the real hostname** |
+
+The address can also be overridden at runtime via `CollectorPrefs.apiBaseUrl`,
+so a pilot that moves hosts does not need a rebuild.
+
+**A real phone needs HTTPS.** Android 9+ blocks cleartext HTTP by default, so a
+debug build on a physical handset cannot reach a plain `http://` backend. Put
+the API behind TLS — a Cloudflare tunnel to the API host is the least-effort
+route, and the account is already in use for the database.
 
 ## What it does
 
-1. Enrol once: generate an Ed25519 keypair in the Android Keystore, register the
-   public key at `POST /devices/enroll`.
-2. Sample the radio and GPS on a rule of **one record per 100 m or per 60 s**,
-   whichever comes first.
-3. Sign each record at the moment of capture and write it to SQLite.
-4. Upload queued records via `WorkManager` with a `NetworkType.CONNECTED`
-   constraint, in batches, when coverage returns.
-5. Drop accepted, duplicate and rejected ids from the queue on a `200`.
+1. **Enrol once.** Generates an ECDSA P-256 keypair in the Android Keystore and
+   registers the public key. Enrolment happens *before* the first recording,
+   never during: a record signed by a key the server has not seen is rejected
+   permanently, and it cannot be re-signed later.
+2. **Sample** on the rule from proposal 2.3 — one record per 100 m or per 60
+   seconds, whichever comes first.
+3. **Sign at capture**, then write to a local SQLite queue.
+4. **Upload** in batches of 250 via WorkManager, constrained to
+   `NetworkType.CONNECTED`.
+5. **Drop** every id the server has ruled on — accepted, duplicate *or*
+   rejected. Rejection reasons are all permanent, so retrying them would block
+   the queue behind rows that can never succeed.
 
-Full wire format: [../docs/api-contract.md](../docs/api-contract.md).
+## Decisions worth knowing
 
-## Platform constraints that change the design
+### The key is P-256, not Ed25519
 
-These are not incidental. Each one has bitten similar projects.
+The server was Ed25519-only until this app was written. **The Android Keystore
+cannot hold an Ed25519 signing key**, so the only way to keep Ed25519 would have
+been a software key — which a rooted phone can copy out, making the capture-time
+signature worthless exactly where forgery matters. A hardware-backed P-256 key
+whose private half never leaves the secure element is the stronger guarantee, so
+the server learned P-256 instead. It still speaks both.
 
-### Background sampling is throttled
+### Collection runs in a foreground service
 
-`TelephonyManager.getAllCellInfo()` is rate-limited from Android 10 (API 29): an
-app in the background receives **cached** results, not a fresh scan. A plain
-background service therefore cannot honour the 100 m / 60 s sampling rule.
+From Android 10, `getAllCellInfo()` is throttled for background apps and returns
+**cached** results. A plain background service would report stale readings that
+look perfectly valid — the worst kind of failure for this project. A foreground
+service with a visible notification is the only way to sample honestly from a
+pocket.
 
-What this forces:
+### The queue drops the newest records when full, not the oldest
 
-- a **foreground service** with `foregroundServiceType="location"`, and a
-  persistent notification the user can see
-- `ACCESS_FINE_LOCATION` **and** `ACCESS_BACKGROUND_LOCATION`, requested
-  separately and in the right order (fine first, background afterwards, from a
-  rationale screen — Android 11+ will not show the background prompt otherwise)
-- `requestCellInfoUpdate()` for an explicit fresh reading where available
-  (API 29+), rather than relying on `getAllCellInfo()` alone
+Counter-intuitive and deliberate. The oldest queued records are the ones nearest
+the server's 30-day cutoff, so discarding them wastes the evidence that has
+waited longest — and a phone this far behind is deep in a dead zone, which is
+the case worth protecting. Cap is 20,000 records, roughly 20 MB.
 
-### Play Store distribution needs a background-location declaration
+### Views and plain SQLite, not Compose and Room
 
-Publishing an app that requests `ACCESS_BACKGROUND_LOCATION` requires a written
-justification and a video demonstration, reviewed by Google, and the review can
-take weeks. **For a pilot with partner collectors — bus drivers, health workers,
-provincial staff, teachers — sideloading avoids this entirely.** Decide which
-route before building the release pipeline; it changes the timeline more than
-any code decision here.
+Both of those bring compiler plugins or annotation processors. Since this code
+ships without ever having been compiled, every removable build dependency is one
+less thing that can fail on a machine I cannot see. The UI is a status screen and
+one button; it does not need more.
 
-### Signal fields vary by manufacturer
+## Platform constraints that shaped this
 
-`CellSignalStrengthLte.getRsrp()` needs API 26+; RSRQ and SINR are inconsistent
-across OEMs and some devices return `Integer.MAX_VALUE` for "unknown". Send
-`null` for anything the device did not genuinely report — never a zero, which
-the server would read as a physically impossible signal. The backend already
-falls back from RSRP to SINR to a pessimistic default.
+- **Background location** (`ACCESS_BACKGROUND_LOCATION`) is requested
+  separately, after fine location, from an explanation dialog. Android 11+ will
+  not show the prompt otherwise, and refusing it means recording stops whenever
+  the screen turns off.
+- **Play Store distribution** of an app requesting background location requires
+  a written justification and a video, reviewed by Google, taking weeks.
+  **Sideloading to partner collectors avoids this entirely** and is the
+  recommended route for the pilot.
+- **Signal fields vary by OEM.** `getRsrp()` needs API 26+ (hence `minSdk 26`);
+  RSRQ and SINR are inconsistent and some devices return `Integer.MAX_VALUE` for
+  "unknown". Those become `null` on the wire, never a zero — the server would
+  read `rsrp: 0` as a physically impossible signal.
+- **GPS works with no network.** A-GPS only speeds up the first fix, which is
+  why location updates are kept warm rather than started cold at each sample.
 
-### GPS works with no network; A-GPS only makes the first fix faster
+## The first real drive
 
-This is the assumption the whole project rests on, and it holds. But the *first*
-fix in a dead zone can take a minute or more without assistance data, so the app
-should keep location updates warm rather than starting cold at each sample.
+1. Build, install on a phone with a Lao SIM, grant location **all the time**.
+2. Press **Start recording** and drive a road that leaves coverage.
+3. Watch "Waiting to send" climb while offline — those are the records nothing
+   else can produce.
+4. Return to coverage. The queue should drain on its own; **Try uploading now**
+   forces it.
+5. Confirm on the server:
 
-### Battery
+```bash
+curl https://YOUR_API/api/v1/stats
+```
 
-Passive radio reads are cheap; the GPS fix is not. Use
-`FusedLocationProviderClient` with a balanced-power interval, and only run an
-active speed test when the device is registered on LTE/NR, on unmetered
-connections or under an explicit user setting — the proposal's two-tier design
-already assumes active tests are rare.
+Then rebuild the tiles and look at the map. The moment real readings replace the
+simulated ones, the project stops being a demonstration.
 
-## Signing, precisely
+## Not built yet
 
-The canonical string is defined in
-[../docs/api-contract.md](../docs/api-contract.md#the-signature) and pinned by
-`backend/tests/test_signing.py`. Kotlin must produce byte-identical UTF-8. The
-two traps:
-
-- Format floats with `Locale.ROOT` — a Lao or French locale renders `19,884500`
-  and every signature silently fails to verify.
-- Never let a float reach scientific notation. Use
-  `String.format(Locale.ROOT, "%.6f", value)`.
-
-A working reference implementation of the canonical form is in
-`backend/scripts/simulate_journey.py`.
+- Active speed tests (download/upload/latency). The wire format and the server
+  already accept them; the app never populates `active_test`. Passive sampling
+  was the priority because it works everywhere, including where nothing else
+  does.
+- The problem-reporting form (`POST /reports`).
+- Lao translation. Strings are all in `res/values/strings.xml`; a `values-lo/`
+  copy is all that is needed.

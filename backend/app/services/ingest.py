@@ -174,7 +174,12 @@ async def process_batch(
             continue
 
         try:
-            outcome = validate_record(record, public_key=device.public_key, now=received_at)
+            outcome = validate_record(
+                record,
+                public_key=device.public_key,
+                key_algorithm=device.key_algorithm,
+                now=received_at,
+            )
         except Rejection as problem:
             rejected.append(
                 RejectedRecord(

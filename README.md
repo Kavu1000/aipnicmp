@@ -17,8 +17,8 @@ system rather than blank gaps on the map.
 
 | Path | Contents | Status |
 | --- | --- | --- |
-| `backend/` | FastAPI ingestion + map API, PostGIS schema, H3 aggregation (Layers 2, 3, 5) | working, 64 tests passing |
-| `android/` | Kotlin collector app (Layer 1) | not started; constraints documented |
+| `backend/` | FastAPI ingestion + map API, schema, H3 aggregation (Layers 2, 3, 5) | working on live Postgres, 75 tests passing |
+| `android/` | Kotlin collector app (Layer 1) | written, **not yet compiled** — needs Android Studio |
 | `ml/` | Coverage prediction, satellite CV, site ranking (Layer 4) | not started |
 | `web/` | MapLibre public coverage map (Layer 5) | working; operator dashboard not started |
 | `docs/` | Proposal, architecture figures, API contract, decisions | written |
@@ -107,3 +107,7 @@ See [docs/decisions.md](docs/decisions.md). The ones that shape everything else:
   records would bias the map towards places that already have coverage.
 - **Predictions never outrank measurements.** One real reading immediately
   replaces the model's guess for that hexagon.
+- **Signatures are ECDSA P-256, and Ed25519.** Android's Keystore cannot hold an
+  Ed25519 key, and a software key a rooted phone could copy would defeat the
+  point of signing at capture. Devices use hardware-backed P-256; the simulator
+  and tests use Ed25519.

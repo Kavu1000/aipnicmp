@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Coverage Collector</string>
+    <string name="app_tagline">Measures mobile signal where you travel, including places with no service at all.</string>
+
+    <string name="label_status">Status</string>
+    <string name="status_not_enrolled">Not set up yet</string>
+    <string name="status_enrolling">Setting up…</string>
+    <string name="status_idle">Ready, not recording</string>
+    <string name="status_collecting">Recording</string>
+
+    <string name="action_start">Start recording</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_upload_now">Try uploading now</string>
+
+    <string name="label_queued">Waiting to send</string>
+    <string name="hint_queued">Records are kept on this phone until you reach an area with internet. Nothing is lost while you are out of coverage.</string>
+
+    <string name="label_oldest">Oldest waiting record</string>
+    <string name="none">None</string>
+    <string name="never">Never</string>
+    <string name="age_under_hour">Less than an hour old</string>
+    <string name="age_hours">%1$d hours old</string>
+    <string name="age_days">%1$d days old</string>
+
+    <string name="label_sent">Sent</string>
+    <string name="label_rejected">Rejected</string>
+    <string name="label_last_upload">Last successful upload</string>
+    <string name="label_server">Server</string>
+
+    <string name="upload_requested">Upload requested. It will run as soon as this phone has internet.</string>
+
+    <string name="warning_permissions">Location permission is not fully granted. Without it the phone cannot read signal strength, and recording will stop when the screen turns off.</string>
+
+    <string name="background_title">Allow location all the time</string>
+    <string name="background_message">Recording continues while the phone is in your pocket or bag, so the app needs location access all the time. Without it, measurements stop the moment the screen turns off — and most of a journey would go unrecorded.\n\nOn the next screen, please choose “Allow all the time”.</string>
+    <string name="background_continue">Continue</string>
+    <string name="background_skip">Not now</string>
+
+    <string name="error_location_required">Location permission is required. The phone cannot read which mobile towers are nearby without it.</string>
+    <string name="error_enrolment">Could not set up this device.\n\n%1$s\n\nCheck that the phone has internet and that the server address is correct, then try again.</string>
+
+    <string name="privacy_note">This app records signal strength and position only. It does not collect your phone number, contacts, or any account. Positions are combined into map areas before anyone sees them.</string>
+
+    <string name="notification_title">Recording coverage</string>
+    <string name="notification_text">%1$d recorded this session · %2$d waiting to send</string>
+
+    <string name="channel_collection">Coverage recording</string>
+    <string name="channel_collection_description">Shown while the app is measuring mobile signal.</string>
+</resources>

@@ -47,3 +47,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Android Studio generates this with machine-local SDK paths
+android/local.properties
+android/.idea/
