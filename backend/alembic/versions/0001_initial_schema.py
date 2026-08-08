@@ -16,10 +16,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # PostGIS must be created by a superuser. If this fails, ask the DBA to run
-    #   CREATE EXTENSION postgis;
-    # once against this database and re-run the migration.
-    op.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+    # No PostGIS here on purpose. Every spatial operation the platform performs
+    # today is H3-based — tiles are keyed by hexagon id and viewport queries are
+    # plain range scans on lat/lon — so the core schema stays portable and can
+    # be created on a stock PostgreSQL server. The geometry column is added
+    # separately by migration 0002 wherever PostGIS is available.
 
     op.create_table(
         "devices",
@@ -110,17 +111,6 @@ def upgrade() -> None:
     op.create_index("ix_measurements_radio_state", "measurements", ["radio_state"])
     op.create_index("ix_measurements_h3_captured", "measurements", ["h3_index", "captured_at"])
     op.create_index("ix_measurements_state_captured", "measurements", ["radio_state", "captured_at"])
-
-    # Geometry is derived, never supplied: lat/lon are the single source of
-    # truth and the column cannot drift out of step with them.
-    op.execute(
-        """
-        ALTER TABLE measurements
-        ADD COLUMN geom geography(Point, 4326)
-        GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) STORED
-        """
-    )
-    op.execute("CREATE INDEX ix_measurements_geom ON measurements USING GIST (geom)")
 
     op.create_table(
         "cell_observations",
@@ -223,4 +213,3 @@ def downgrade() -> None:
     op.drop_table("measurements")
     op.drop_table("ingest_batches")
     op.drop_table("devices")
-    # postgis is left installed: other schemas in the same database may use it.

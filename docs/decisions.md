@@ -79,12 +79,24 @@ A hexagon with no measurement and no prediction is simply absent from the API
 response. The server does not invent "unknown" rows. "Not yet measured" is the
 absence of a claim, not a claim.
 
-## 9. Geometry is a generated column, not an ORM field
+## 9. PostGIS is an upgrade, not a prerequisite
 
-`measurements.geom` is derived by PostGIS from `lon`/`lat`
-(`GENERATED ALWAYS AS ... STORED`). The coordinates have exactly one source of
-truth and the geometry cannot drift out of step with them. It also keeps the ORM
-free of a spatial type, so the test suite runs on SQLite with no SpatiaLite.
+The proposal names PostGIS, and the target server turned out to run the stock
+`postgres:16` image without it. Rather than block the pilot, the schema was
+split: migration 0001 creates everything on plain PostgreSQL, and migration 0002
+adds the geometry column only where PostGIS exists, warning otherwise.
+
+This is possible because nothing in the platform needs PostGIS today. Coverage
+is aggregated by H3 hexagon id and the map queries a lat/lon range. PostGIS
+earns its place in Layer 4, where ranking tower sites means asking which
+unserved settlements fall inside a radius — that wants real geodesic distance
+and a GiST index, not an approximation in Python.
+
+When it is added, `measurements.geom` is a generated column
+(`GENERATED ALWAYS AS ... STORED`) over `lon`/`lat`, so the coordinates stay the
+single source of truth and the geometry cannot drift out of step with them.
+`scripts/enable_postgis.py` exists because migration 0002 will already be
+stamped on a database created before PostGIS arrived.
 
 ## 10. Tile colour is the median state, and the worst state is kept beside it
 
@@ -119,11 +131,22 @@ as a new installation.
 An empty `ADMIN_TOKEN` locks the tile rebuild rather than opening it, so a
 forgotten config fails safe.
 
+## 15. Alembic reads the database URL directly, not through alembic.ini
+
+`alembic.ini` is parsed by configparser with interpolation enabled, so writing
+the URL into it makes any percent-encoded character in the password raise
+"invalid interpolation syntax" before a single migration runs. Since a password
+containing `@` *must* be percent-encoded, that is not an edge case. `env.py`
+takes the URL straight from settings instead.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified
   server-side; it needs a Play Console project. Until then `trust_level` is
   advisory.
+- **PostGIS on db2.chax.site**: absent today. Needed before Layer 4 site
+  ranking; see `docs/setup.md` for how to add it and why it needs a maintenance
+  window.
 - **Role-based access** (public / operator / ministry, proposal 3.5) needs an
   identity provider decision. The single admin token is a placeholder.
 - **H3 resolution**: currently 8 (~0.7 km² hexes). The right value depends on

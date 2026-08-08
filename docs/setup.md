@@ -1,78 +1,95 @@
-# Setup — what the backend needs from the server and database
+# Setup — database and server
 
-Everything here is what you provide; the code is already written against it.
+## Current state (2026-08-08)
 
-## 1. PostgreSQL
+The database is **live and working**.
 
-**Required version:** PostgreSQL 14 or newer (the schema uses a
-`GENERATED ALWAYS AS ... STORED` column, added in 12, and is otherwise plain).
+| | |
+| --- | --- |
+| Server | `db2.chax.site`, PostgreSQL **16.14** (Debian, stock `postgres:16` image) |
+| Reached via | Cloudflare Tunnel — port 5432 is not exposed to the internet |
+| Database | `aipnicmp` (created 2026-08-08; other databases on the server untouched) |
+| Role | `aiadmin` — superuser |
+| Schema | migrations `0001` and `0002` applied |
+| Seeded | 750 simulated measurements, 124 H3 tiles |
+| PostGIS | **not installed** — see below |
 
-**Required extension: PostGIS.** It must be *installed on the server*, and
-created once in this database by a superuser:
+### Connecting
 
-```sql
-CREATE DATABASE aipnicmp;
-CREATE USER aipnicmp WITH PASSWORD 'a-strong-password';
-GRANT ALL PRIVILEGES ON DATABASE aipnicmp TO aipnicmp;
-\c aipnicmp
-CREATE EXTENSION IF NOT EXISTS postgis;
-GRANT ALL ON SCHEMA public TO aipnicmp;
+The tunnel must be running before anything can reach the database:
+
+```bash
+~/.cloudflared/cloudflared.exe access tcp --hostname db2.chax.site --url 127.0.0.1:55432
 ```
 
-The migration also tries `CREATE EXTENSION IF NOT EXISTS postgis`, which
-succeeds silently if a superuser already ran it and fails clearly if PostGIS is
-not installed on the server at all.
+`backend/.env` points at `127.0.0.1:55432`. Leave the tunnel running in its own
+terminal while working; nothing else is needed.
 
-> **Note on the portable Postgres in `Documents/Crew/pgsql`:** it has no PostGIS
-> extension. If that is the instance you intend to use, PostGIS has to be added
-> to it (the PostGIS Windows bundle), or point the project at a different
-> server.
+Note the password's `@` is percent-encoded as `%40` in the URLs. Unencoded, the
+driver reads it as the start of the hostname and fails confusingly.
 
-**Send me:** host, port, database name, username, password. I only need them in
-`backend/.env`, which is gitignored.
+## PostGIS is optional, and currently absent
 
-**TimescaleDB** is in the proposal for outage detection (Layer 4). It is not
-needed yet — nothing in the current code depends on it. Worth deciding before
-the anomaly-detection work starts.
+`db2.chax.site` runs the stock `postgres:16` image, which ships no PostGIS.
+Rather than block on it, the schema was split:
 
-## 2. Redis (optional for now)
+- **Migration 0001** creates every table and index, and needs only stock
+  PostgreSQL.
+- **Migration 0002** adds `measurements.geom` — a generated
+  `geography(Point, 4326)` column with a GiST index — **only if PostGIS is
+  available**, and logs a warning otherwise.
 
-Only needed when the Celery worker runs the hourly tile rebuild. Until then the
-rebuild can be triggered by the admin endpoint. If you have Redis, send me the
-URL; if not, nothing breaks.
+Nothing in the platform needs PostGIS today. Coverage is aggregated by H3
+hexagon id and the map queries a plain lat/lon range, so the pilot runs fully on
+what is installed now.
 
-## 3. Server
+**Where PostGIS will earn its place: Layer 4 site ranking.** Asking "which
+unserved settlements fall within this tower's radius" wants real geodesic
+distance and a spatial index, not an approximation in Python. Worth having
+before that work starts; not worth blocking anything for now.
 
-For the pilot the API needs very little: 2 vCPU / 4 GB is comfortable. What
-matters more:
+### Adding it later
 
-- **A public HTTPS endpoint.** Android 9+ blocks cleartext HTTP by default, and
-  the whole upload path assumes TLS. A domain name with a Let's Encrypt
-  certificate, or a reverse proxy that terminates TLS, is required before the
-  app can talk to it from a real phone.
-- **Outbound internet** if we later fetch SRTM/Sentinel-2 data on the server.
-- **Disk**: measurements are small (~1 KB each with cell observations). A
-  province-scale pilot is well under a gigabyte.
+Switch the image to `postgis/postgis:16-3.4` — a drop-in superset of
+`postgres:16`, same major version, so the existing data directory is unaffected.
+On a plain Debian host, `apt install postgresql-16-postgis-3` instead.
 
-**Send me:** the hostname or IP, how you want me to deploy (systemd + nginx,
-Docker, or you deploy from a build I hand over), and whether I have SSH access
-or should produce a deployment package.
+**Careful:** that server also hosts `ceit-ai-db`, `ceit-meet-db`,
+`cha-website-db`, `ceit_ams`, `amai` and `IMIS`. An image change restarts the
+whole instance, so it needs a maintenance window rather than a casual `docker
+compose up -d`.
 
-## 4. Decisions I need from you (not blocking today's work)
+Then, once:
 
-1. **Which province for the pilot?** It sets the map's default viewport, the
-   terrain tiles we download, and which routes matter. The simulator currently
+```bash
+cd backend && .venv/Scripts/python scripts/enable_postgis.py
+```
+
+Idempotent, and safe to run repeatedly. Migration 0002 will already be stamped
+on this database, which is exactly why the standalone script exists.
+
+## Still needed from you
+
+**A public HTTPS endpoint for the API.** Android 9+ blocks cleartext HTTP, so
+the collector app cannot talk to the backend until it has a real certificate.
+The same Cloudflare account already in use would serve this well — a tunnel to
+the API host gives HTTPS with no certificate management at all.
+
+**Redis**, when the Celery worker should take over the hourly tile rebuild.
+Optional; the admin endpoint covers it for now.
+
+## Decisions that unblock other tracks
+
+1. **Which province for the pilot?** Sets the map's default viewport, the
+   terrain tiles to download, and which routes matter. The simulator currently
    uses Route 13 North, Luang Prabang → Nong Khiaw, as a placeholder.
-2. **Which operators** to name in the data (LTC, Unitel, ETL, Beeline)? Their
-   MCC/MNC pairs should be seeded so the dashboard can filter by network.
+2. **Which operators** to seed (LTC, Unitel, ETL, Beeline) with their MCC/MNC
+   pairs, so the dashboard can filter by network.
 3. **Play Store or sideload for phase 1?** Sideloading to partner collectors
-   (bus drivers, health workers) avoids the background-location policy review
-   entirely and is much faster for a pilot. Play Store distribution needs a
-   Console account and a declared justification for background location.
+   avoids Google's background-location review entirely — weeks of delay, and the
+   single largest schedule risk in the Android track.
 
-## 5. What I do not need and will not ask for
+## What is deliberately not collected
 
-No API keys, no personal data, no production credentials for anything outside
-this project. The system deliberately stores no phone numbers, IMEIs or
-accounts — the only device identifier is a random id generated on first launch
-and discarded on uninstall.
+No phone numbers, IMEIs or accounts. The only device identifier is a random id
+generated on first launch and discarded on uninstall.

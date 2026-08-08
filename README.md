@@ -29,7 +29,14 @@ system rather than blank gaps on the map.
 cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements-dev.txt
 ```
 
-Copy `backend/.env.example` to `backend/.env` and fill in the database URL, then:
+Copy `backend/.env.example` to `backend/.env` and fill in the database URL. The
+project database lives behind a Cloudflare Tunnel, so open that first:
+
+```bash
+~/.cloudflared/cloudflared.exe access tcp --hostname db2.chax.site --url 127.0.0.1:55432
+```
+
+Then:
 
 ```bash
 cd backend && .venv/Scripts/python -m alembic upgrade head
@@ -66,9 +73,9 @@ deleted wholesale before real collection starts.
 cd backend && .venv/Scripts/python -m pytest -q
 ```
 
-The suite runs against in-memory SQLite and needs no database. Two things it
-cannot cover — the PostGIS generated geometry column and the migration itself —
-are verified by running the migration against the real database.
+The suite runs against in-memory SQLite and needs no database. The migrations
+themselves are verified by running them against the real PostgreSQL server; see
+[docs/setup.md](docs/setup.md).
 
 ## The five radio states
 
