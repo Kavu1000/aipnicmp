@@ -1,0 +1,27 @@
+# Core API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+geoalchemy2==0.16.0
+psycopg[binary]==3.2.3
+
+# Spatial / analytics
+h3==4.2.1
+
+# Crypto (device signature verification)
+cryptography==44.0.0
+
+# Background jobs
+celery==5.4.0
+redis==5.2.1
+
+# Utilities
+python-multipart==0.0.20
+orjson==3.10.13
+structlog==24.4.0

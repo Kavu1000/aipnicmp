@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets and local config
+.env
+.env.local
+*.pem
+*.key
+!*.pub.pem
+
+# Data and models
+data/
+*.tif
+*.tiff
+*.hgt
+*.parquet
+ml/artifacts/
+ml/.cache/
+
+# Node / web
+node_modules/
+web/dist/
+web/.vite/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
