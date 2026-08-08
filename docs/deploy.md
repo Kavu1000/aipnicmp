@@ -71,23 +71,33 @@ Then fill in **Environment variables**:
 | --- | --- | --- |
 | `BACKEND_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-backend:latest` |
 | `WEB_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-web:latest` |
-| `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@db2:5432/aipnicmp` | `@` in the password **must** be `%40` |
-| `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@db2:5432/aipnicmp` | same database, sync driver, for Alembic |
+| `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | `@` in the password **must** be `%40` |
+| `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | same database, sync driver, for Alembic |
 | `CORS_ORIGINS` | `https://map.yourdomain.la` | comma-separated; no trailing slash |
 | `JWT_SECRET` | 48 random bytes | `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `ADMIN_TOKEN` | another random string | empty keeps the admin endpoints closed |
 | `WEB_PORT` | `8090` | host port for nginx |
 
-### The database host inside Docker
+### The database host: 192.168.15.21
 
 The stack does **not** include PostgreSQL. The database already exists and holds
 real collected data; a compose file able to recreate it is a compose file able
 to destroy it.
 
-If Postgres runs as a container on the same Docker host, put both on the same
-network and use its **service or container name** as the host — not
-`localhost`, which inside a container means the container itself. If it is on
-another machine, use its address and make sure the stack can reach it.
+**From the production server, the database is reached directly at
+`192.168.15.21:5432`** — it is on the same internal network. The Cloudflare
+tunnel is *not* involved and must not appear in these URLs.
+
+That tunnel exists only for development: a laptop outside that network cannot
+reach `192.168.15.21`, so `cloudflared access tcp` forwards it to
+`127.0.0.1:55432` locally. Two different paths to one database:
+
+| Where | Host in the URL |
+| --- | --- |
+| Production containers | `192.168.15.21:5432` |
+| Development laptop | `127.0.0.1:55432` (via `cloudflared access tcp`) |
+
+Never `localhost` in a container — inside one, that means the container itself.
 
 ## 4. If the images are private
 

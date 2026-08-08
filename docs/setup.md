@@ -7,7 +7,7 @@ The database is **live and working**.
 | | |
 | --- | --- |
 | Server | `db2.chax.site`, PostgreSQL **16.14** (Debian, stock `postgres:16` image) |
-| Reached via | Cloudflare Tunnel — port 5432 is not exposed to the internet |
+| Reached via | `192.168.15.21:5432` from the production network; a Cloudflare Tunnel from anywhere else |
 | Database | `aipnicmp` (created 2026-08-08; other databases on the server untouched) |
 | Role | `aiadmin` — superuser |
 | Schema | migrations `0001` and `0002` applied |
@@ -16,7 +16,12 @@ The database is **live and working**.
 
 ### Connecting
 
-The tunnel must be running before anything can reach the database:
+**From the production server** the database is directly reachable at
+`192.168.15.21:5432`, and the tunnel plays no part. Containers deployed by
+Portainer use that address.
+
+**From a development machine** outside that network, the tunnel must be running
+first:
 
 ```bash
 ~/.cloudflared/cloudflared.exe access tcp --hostname db2.chax.site --url 127.0.0.1:55432
