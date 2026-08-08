@@ -25,19 +25,17 @@ Both images are pushed only after the backend tests, the migration round-trip,
 the web typecheck and the Android unit tests have passed. A broken canonical
 signing string can therefore never reach the server.
 
-## 1. Push the repository
+## 1. The repository
 
-```bash
-gh repo create aipnicmp --private --source=. --remote=origin --push
-```
+**https://github.com/tsabxyooj2018/aipnicmp** — private.
 
-**Private is the right default.** The code contains no credentials — that was
-checked — but `docs/setup.md` and `scripts/init_db.py` name the database host
-and the `aiadmin` username, which is free reconnaissance for anyone who finds
-the repo. Make it public later, once those are parameterised, if the project
-wants to publish its methodology.
+Private is the right default here. The code contains no credentials — that was
+checked before the first push — but `docs/setup.md` and `scripts/init_db.py`
+name the database host and the `aiadmin` username, which is free reconnaissance
+for anyone who finds the repo. Make it public later, once those are
+parameterised, if the project wants to publish its methodology.
 
-## 2. Let CI build the images
+## 2. CI builds the images
 
 The workflow runs on every push to `main`. Watch it with:
 
@@ -45,11 +43,21 @@ The workflow runs on every push to `main`. Watch it with:
 gh run watch
 ```
 
-Images land at `ghcr.io/<owner>/aipnicmp-backend:latest` and `-web:latest`.
+Confirmed working. Each successful run publishes:
 
-**GHCR packages are private by default.** Either make them public (GitHub →
-your profile → Packages → each package → Package settings → Change visibility),
-or give Portainer a pull secret — see step 4.
+```
+ghcr.io/tsabxyooj2018/aipnicmp-backend:latest   (also :main and :sha-<short>)
+ghcr.io/tsabxyooj2018/aipnicmp-web:latest       (also :main and :sha-<short>)
+```
+
+and attaches the debug APK as the `coverage-collector-debug` artifact (~6.3 MB),
+so a collector build is downloadable without any local Android toolchain.
+
+Prefer a `:sha-` or `:v` tag over `:latest` on the server — it makes a rollback
+a one-line change rather than a guess about which image is running.
+
+**Because the repository is private, so are the packages.** Portainer needs a
+pull secret; see step 4.
 
 ## 3. Create the stack in Portainer
 
@@ -61,7 +69,7 @@ Then fill in **Environment variables**:
 
 | Variable | Value | Notes |
 | --- | --- | --- |
-| `IMAGE_OWNER` | your GitHub username | lowercase; GHCR paths are case-sensitive |
+| `IMAGE_OWNER` | `tsabxyooj2018` | lowercase; GHCR paths are case-sensitive |
 | `IMAGE_TAG` | `latest` | or a `v1.2.3` tag for a pinned deploy |
 | `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@db2:5432/aipnicmp` | `@` in the password **must** be `%40` |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@db2:5432/aipnicmp` | same database, sync driver, for Alembic |
@@ -86,8 +94,13 @@ another machine, use its address and make sure the stack can reach it.
 Portainer → **Registries** → **Add registry** → **Custom**:
 
 - URL: `ghcr.io`
-- Username: your GitHub username
-- Password: a personal access token with `read:packages`
+- Username: `tsabxyooj2018`
+- Password: a personal access token with the **`read:packages`** scope
+
+Create the token at GitHub → Settings → Developer settings → Personal access
+tokens. `read:packages` alone is enough — it cannot push images or touch the
+repository, so a leak from the server is limited to pulling what it could
+already run.
 
 Then pick that registry when deploying the stack.
 
@@ -136,9 +149,11 @@ rollback is just changing the variable back.
 
 ## Not yet done
 
-- **Image builds are untested locally.** There is no Docker on the development
-  machine, so the first real build of these Dockerfiles happens in CI. Expect to
-  fix something on the first run; the workflow will say what.
+- **The images have never been run.** CI builds them successfully, but nothing
+  has yet started a container from one. The first `docker compose up` in
+  Portainer is their first execution — most likely place for a problem is the
+  entrypoint or a missing environment variable, and both report clearly in the
+  container logs.
 - No automatic redeploy on push. Portainer can poll the repository or accept a
   webhook; deliberately left manual so a deploy to a server collecting real
   field data stays a decision rather than a side effect.
