@@ -5,7 +5,15 @@
 # recreate it is a compose file that could destroy it.
 #
 # Set the variables in Portainer's "Environment variables" panel (see
-# docs/deploy.md); everything below reads them from the environment.
+# docs/deploy.md).
+#
+# Image names are single, fully-formed references with working defaults, not
+# assembled from registry/owner/tag fragments. Composing them meant one unset
+# fragment produced "ghcr.io//aipnicmp-backend:latest" — a double slash, which
+# Docker rejects as "invalid reference format" without naming the variable that
+# was empty. To pin a version, override the whole reference:
+#
+#   BACKEND_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-backend:sha-497b81d
 
 name: aipnicmp
 
@@ -13,7 +21,7 @@ services:
   # One-shot: applies migrations, then exits. Portainer shows it as "exited (0)"
   # when it has done its job — that is success, not a failure.
   migrate:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-backend:latest}
     restart: "no"
     environment:
       RUN_MIGRATIONS: "true"
@@ -23,7 +31,7 @@ services:
     networks: [aipnicmp]
 
   api:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-backend:latest}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -50,7 +58,7 @@ services:
       - "8000"
 
   web:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-web:${IMAGE_TAG:-latest}
+    image: ${WEB_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-web:latest}
     restart: unless-stopped
     depends_on:
       - api
@@ -74,7 +82,7 @@ services:
   # trigger a rebuild by hand, and aggregation is a pure function of the
   # measurements, so a missed run costs nothing but freshness.
   worker:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-backend:latest}
     restart: unless-stopped
     depends_on:
       - api

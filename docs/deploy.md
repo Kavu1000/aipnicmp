@@ -69,8 +69,8 @@ Then fill in **Environment variables**:
 
 | Variable | Value | Notes |
 | --- | --- | --- |
-| `IMAGE_OWNER` | `tsabxyooj2018` | lowercase; GHCR paths are case-sensitive |
-| `IMAGE_TAG` | `latest` | or a `v1.2.3` tag for a pinned deploy |
+| `BACKEND_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-backend:latest` |
+| `WEB_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-web:latest` |
 | `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@db2:5432/aipnicmp` | `@` in the password **must** be `%40` |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@db2:5432/aipnicmp` | same database, sync driver, for Alembic |
 | `CORS_ORIGINS` | `https://map.yourdomain.la` | comma-separated; no trailing slash |
@@ -143,9 +143,26 @@ Then open `https://YOUR_HOST/` for the map.
 ## Updating
 
 Push to `main`, wait for the workflow, then Portainer → the stack → **Update
-the stack** with **Re-pull image** ticked. For a controlled release, push a tag
-(`git tag v0.2.0 && git push --tags`) and set `IMAGE_TAG` to that version, so a
-rollback is just changing the variable back.
+the stack** with **Re-pull image** ticked. For a controlled release, pin the
+full reference and change it deliberately:
+
+```
+BACKEND_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-backend:sha-497b81d
+WEB_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-web:sha-497b81d
+```
+
+Rolling back is then editing those two lines back to the previous sha.
+
+## If the stack fails to deploy
+
+**`invalid reference format`** means Docker could not parse an image name.
+Almost always an environment variable that resolved to empty, leaving a double
+slash or a bare `:tag`. The image names now carry complete defaults, so the
+stack deploys with no variables set at all — if you still see this, something
+is overriding `BACKEND_IMAGE` or `WEB_IMAGE` with a malformed value.
+
+**`manifest unknown` / `denied`** means the pull failed, not the parse. The
+packages are private, so add the `ghcr.io` registry credential in step 4.
 
 ## Not yet done
 
