@@ -2,9 +2,10 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
@@ -27,7 +28,12 @@ class Settings(BaseSettings):
     env: str = "dev"
     log_level: str = "INFO"
     api_prefix: str = "/api/v1"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    # NoDecode stops pydantic-settings trying to JSON-parse this before the
+    # validator below runs — without it, a plain comma-separated CORS_ORIGINS in
+    # .env raises at import time instead of being split.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
 
     # Ingestion limits
     max_batch_records: int = 1000

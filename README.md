@@ -17,10 +17,10 @@ system rather than blank gaps on the map.
 
 | Path | Contents | Status |
 | --- | --- | --- |
-| `backend/` | FastAPI ingestion + map API, PostGIS schema, H3 aggregation (Layers 2, 3, 5) | working, 59 tests passing |
-| `android/` | Kotlin collector app (Layer 1) | not started |
+| `backend/` | FastAPI ingestion + map API, PostGIS schema, H3 aggregation (Layers 2, 3, 5) | working, 64 tests passing |
+| `android/` | Kotlin collector app (Layer 1) | not started; constraints documented |
 | `ml/` | Coverage prediction, satellite CV, site ranking (Layer 4) | not started |
-| `web/` | MapLibre public map and operator dashboard (Layer 5) | not started |
+| `web/` | MapLibre public coverage map (Layer 5) | working; operator dashboard not started |
 | `docs/` | Proposal, architecture figures, API contract, decisions | written |
 
 ## Quick start (backend)
