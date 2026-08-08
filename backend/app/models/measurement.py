@@ -42,6 +42,12 @@ class IngestBatch(Base):
     # locate anyone.
     client_ip_hash: Mapped[str | None] = mapped_column(String(64))
 
+    # Why records were refused, as "reason xN" pairs. A rejected record is
+    # dropped by the device and never resent, so without this the only evidence
+    # of lost data would be a count — and a collector silently discarding every
+    # reading would look identical to one that is working.
+    rejection_summary: Mapped[str | None] = mapped_column(String(500))
+
     __table_args__ = (UniqueConstraint("device_id", "batch_id", name="uq_ingest_batches_device_batch"),)
 
 

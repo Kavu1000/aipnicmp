@@ -77,6 +77,13 @@ The suite runs against in-memory SQLite and needs no database. The migrations
 themselves are verified by running them against the real PostgreSQL server; see
 [docs/setup.md](docs/setup.md).
 
+## Deployment
+
+GitHub Actions builds the container images; Portainer pulls and runs them. See
+[docs/deploy.md](docs/deploy.md). Nothing is built on the server, and images are
+pushed only after the backend tests, a migration round-trip, the web typecheck
+and the Android unit tests have all passed.
+
 ## The five radio states
 
 The classification is the project's policy argument in code. A binary

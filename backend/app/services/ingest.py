@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+from collections import Counter
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
@@ -24,6 +26,8 @@ from app.services.validation import (
     check_upload_origin,
     validate_record,
 )
+
+log = logging.getLogger(__name__)
 
 
 async def _existing_record_ids(session: AsyncSession, device_id: str, ids: list[str]) -> set[str]:
@@ -210,6 +214,23 @@ async def process_batch(
 
     batch_row.accepted_count = accepted
     batch_row.rejected_count = len(rejected)
+
+    if rejected:
+        counts = Counter(item.reason for item in rejected)
+        batch_row.rejection_summary = ", ".join(
+            f"{reason} x{count}" for reason, count in counts.most_common()
+        )[:500]
+        # Logged as well as stored: during a pilot, someone watching the server
+        # should see a device losing its data without having to query for it.
+        log.warning(
+            "batch %s from %s: %d accepted, %d rejected (%s) — first detail: %s",
+            batch.batch_id,
+            device.install_id,
+            accepted,
+            len(rejected),
+            batch_row.rejection_summary,
+            rejected[0].detail,
+        )
 
     await session.execute(
         update(Device)

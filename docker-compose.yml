@@ -1,0 +1,97 @@
+# AI-PNICMP stack — paste this into Portainer → Stacks → Add stack.
+#
+# Postgres is NOT part of this stack: the database already exists on
+# db2.chax.site and holds real collected data. A compose file that could
+# recreate it is a compose file that could destroy it.
+#
+# Set the variables in Portainer's "Environment variables" panel (see
+# docs/deploy.md); everything below reads them from the environment.
+
+name: aipnicmp
+
+services:
+  # One-shot: applies migrations, then exits. Portainer shows it as "exited (0)"
+  # when it has done its job — that is success, not a failure.
+  migrate:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    restart: "no"
+    environment:
+      RUN_MIGRATIONS: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC}
+    command: ["python", "-c", "print('migrations complete')"]
+    networks: [aipnicmp]
+
+  api:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      # Migrations are handled by the one-shot service above, so this stays
+      # false — several replicas racing on the same migration is a bad day.
+      RUN_MIGRATIONS: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ENV: ${ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+      REQUIRE_RECORD_SIGNATURE: ${REQUIRE_RECORD_SIGNATURE:-true}
+      H3_RESOLUTION: ${H3_RESOLUTION:-8}
+      TILE_MIN_DEVICES: ${TILE_MIN_DEVICES:-2}
+    networks: [aipnicmp]
+    # Not published to the host: the web container proxies to it, and the only
+    # thing that should face the internet is a TLS terminator.
+    expose:
+      - "8000"
+
+  web:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_UPSTREAM: http://api:8000
+    ports:
+      # Host port -> nginx. Put a reverse proxy or Cloudflare tunnel in front
+      # of this for TLS; Android will not upload over cleartext.
+      - "${WEB_PORT:-8090}:80"
+    networks: [aipnicmp]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    networks: [aipnicmp]
+
+  # Hourly H3 tile rebuild. Safe to scale to zero — the admin endpoint can
+  # trigger a rebuild by hand, and aggregation is a pure function of the
+  # measurements, so a missed run costs nothing but freshness.
+  worker:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER}/aipnicmp-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+      - redis
+    environment:
+      RUN_MIGRATIONS: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ENV: ${ENV:-production}
+      H3_RESOLUTION: ${H3_RESOLUTION:-8}
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=2"]
+    networks: [aipnicmp]
+
+networks:
+  aipnicmp:
+    driver: bridge
+
+volumes:
+  redis-data:
