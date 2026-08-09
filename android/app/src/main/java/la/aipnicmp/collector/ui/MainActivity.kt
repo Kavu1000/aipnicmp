@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.serverValue.setText(prefs.apiBaseUrl)
         binding.saveServerButton.setOnClickListener { onSaveServer() }
+        binding.resetServerButton.setOnClickListener { onResetServer() }
         binding.toggleButton.setOnClickListener { onToggle() }
         binding.uploadButton.setOnClickListener {
             UploadScheduler.requestUpload(this)
@@ -178,6 +179,26 @@ class MainActivity : AppCompatActivity() {
         }
         binding.serverValue.setText(prefs.apiBaseUrl)
         showMessage(getString(R.string.server_saved))
+        refresh()
+    }
+
+    /**
+     * Return to the address this build ships with.
+     *
+     * The recovery path when a phone is pointed at a server that has moved or
+     * never existed. Without it the only remedy is reinstalling, which throws
+     * away the queue of records the device is holding — the very data that
+     * cannot be collected again.
+     */
+    private fun onResetServer() {
+        if (CollectionService.isRunning) {
+            showMessage(getString(R.string.error_server_while_running))
+            return
+        }
+        prefs.resetApiBaseUrl()
+        prefs.enrolled = false
+        binding.serverValue.setText(prefs.apiBaseUrl)
+        showMessage(getString(R.string.server_reset, prefs.apiBaseUrl))
         refresh()
     }
 
