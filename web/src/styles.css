@@ -1544,15 +1544,6 @@ main {
     max-width: none;
   }
 
-  /* The credits stack under the sign-in button rather than beside it. */
-  .login-body {
-    grid-template-columns: 1fr;
-  }
-
-  .login-credits {
-    border-inline-start: none;
-    border-top: 1px solid var(--line);
-  }
 }
 
 /* ---------- phones ----------
@@ -1651,6 +1642,76 @@ main {
     max-width: calc(100% - 2rem);
     font-size: 0.75rem;
   }
+
+  /* ---------- sign in, on a phone ----------
+
+     The card stacks only here, not at the shell's 900 px breakpoint. That one
+     exists because the sidebar has to fold away; this card has no sidebar and
+     two columns fit comfortably at 800 px. Stacking it there made the card
+     884 px tall on a 375 px-tall landscape screen for no reason at all.
+  */
+
+  .login {
+    padding: 1rem 0.75rem;
+  }
+
+  .login-card {
+    border-radius: 14px;
+  }
+
+  .login-body {
+    grid-template-columns: 1fr;
+  }
+
+  .login-credits {
+    border-inline-start: none;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Every panel loses roughly a third of its padding: on a 375 px screen that
+     is the difference between the sign-in button being on the first screen and
+     below it. */
+  .login-head {
+    gap: 0.7rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .login-head h1 {
+    font-size: 1rem;
+  }
+
+  .login-head p {
+    font-size: 0.72rem;
+  }
+
+  .login-action {
+    padding: 1.5rem 1.1rem;
+  }
+
+  .login-action h2 {
+    font-size: 1.25rem;
+  }
+
+  .login-why {
+    font-size: 0.84rem;
+  }
+
+  .login-credits {
+    padding: 1.4rem 1.1rem;
+  }
+
+  .login-credits ul {
+    gap: 0.45rem;
+  }
+
+  .login-affiliation {
+    margin-top: 1.1rem;
+  }
+
+  .login-pending p,
+  .login-note {
+    font-size: 0.8rem;
+  }
 }
 
 /* ---------- short viewports ----------
@@ -1696,6 +1757,21 @@ main {
   .inspector,
   .area-summary {
     max-height: calc(100% - 1rem);
+  }
+
+  /* Sideways there is width but almost no height, so the sign-in card spends
+     as little of it as possible on padding. */
+  .login {
+    padding: 0.75rem;
+  }
+
+  .login-head {
+    padding: 0.75rem 1.2rem;
+  }
+
+  .login-action,
+  .login-credits {
+    padding: 1.3rem 1.3rem;
   }
 }
 
