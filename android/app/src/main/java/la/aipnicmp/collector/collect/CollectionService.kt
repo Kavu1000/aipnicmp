@@ -52,6 +52,12 @@ class CollectionService : Service() {
         /** Broadcast so the UI can show progress without binding to the service. */
         const val ACTION_STATE_CHANGED = "la.aipnicmp.collector.STATE_CHANGED"
 
+        /** Above this, the fix came from wifi or cell towers rather than GPS. */
+        private const val MAX_ACCURACY_METRES = 50f
+
+        /** Older than this and the phone may have moved since the fix was taken. */
+        private const val MAX_FIX_AGE_MILLIS = 90_000L
+
         @Volatile
         var isRunning: Boolean = false
             private set
@@ -126,12 +132,30 @@ class CollectionService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun requestLocationUpdates() {
-        // Balanced power rather than high accuracy: a 10-20 m fix is far finer
-        // than the ~700 m hexagons the data is aggregated into, and battery is
-        // what decides whether a volunteer keeps the app installed.
-        val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 30_000L)
-            .setMinUpdateIntervalMillis(15_000L)
+        // High accuracy, meaning GPS — not the balanced-power mode, which
+        // derives a position from wifi and cell towers.
+        //
+        // Two reasons, and the first is fatal on its own:
+        //
+        //  1. A network-derived fix is unavailable in exactly the places this
+        //     project exists to measure. Where there is no cell and no wifi
+        //     there is nothing to derive a position from — but GPS still works,
+        //     because it only listens to satellites.
+        //
+        //  2. Those fixes can be catastrophically wrong. Wifi databases contain
+        //     access points that have physically moved, sometimes between
+        //     countries, and a stale entry places the phone thousands of
+        //     kilometres away. Field testing produced exactly that: half the
+        //     readings landed outside Lao PDR and the server refused them.
+        //
+        // A coverage map built on network-derived positions would attribute
+        // readings to the wrong village, which is worse than no reading at all.
+        // GPS costs more battery; a wrong position costs more than that.
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 30_000L)
+            .setMinUpdateIntervalMillis(10_000L)
             .setMinUpdateDistanceMeters(50f)
+            // Wait for a real fix rather than handing back a coarse one first.
+            .setWaitForAccurateLocation(true)
             .build()
 
         try {
@@ -146,9 +170,16 @@ class CollectionService : Service() {
         val now = System.currentTimeMillis()
         if (!sampler.shouldSample(fix.latitude, fix.longitude, now)) return
 
-        // A fix this coarse is usually network-derived, which cannot be true
-        // where there is no network — and the server would reject it anyway.
-        if (fix.accuracy > 100f) return
+        // A fix this coarse is network-derived rather than satellite-derived,
+        // and cannot be trusted to be in the right province, let alone the
+        // right hexagon. 50 m is comfortably finer than the ~700 m hexagons
+        // the data aggregates into, so nothing useful is lost by refusing it.
+        if (!fix.hasAccuracy() || fix.accuracy > MAX_ACCURACY_METRES) return
+
+        // A cached fix from before the phone moved would put this reading in
+        // the wrong place. Android hands out the last known location freely;
+        // a measurement needs one taken now.
+        if (now - fix.time > MAX_FIX_AGE_MILLIS) return
 
         val snapshot = radio.sample()
         val measurement = try {
