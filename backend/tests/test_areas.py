@@ -14,6 +14,7 @@ could identify whoever drove through it.
 from __future__ import annotations
 
 import base64
+import json
 import math
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -246,6 +247,64 @@ def test_shape_index_finds_the_containing_area():
     assert index.find(102.0, 19.7) == "south"
     assert index.find(102.0, 20.2) == "north"
     assert index.find(99.0, 19.7) is None
+
+
+# --------------------------------------------------------------------------
+# Import
+# --------------------------------------------------------------------------
+
+
+def test_the_importer_reads_the_lowercase_cod_ab_convention(tmp_path):
+    """COD-AB ships in two naming conventions and the current Lao release uses
+    the lowercase one, where the Lao script lives in ``adm2_name1`` rather than
+    a language-suffixed field. Reading only the uppercase form imported the
+    whole country nameless."""
+    from scripts.import_admin_areas import load_features
+
+    path = tmp_path / "adm2.geojson"
+    path.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {
+                            "adm2_name": "Park Ou",
+                            "adm2_name1": "ມ. ປາກອູ",
+                            "adm2_pcode": "LA0604",
+                            "adm1_pcode": "LA06",
+                        },
+                        "geometry": square(102.0, 20.0, 102.5, 20.5),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rows, problems = load_features(
+        path,
+        2,
+        simplify_deg=0.001,
+        village_radius_m=2000,
+        overrides={"name": None, "code": None, "parent": None},
+    )
+
+    assert problems == []
+    assert len(rows) == 1
+    assert rows[0].code == "LA0604"
+    assert rows[0].name_en == "Park Ou"
+    assert rows[0].name_lo == "ມ. ປາກອູ"
+    assert rows[0].parent_code == "LA06"
+
+
+def test_computed_area_matches_the_published_figure():
+    """The importer computes its own km² rather than trusting the source, and
+    the two must agree — this is what caught the spherical-vs-planar question.
+    A degree box at Lao latitudes is ~11,600 km², not ~12,300."""
+    box = shape_of(square(102.0, 19.0, 103.0, 20.0))
+    assert abs(shape_area_km2(box) - 11_600) < 600
 
 
 # --------------------------------------------------------------------------

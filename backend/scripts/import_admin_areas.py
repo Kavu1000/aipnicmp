@@ -85,28 +85,34 @@ LEVEL_ARGUMENTS = {
 }
 
 # Property names to try, in order, for each level. First hit wins.
+#
+# COD-AB ships in two naming conventions depending on vintage — the uppercase
+# ADM1_EN form and the lowercase adm1_name form, the latter putting the local
+# script in adm1_name1 rather than a language-suffixed field. The current Lao
+# release uses the lowercase one. Both are listed rather than making the caller
+# discover which they have and pass --name-field.
 NAME_FIELDS = {
-    LEVEL_COUNTRY: ("ADM0_EN", "NAME_0", "COUNTRY", "name", "NAME"),
-    LEVEL_PROVINCE: ("ADM1_EN", "NAME_1", "PROVINCE", "name", "NAME"),
-    LEVEL_DISTRICT: ("ADM2_EN", "NAME_2", "DISTRICT", "name", "NAME"),
-    LEVEL_VILLAGE: ("ADM3_EN", "NAME_3", "VILLAGE", "name", "NAME"),
+    LEVEL_COUNTRY: ("ADM0_EN", "adm0_name", "NAME_0", "COUNTRY", "name", "NAME"),
+    LEVEL_PROVINCE: ("ADM1_EN", "adm1_name", "NAME_1", "PROVINCE", "name", "NAME"),
+    LEVEL_DISTRICT: ("ADM2_EN", "adm2_name", "NAME_2", "DISTRICT", "name", "NAME"),
+    LEVEL_VILLAGE: ("ADM3_EN", "adm3_name", "NAME_3", "VILLAGE", "name", "NAME"),
 }
 LAO_NAME_FIELDS = {
-    LEVEL_COUNTRY: ("ADM0_LO", "ADM0_LAO", "name:lo", "NL_NAME_0"),
-    LEVEL_PROVINCE: ("ADM1_LO", "ADM1_LAO", "name:lo", "NL_NAME_1"),
-    LEVEL_DISTRICT: ("ADM2_LO", "ADM2_LAO", "name:lo", "NL_NAME_2"),
-    LEVEL_VILLAGE: ("ADM3_LO", "ADM3_LAO", "name:lo", "NL_NAME_3"),
+    LEVEL_COUNTRY: ("ADM0_LO", "ADM0_LAO", "adm0_name1", "name:lo", "NL_NAME_0"),
+    LEVEL_PROVINCE: ("ADM1_LO", "ADM1_LAO", "adm1_name1", "name:lo", "NL_NAME_1"),
+    LEVEL_DISTRICT: ("ADM2_LO", "ADM2_LAO", "adm2_name1", "name:lo", "NL_NAME_2"),
+    LEVEL_VILLAGE: ("ADM3_LO", "ADM3_LAO", "adm3_name1", "name:lo", "NL_NAME_3"),
 }
 CODE_FIELDS = {
-    LEVEL_COUNTRY: ("ADM0_PCODE", "GID_0", "ISO3", "pcode"),
-    LEVEL_PROVINCE: ("ADM1_PCODE", "GID_1", "pcode"),
-    LEVEL_DISTRICT: ("ADM2_PCODE", "GID_2", "pcode"),
-    LEVEL_VILLAGE: ("ADM3_PCODE", "GID_3", "pcode"),
+    LEVEL_COUNTRY: ("ADM0_PCODE", "adm0_pcode", "GID_0", "ISO3", "pcode"),
+    LEVEL_PROVINCE: ("ADM1_PCODE", "adm1_pcode", "GID_1", "pcode"),
+    LEVEL_DISTRICT: ("ADM2_PCODE", "adm2_pcode", "GID_2", "pcode"),
+    LEVEL_VILLAGE: ("ADM3_PCODE", "adm3_pcode", "GID_3", "pcode"),
 }
 PARENT_CODE_FIELDS = {
-    LEVEL_PROVINCE: ("ADM0_PCODE", "GID_0"),
-    LEVEL_DISTRICT: ("ADM1_PCODE", "GID_1"),
-    LEVEL_VILLAGE: ("ADM2_PCODE", "GID_2"),
+    LEVEL_PROVINCE: ("ADM0_PCODE", "adm0_pcode", "GID_0"),
+    LEVEL_DISTRICT: ("ADM1_PCODE", "adm1_pcode", "GID_1"),
+    LEVEL_VILLAGE: ("ADM2_PCODE", "adm2_pcode", "GID_2"),
 }
 
 

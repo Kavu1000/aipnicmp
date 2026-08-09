@@ -25,8 +25,9 @@ LAO_MCC = "457"
 #
 # This table decides the name shown on the public map and in every operator
 # report, so a wrong entry here mislabels a company rather than degrading
-# quietly. Check it against the current ITU/GSMA assignment before a public
-# launch — operators merge and rebrand, and Lao PDR has seen both.
+# quietly. Checked against the published MCC/MNC assignments in August 2026;
+# recheck before a public launch, because operators merge and rebrand and Lao
+# PDR has seen both — 457-08 has been Tigo, then Beeline, and is now Tplus.
 NETWORK_NAMES: dict[tuple[str, str], str] = {
     (LAO_MCC, "01"): "Lao Telecom",  # Lao Telecommunications Company (LTC)
     (LAO_MCC, "02"): "ETL",  # Enterprise of Telecommunications Lao

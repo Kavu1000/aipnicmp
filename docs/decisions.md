@@ -220,7 +220,7 @@ from the measurement table.
 - **H3 resolution**: currently 8 (~0.7 km² hexes). The right value depends on
   measurement density in the pilot province and should be revisited with real
   data before the public map launches.
-- **Village boundary data**: whether ADM3 polygons exist for Lao PDR at all is
-  unresolved. The platform handles both cases (decision 18), but which one the
-  pilot ships with depends on what the Lao Statistics Bureau publishes. Until a
-  boundary file is imported the area filter simply does not appear.
+- **Village boundary data**: settled for now — COD-AB for Lao PDR publishes
+  ADM0-2 only, so the pilot has country, province and district. No village
+  source exists to import; the point-and-radius handling of decision 18 stays in
+  place for the day one does.
