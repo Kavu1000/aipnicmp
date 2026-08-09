@@ -92,9 +92,32 @@ Four things Portainer will not warn you about:
 | `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | `@` in the password **must** be `%40` |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | same database, sync driver, for Alembic |
 | `CORS_ORIGINS` | `https://map.yourdomain.la` | comma-separated; no trailing slash |
-| `JWT_SECRET` | 48 random bytes | `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `JWT_SECRET` | 48 random bytes | `python -c "import secrets; print(secrets.token_urlsafe(48))"` — **also signs the sign-in sessions**, so anyone who learns it can mint a session for any account |
 | `ADMIN_TOKEN` | another random string | empty keeps the admin endpoints closed |
+| `GOOGLE_CLIENT_ID` | `…apps.googleusercontent.com` | OAuth **Web application** client id; public by design. No client secret is used |
+| `SUPER_ADMIN_EMAILS` | `chaxiong@fe-nuol.edu.la` | comma-separated. Without at least one, **nobody can ever be approved** |
+| `AUTH_ENABLED` | `true` | leave true; `false` serves the platform to anyone |
 | `WEB_PORT` | `8090` | host port for nginx |
+
+### Sign in with Google
+
+Create the client in Google Cloud Console → **APIs & Services → Credentials →
+Create credentials → OAuth client ID → Web application**, and add the site to
+**Authorised JavaScript origins**:
+
+```
+https://aipn.chax.site
+http://localhost:5173
+```
+
+Origins are exact — scheme, host and port, no path and no trailing slash. A
+missing origin is the usual cause of a sign-in button that renders and then
+does nothing.
+
+The addresses in `SUPER_ADMIN_EMAILS` become approved super admins on first
+sign-in, and are restored to that on every sign-in. That is deliberate: it is
+what makes losing access to every super admin account recoverable by editing
+configuration instead of the database.
 
 ### The database host: 192.168.15.21
 
