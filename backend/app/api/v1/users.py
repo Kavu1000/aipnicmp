@@ -1,0 +1,149 @@
+"""Who may see the platform — the super admin's queue.
+
+Every route here requires a super admin. Two rules are enforced beyond that,
+and both exist to stop the platform locking itself:
+
+*You cannot decide about yourself.* Not approval, not role. Self-approval would
+make the pending state decorative, and self-demotion is how someone removes
+their own last route back in by accident.
+
+*The last super admin cannot be removed.* Demoting or rejecting them would
+leave a platform where nobody can approve anybody, recoverable only by editing
+configuration and redeploying.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_session
+from app.models.user import (
+    ROLE_SUPER_ADMIN,
+    STATUS_APPROVED,
+    STATUS_PENDING,
+    STATUS_REJECTED,
+    User,
+)
+from app.services.auth import require_super_admin
+
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_super_admin)])
+
+
+class Decision(BaseModel):
+    status: Literal["approved", "rejected", "pending"]
+
+
+class RoleChange(BaseModel):
+    role: Literal["super_admin", "admin"]
+
+
+async def _load(session: AsyncSession, user_id: int) -> User:
+    user = await session.scalar(select(User).where(User.id == user_id))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no such user")
+    return user
+
+
+async def _approved_super_admins(session: AsyncSession) -> int:
+    return (
+        await session.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(User.role == ROLE_SUPER_ADMIN, User.status == STATUS_APPROVED)
+        )
+        or 0
+    )
+
+
+def _refuse_self(actor: User, target: User) -> None:
+    if actor.id == target.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="you cannot change your own access; ask another super admin",
+        )
+
+
+async def _refuse_last_super_admin(session: AsyncSession, target: User) -> None:
+    if target.role != ROLE_SUPER_ADMIN or target.status != STATUS_APPROVED:
+        return
+    if await _approved_super_admins(session) <= 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="this is the last super admin; promote another one first",
+        )
+
+
+@router.get("")
+async def list_users(
+    status_filter: str | None = Query(default=None, alias="status"),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Everyone, pending first — the queue is the reason to open this page."""
+    query = select(User)
+    if status_filter:
+        query = query.where(User.status == status_filter)
+
+    users = (
+        await session.scalars(
+            query.order_by(
+                # Pending sorts first without a CASE: it is the only status
+                # whose queue position matters.
+                (User.status != STATUS_PENDING),
+                User.requested_at.desc(),
+            )
+        )
+    ).all()
+
+    return {
+        "count": len(users),
+        "pending": sum(1 for user in users if user.status == STATUS_PENDING),
+        "users": [user.public_dict() for user in users],
+    }
+
+
+@router.post("/{user_id}/decision")
+async def decide(
+    user_id: int,
+    body: Decision,
+    actor: User = Depends(require_super_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    target = await _load(session, user_id)
+    _refuse_self(actor, target)
+
+    if body.status in (STATUS_REJECTED, STATUS_PENDING):
+        await _refuse_last_super_admin(session, target)
+
+    target.status = body.status
+    target.decided_at = datetime.now(timezone.utc)
+    target.decided_by = actor.email
+    await session.commit()
+
+    return {"user": target.public_dict()}
+
+
+@router.post("/{user_id}/role")
+async def set_role(
+    user_id: int,
+    body: RoleChange,
+    actor: User = Depends(require_super_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    target = await _load(session, user_id)
+    _refuse_self(actor, target)
+
+    if body.role != ROLE_SUPER_ADMIN:
+        await _refuse_last_super_admin(session, target)
+
+    target.role = body.role
+    target.decided_at = datetime.now(timezone.utc)
+    target.decided_by = actor.email
+    await session.commit()
+
+    return {"user": target.public_dict()}

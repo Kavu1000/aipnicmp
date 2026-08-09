@@ -14,8 +14,12 @@ psycopg[binary]==3.2.3
 # Spatial / analytics
 h3==4.2.1
 
-# Crypto (device signature verification)
+# Crypto (device signature verification, and Google sign-in)
 cryptography==44.0.0
+# Verifies Google's RS256 id tokens against their published keys, and signs
+# this platform's own session cookies. PyJWKClient fetches and caches the key
+# set, so key rotation at Google needs no action here.
+pyjwt[crypto]==2.10.1
 
 # Background jobs
 celery==5.4.0

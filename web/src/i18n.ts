@@ -97,6 +97,43 @@ export interface Strings {
   networkUnmeasured: string;
   networksUnmeasuredNote: string;
 
+  loginTitle: string;
+  loginWhy: string;
+  loginApprovalNote: string;
+  loginSigningIn: string;
+  loginFailed: string;
+  loginScriptFailed: string;
+  loginNotConfigured: string;
+  loginPendingTitle: string;
+  loginPendingBody: string;
+  loginRejectedTitle: string;
+  loginRejectedBody: string;
+  loginUseAnother: string;
+  loginTeamTitle: string;
+  loginAdvisorsTitle: string;
+  signOut: string;
+
+  navUsers: string;
+  navUsersHint: string;
+  usersTitle: string;
+  usersSubtitle: string;
+  usersNone: string;
+  usersPendingCount: string;
+  usersPerson: string;
+  usersRole: string;
+  usersStatus: string;
+  usersRequested: string;
+  usersActions: string;
+  usersApprove: string;
+  usersReject: string;
+  usersYou: string;
+  usersLastSuperAdmin: string;
+  usersRoleAdmin: string;
+  usersRoleSuperAdmin: string;
+  usersStatusPending: string;
+  usersStatusApproved: string;
+  usersStatusRejected: string;
+
   legendPredicted: string;
   legendUnmeasured: string;
   legendShow: string;
@@ -250,6 +287,49 @@ const en: Strings = {
   networkUnmeasured: "not measured yet",
   networksUnmeasuredNote:
     "No measurements exist for %N%. A phone can only measure the network its own SIM is attached to, so this means no collector carries that SIM — not that these networks have no coverage. Recruiting collectors on each network is what would fill this in.",
+
+  loginTitle: "Sign in",
+  loginWhy: "This platform holds national coverage data. Access is granted to named accounts.",
+  loginApprovalNote:
+    "New accounts are reviewed by a super administrator before access is granted.",
+  loginSigningIn: "Signing in…",
+  loginFailed: "Sign-in failed. Please try again.",
+  loginScriptFailed:
+    "Could not reach Google to sign in. Check the internet connection and try again.",
+  loginNotConfigured:
+    "Google sign-in is not configured on this server yet. Contact the administrator.",
+  loginPendingTitle: "Waiting for approval",
+  loginPendingBody:
+    "Your account has been created and a super administrator has been asked to approve it. You will be able to sign in as soon as they do — there is nothing else you need to do.",
+  loginRejectedTitle: "Access not granted",
+  loginRejectedBody:
+    "A super administrator has not granted this account access. If you believe this is a mistake, contact them directly.",
+  loginUseAnother: "Use a different account",
+  loginTeamTitle: "Developed by",
+  loginAdvisorsTitle: "Advisors",
+  signOut: "Sign out",
+
+  navUsers: "Access",
+  navUsersHint: "Approve who may sign in",
+  usersTitle: "Access",
+  usersSubtitle:
+    "Signing in with Google proves who someone is. This page is where it is decided what they may see.",
+  usersNone: "No accounts yet.",
+  usersPendingCount: "%N% waiting",
+  usersPerson: "Person",
+  usersRole: "Role",
+  usersStatus: "Status",
+  usersRequested: "Requested",
+  usersActions: "",
+  usersApprove: "Approve",
+  usersReject: "Reject",
+  usersYou: "you",
+  usersLastSuperAdmin: "the last super admin",
+  usersRoleAdmin: "Admin",
+  usersRoleSuperAdmin: "Super admin",
+  usersStatusPending: "Waiting",
+  usersStatusApproved: "Approved",
+  usersStatusRejected: "Rejected",
 
   legendPredicted: "Dashed and faded hexagons are predicted, not measured.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
@@ -408,6 +488,46 @@ const lo: Strings = {
   networkUnmeasured: "ຍັງບໍ່ໄດ້ວັດແທກ",
   networksUnmeasuredNote:
     "ຍັງບໍ່ມີການວັດແທກສຳລັບ %N%. ໂທລະສັບວັດແທກໄດ້ສະເພາະເຄືອຂ່າຍທີ່ຊິມຂອງຕົນເອງເຊື່ອມຕໍ່ຢູ່ ດັ່ງນັ້ນນີ້ໝາຍຄວາມວ່າຍັງບໍ່ມີຜູ້ເກັບຂໍ້ມູນຄົນໃດໃຊ້ຊິມນັ້ນ — ບໍ່ແມ່ນວ່າເຄືອຂ່າຍເຫຼົ່ານີ້ບໍ່ມີສັນຍານ. ການຊອກຫາຜູ້ເກັບຂໍ້ມູນໃນແຕ່ລະເຄືອຂ່າຍຈະຊ່ວຍຕື່ມຂໍ້ມູນສ່ວນນີ້.",
+
+  loginTitle: "ເຂົ້າສູ່ລະບົບ",
+  loginWhy: "ລະບົບນີ້ເກັບຂໍ້ມູນການຄອບຄຸມສັນຍານລະດັບຊາດ. ອະນຸຍາດໃຫ້ສະເພາະບັນຊີທີ່ໄດ້ຮັບການອະນຸມັດ.",
+  loginApprovalNote: "ບັນຊີໃໝ່ຕ້ອງໄດ້ຮັບການອະນຸມັດຈາກຜູ້ດູແລລະບົບສູງສຸດກ່ອນ.",
+  loginSigningIn: "ກຳລັງເຂົ້າສູ່ລະບົບ…",
+  loginFailed: "ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.",
+  loginScriptFailed: "ຕິດຕໍ່ Google ບໍ່ໄດ້. ກະລຸນາກວດສອບອິນເຕີເນັດ ແລ້ວລອງໃໝ່.",
+  loginNotConfigured: "ເຊີບເວີຍັງບໍ່ໄດ້ຕັ້ງຄ່າການເຂົ້າສູ່ລະບົບດ້ວຍ Google. ກະລຸນາຕິດຕໍ່ຜູ້ດູແລລະບົບ.",
+  loginPendingTitle: "ກຳລັງລໍຖ້າການອະນຸມັດ",
+  loginPendingBody:
+    "ສ້າງບັນຊີຂອງທ່ານແລ້ວ ແລະ ໄດ້ແຈ້ງໃຫ້ຜູ້ດູແລລະບົບສູງສຸດອະນຸມັດ. ທ່ານຈະເຂົ້າໃຊ້ໄດ້ທັນທີທີ່ໄດ້ຮັບການອະນຸມັດ — ບໍ່ຕ້ອງເຮັດຫຍັງເພີ່ມ.",
+  loginRejectedTitle: "ບໍ່ໄດ້ຮັບອະນຸຍາດ",
+  loginRejectedBody:
+    "ຜູ້ດູແລລະບົບສູງສຸດບໍ່ໄດ້ອະນຸຍາດໃຫ້ບັນຊີນີ້ເຂົ້າໃຊ້. ຫາກທ່ານຄິດວ່າເປັນຄວາມຜິດພາດ ກະລຸນາຕິດຕໍ່ຜູ້ດູແລລະບົບໂດຍກົງ.",
+  loginUseAnother: "ໃຊ້ບັນຊີອື່ນ",
+  loginTeamTitle: "ພັດທະນາໂດຍ",
+  loginAdvisorsTitle: "ທີ່ປຶກສາ",
+  signOut: "ອອກຈາກລະບົບ",
+
+  navUsers: "ສິດເຂົ້າໃຊ້",
+  navUsersHint: "ອະນຸມັດຜູ້ທີ່ເຂົ້າໃຊ້ໄດ້",
+  usersTitle: "ສິດເຂົ້າໃຊ້",
+  usersSubtitle:
+    "ການເຂົ້າສູ່ລະບົບດ້ວຍ Google ພຽງແຕ່ຢືນຢັນວ່າເປັນໃຜ. ໜ້ານີ້ແມ່ນບ່ອນຕັດສິນວ່າເຂົາເຈົ້າເຫັນຫຍັງໄດ້.",
+  usersNone: "ຍັງບໍ່ມີບັນຊີ.",
+  usersPendingCount: "ລໍຖ້າ %N%",
+  usersPerson: "ຜູ້ໃຊ້",
+  usersRole: "ບົດບາດ",
+  usersStatus: "ສະຖານະ",
+  usersRequested: "ຮ້ອງຂໍເມື່ອ",
+  usersActions: "",
+  usersApprove: "ອະນຸມັດ",
+  usersReject: "ປະຕິເສດ",
+  usersYou: "ທ່ານ",
+  usersLastSuperAdmin: "ຜູ້ດູແລສູງສຸດຄົນສຸດທ້າຍ",
+  usersRoleAdmin: "ຜູ້ດູແລ",
+  usersRoleSuperAdmin: "ຜູ້ດູແລສູງສຸດ",
+  usersStatusPending: "ລໍຖ້າ",
+  usersStatusApproved: "ອະນຸມັດແລ້ວ",
+  usersStatusRejected: "ປະຕິເສດ",
 
   legendPredicted: "ຮູບຫົກແຈທີ່ເປັນເສັ້ນຂີດ ແລະ ຈາງ ແມ່ນການຄາດຄະເນ ບໍ່ແມ່ນການວັດແທກ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",

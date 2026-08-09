@@ -1,6 +1,7 @@
+import type { AccountUser } from "./api";
 import type { Strings } from "./i18n";
 
-export type View = "map" | "overview" | "priority" | "networks" | "collectors";
+export type View = "map" | "overview" | "priority" | "networks" | "collectors" | "users";
 
 interface Props {
   view: View;
@@ -8,6 +9,9 @@ interface Props {
   open: boolean;
   onSelect: (view: View) => void;
   onClose: () => void;
+  /** Null when sign-in is disabled for local development. */
+  user: AccountUser | null;
+  onSignOut: () => void;
 }
 
 /**
@@ -19,7 +23,7 @@ interface Props {
  * the map first keeps the public face of the project one click from the front
  * door rather than buried under administration.
  */
-export function Sidebar({ view, strings, open, onSelect, onClose }: Props) {
+export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOut }: Props) {
   const items: Array<{ id: View; label: string; icon: string; hint: string }> = [
     { id: "map", label: strings.navMap, icon: "◉", hint: strings.navMapHint },
     { id: "overview", label: strings.navOverview, icon: "▤", hint: strings.navOverviewHint },
@@ -27,6 +31,13 @@ export function Sidebar({ view, strings, open, onSelect, onClose }: Props) {
     { id: "networks", label: strings.navNetworks, icon: "◈", hint: strings.navNetworksHint },
     { id: "collectors", label: strings.navCollectors, icon: "▮", hint: strings.navCollectorsHint },
   ];
+
+  // Deciding who may sign in is a super admin's job, so it is a super admin's
+  // menu item. The server refuses the endpoints regardless — this only keeps
+  // the page from advertising a door that will not open.
+  if (user?.role === "super_admin") {
+    items.push({ id: "users", label: strings.navUsers, icon: "◍", hint: strings.navUsersHint });
+  }
 
   return (
     <>
@@ -64,6 +75,20 @@ export function Sidebar({ view, strings, open, onSelect, onClose }: Props) {
           <a className="get-app" href="/download/coverage-collector.apk" download>
             {strings.getApp}
           </a>
+
+          {user && (
+            <div className="sidebar-account">
+              {user.picture_url && <img src={user.picture_url} alt="" width={28} height={28} />}
+              <span className="sidebar-account-text">
+                <strong>{user.name ?? user.email}</strong>
+                <em>{user.email}</em>
+              </span>
+              <button className="sidebar-signout" onClick={onSignOut}>
+                {strings.signOut}
+              </button>
+            </div>
+          )}
+
           <p>{strings.sidebarNote}</p>
         </div>
       </aside>

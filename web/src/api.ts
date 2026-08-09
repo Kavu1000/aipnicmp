@@ -215,6 +215,32 @@ export interface Collector {
   rejection_rate_pct: number;
 }
 
+export type UserRole = "super_admin" | "admin";
+export type UserStatus = "pending" | "approved" | "rejected";
+
+export interface AccountUser {
+  id: number;
+  email: string;
+  name: string | null;
+  picture_url: string | null;
+  role: UserRole;
+  status: UserStatus;
+  requested_at: string | null;
+  decided_at: string | null;
+  decided_by: string | null;
+  last_login_at: string | null;
+  login_count: number;
+}
+
+export interface SessionState {
+  auth_enabled: boolean;
+  /** Public by design — it identifies this application to Google. */
+  google_client_id: string;
+  authenticated: boolean;
+  approved: boolean;
+  user: AccountUser | null;
+}
+
 const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 
 /** The server refuses a viewport wider than this; see backend tiles.py. */
@@ -236,8 +262,27 @@ export class ApiError extends Error {
   }
 }
 
+async function postJson<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // The session is an httpOnly cookie, so it has to be sent explicitly.
+    credentials: "same-origin",
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
+  });
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((payload: { detail?: string }) => payload?.detail)
+      .catch(() => undefined);
+    throw new ApiError(response.status, detail ?? `${path} responded ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, { signal });
+  const response = await fetch(`${BASE}${path}`, { credentials: "same-origin", signal });
   if (!response.ok) {
     const detail = await response
       .json()
@@ -267,6 +312,46 @@ export async function fetchTiles(query: TileQuery, signal?: AbortSignal): Promis
   }
   if (query.operator) params.set("operator", query.operator);
   return getJson<TileCollection>(`/tiles?${params}`, signal);
+}
+
+/**
+ * Who is signed in, and what the sign-in screen needs to render.
+ *
+ * Always resolves — "nobody is signed in" is the application's normal first
+ * state, not a failure.
+ */
+export async function fetchSession(signal?: AbortSignal): Promise<SessionState> {
+  return getJson<SessionState>("/auth/session", signal);
+}
+
+/** Exchange a Google id token for a session on this platform. */
+export async function signInWithGoogle(credential: string): Promise<SessionState> {
+  const body = await postJson<{
+    authenticated: boolean;
+    approved: boolean;
+    user: AccountUser;
+  }>("/auth/google", { credential });
+  return { auth_enabled: true, google_client_id: "", ...body };
+}
+
+export async function signOut(): Promise<void> {
+  await postJson("/auth/logout");
+}
+
+export async function fetchUsers(
+  signal?: AbortSignal,
+): Promise<{ count: number; pending: number; users: AccountUser[] }> {
+  return getJson("/users", signal);
+}
+
+export async function decideUser(id: number, status: UserStatus): Promise<AccountUser> {
+  const body = await postJson<{ user: AccountUser }>(`/users/${id}/decision`, { status });
+  return body.user;
+}
+
+export async function setUserRole(id: number, role: UserRole): Promise<AccountUser> {
+  const body = await postJson<{ user: AccountUser }>(`/users/${id}/role`, { role });
+  return body.user;
 }
 
 /** One level of the Country → Province → District → Village cascade. */

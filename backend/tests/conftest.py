@@ -49,12 +49,51 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture
 async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """A signed-in super admin.
+
+    Most tests are about coverage, not about who may see it, so the default
+    client is authenticated and the gate is tested separately by ``anon_client``
+    below. Overriding the dependency rather than minting a real session keeps
+    every other test free of Google.
+    """
+    from app.models.user import ROLE_SUPER_ADMIN, STATUS_APPROVED, User
+    from app.services.auth import require_user
+
+    async def _override() -> AsyncGenerator[AsyncSession, None]:
+        yield session
+
+    async def _test_user() -> User:
+        return User(
+            id=1,
+            google_sub="test-sub",
+            email="tester@example.com",
+            name="Test Super Admin",
+            role=ROLE_SUPER_ADMIN,
+            status=STATUS_APPROVED,
+        )
+
+    app.dependency_overrides[get_session] = _override
+    app.dependency_overrides[require_user] = _test_user
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def anon_client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Nobody signed in, and the real gate in place.
+
+    HTTPS base url because the session cookie is marked Secure outside
+    development, and a client on plain http would silently drop it — which
+    would make a working sign-in look broken.
+    """
     async def _override() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
     app.dependency_overrides[get_session] = _override
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+    async with AsyncClient(transport=transport, base_url="https://test") as c:
         yield c
     app.dependency_overrides.clear()
 

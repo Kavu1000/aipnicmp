@@ -3,6 +3,9 @@ import {
   ApiError,
   fetchArea,
   fetchAreaChildren,
+  fetchSession,
+  signOut,
+  type SessionState,
   fetchCollectors,
   fetchNetworks,
   fetchPriorityAreas,
@@ -26,6 +29,8 @@ import {
 } from "./MapView";
 import { AreaFilter } from "./AreaFilter";
 import { AreaSummary } from "./AreaSummary";
+import { Login } from "./Login";
+import { Users } from "./Users";
 import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
@@ -56,6 +61,7 @@ const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
 const CHOROPLETH_MAX_LEVEL = 1;
 
 export function App() {
+  const [session, setSession] = useState<SessionState | null>(null);
   const [language, setLanguage] = useState<Language>(loadLanguage);
   const [view, setView] = useState<View>("map");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -192,6 +198,48 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaCode, operator]);
 
+  /**
+   * Who is signed in. Runs before anything else asks the API for data, because
+   * every one of those requests would be refused until this is known.
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchSession(controller.signal)
+      .then(setSession)
+      // A session endpoint that cannot be reached is a server that cannot be
+      // reached. Assume closed rather than open.
+      .catch(() =>
+        setSession({
+          auth_enabled: true,
+          google_client_id: "",
+          authenticated: false,
+          approved: false,
+          user: null,
+        }),
+      );
+    return () => controller.abort();
+  }, []);
+
+  // Sign-in can be switched off for local development; then everything is
+  // permitted and there is no account to show.
+  const approved = session !== null && (!session.auth_enabled || session.approved);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+    } finally {
+      // Whatever the server said, stop showing data this browser may no longer
+      // be entitled to.
+      setSession((current) =>
+        current ? { ...current, authenticated: false, approved: false, user: null } : current,
+      );
+      setTiles(EMPTY);
+      setSummary(null);
+      setAreaCode(null);
+      setView("map");
+    }
+  }, []);
+
   const areaOutline = useMemo<AreaOutline | null>(() => {
     const area = areaDetail?.area;
     if (!area) return null;
@@ -219,6 +267,7 @@ export function App() {
   );
 
   useEffect(() => {
+    if (!approved) return;
     const controller = new AbortController();
     fetchSummary(controller.signal).then(setSummary).catch(() => undefined);
     fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
@@ -226,7 +275,7 @@ export function App() {
       .then((body) => setCollectors(body.collectors))
       .catch(() => undefined);
     return () => controller.abort();
-  }, []);
+  }, [approved]);
 
   /**
    * Keep the map current while it is being watched.
@@ -240,7 +289,9 @@ export function App() {
    * coverage the moment someone looks back at it.
    */
   useEffect(() => {
-    if (!live) return;
+    // Polling a closed API would be a steady stream of 401s for as long as the
+    // page is left open on the sign-in screen.
+    if (!live || !approved) return;
 
     const tick = () => {
       if (document.visibilityState === "visible") refresh();
@@ -251,13 +302,13 @@ export function App() {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [live, refresh]);
+  }, [live, approved, refresh]);
 
-  const changeLanguage = (next: Language) => {
+  const changeLanguage = useCallback((next: Language) => {
     setLanguage(next);
     saveLanguage(next);
     document.documentElement.lang = next;
-  };
+  }, []);
 
   const showOnMap = useCallback((lat: number, lon: number) => {
     setView("map");
@@ -304,7 +355,29 @@ export function App() {
     priority: t.priorityTitle,
     networks: t.networksTitle,
     collectors: t.collectorsTitle,
+    users: t.usersTitle,
   };
+
+  // Nothing at all until the session is known. Rendering the map first and
+  // replacing it with a sign-in screen a moment later would flash coverage
+  // data at someone who may not be entitled to it.
+  if (session === null) {
+    return <div className="boot">{t.loading}</div>;
+  }
+
+  if (!approved) {
+    return (
+      <Login
+        session={session}
+        t={t}
+        language={language}
+        languageNames={LANGUAGE_NAMES}
+        onLanguageChange={changeLanguage}
+        onSignedIn={(next) => setSession({ ...session, ...next })}
+        onSignOut={handleSignOut}
+      />
+    );
+  }
 
   return (
     <div className="shell">
@@ -314,6 +387,8 @@ export function App() {
         open={menuOpen}
         onSelect={setView}
         onClose={() => setMenuOpen(false)}
+        user={session.user}
+        onSignOut={handleSignOut}
       />
 
       <div className="content">
@@ -530,6 +605,9 @@ export function App() {
                 {view === "priority" && <Priority t={t} onShowOnMap={showOnMap} />}
                 {view === "networks" && <Networks t={t} />}
                 {view === "collectors" && <Collectors t={t} />}
+                {view === "users" && (
+                  <Users t={t} currentUserId={session.user?.id ?? null} />
+                )}
               </div>
             </div>
           )}

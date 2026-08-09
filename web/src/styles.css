@@ -1015,6 +1015,333 @@ main {
   color: var(--muted);
 }
 
+/* ---------- sign in ---------- */
+
+.boot {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 15% 0%, #e8eef6 0%, transparent 55%),
+    radial-gradient(circle at 85% 100%, #eef1f5 0%, transparent 55%),
+    var(--page);
+}
+
+.login-card {
+  width: min(920px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgb(16 32 44 / 5%), 0 18px 50px rgb(16 32 44 / 10%);
+  overflow: hidden;
+}
+
+.login-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.4rem 1.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.login-head h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.login-head p {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.login-language {
+  margin-inline-start: auto;
+}
+
+.login-body {
+  display: grid;
+  /* The credits are not a footnote, but they are not the task either. */
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.login-action {
+  padding: 2.2rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.login-action h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+}
+
+.login-why {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.login-button {
+  margin: 0.7rem 0 0.2rem;
+  min-height: 44px;
+}
+
+.login-note {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.login-error {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: #fdecee;
+  border: 1px solid #f6c9ce;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #7a1018;
+}
+
+.login-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.login-pending-mark {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.login-pending h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.login-pending p {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.login-account {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.login-account img {
+  border-radius: 50%;
+}
+
+.login-account span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.login-account em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.login-credits {
+  padding: 2.2rem 1.8rem;
+  background: var(--page);
+  border-inline-start: 1px solid var(--line);
+}
+
+.login-credits h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.login-credits h2:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
+.login-credits ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.login-credits li {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.login-credits strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.login-credits em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.login-affiliation {
+  margin: 1.6rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------- account, in the sidebar ---------- */
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.65rem;
+  background: var(--sidebar-active);
+  border-radius: 10px;
+}
+
+.sidebar-account img {
+  border-radius: 50%;
+  flex: none;
+}
+
+.sidebar-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.sidebar-account-text strong {
+  font-size: 0.8rem;
+  color: var(--sidebar-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-account-text em {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--sidebar-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-signout {
+  margin-inline-start: auto;
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0.2rem;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--sidebar-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sidebar-signout:hover {
+  color: var(--sidebar-ink);
+}
+
+/* ---------- access ---------- */
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.user-cell img {
+  border-radius: 50%;
+  flex: none;
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.button-approve,
+.button-reject {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.3rem 0.7rem;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button-approve {
+  border-color: #bfe3cc;
+  background: #f0faf3;
+  color: #146c39;
+}
+
+.button-reject {
+  border-color: #f6c9ce;
+  background: #fdf3f4;
+  color: #7a1018;
+}
+
+.button-approve:disabled,
+.button-reject:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pill.good {
+  color: #146c39;
+  background: #f0faf3;
+  border-color: #bfe3cc;
+}
+
+.pill.bad {
+  color: #7a1018;
+  background: #fdf3f4;
+  border-color: #f6c9ce;
+}
+
 /* ---------- narrow screens ---------- */
 
 @media (max-width: 900px) {
@@ -1103,6 +1430,16 @@ main {
     flex: 1 1 6.5rem;
     min-width: 0;
     max-width: none;
+  }
+
+  /* The credits stack under the sign-in button rather than beside it. */
+  .login-body {
+    grid-template-columns: 1fr;
+  }
+
+  .login-credits {
+    border-inline-start: none;
+    border-top: 1px solid var(--line);
   }
 }
 

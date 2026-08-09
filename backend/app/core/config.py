@@ -48,6 +48,35 @@ class Settings(BaseSettings):
     # Empty means the admin endpoints stay closed. Never default this to a value.
     admin_token: str = ""
 
+    # Sign-in with Google.
+    #
+    # The OAuth client id, which is public by design — it identifies this
+    # application to Google and appears in the page. There is no client secret
+    # here because the browser performs the sign-in and the server only
+    # verifies the resulting token's signature; a secret would add a thing to
+    # leak without adding a check.
+    google_client_id: str = ""
+
+    # Whether the map and dashboard require an approved account.
+    #
+    # On by default: a deployment that forgets to configure this should be
+    # closed, not open. Set AUTH_ENABLED=false only for local development.
+    auth_enabled: bool = True
+
+    # The accounts that may approve others, as a comma-separated list of email
+    # addresses. Without at least one, nobody can ever be approved — the first
+    # super admin cannot approve themselves into existence.
+    #
+    # These addresses are approved automatically on first sign-in. Everyone
+    # else waits. Deliberately config rather than a database seed, so that
+    # losing access to every super admin account is recoverable.
+    super_admin_emails: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    # Cookies are marked Secure unless this is a development environment. The
+    # session cookie carries the whole session, and HTTPS is what stops it
+    # being read off the wire.
+    session_cookie_name: str = "aipnicmp_session"
+
     # Aggregation
     h3_resolution: int = 8
     tile_min_devices: int = 2
@@ -58,6 +87,17 @@ class Settings(BaseSettings):
         """Accept a comma-separated string from the environment."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    @field_validator("super_admin_emails", mode="before")
+    @classmethod
+    def _split_super_admins(cls, v: object) -> object:
+        """Comma-separated, and lowercased — addresses are compared, and case
+        is not part of an address anyone means to type."""
+        if isinstance(v, str):
+            return [email.strip().lower() for email in v.split(",") if email.strip()]
+        if isinstance(v, list):
+            return [str(email).strip().lower() for email in v]
         return v
 
     @property

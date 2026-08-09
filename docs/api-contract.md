@@ -165,6 +165,37 @@ holding more than 20,000 tiles is refused with 400 rather than truncated: a
 partial map that looks complete is worse than a stated refusal. Use
 `/areas/{code}/children` for those.
 
+## Authentication
+
+The map, areas, dashboard, reports and sites endpoints require an approved
+account: 401 without a session, 403 with a reason when the account exists but
+is not yet approved. The session is an httpOnly cookie, so send requests with
+credentials.
+
+`/devices/enroll`, `/measurements/batch` and `/health` are never gated — a
+collector phone and a load balancer have no account to sign in with.
+`/admin/rebuild-tiles` keeps its separate `X-Admin-Token`.
+
+```
+GET  /auth/session          # who is signed in, plus the Google client id
+POST /auth/google           # {"credential": "<Google id token>"} -> session cookie
+POST /auth/logout
+```
+
+`GET /auth/session` is always 200: nobody being signed in is the application's
+normal first state, not an error.
+
+Super admins only:
+
+```
+GET  /users
+POST /users/{id}/decision   # {"status": "approved" | "rejected" | "pending"}
+POST /users/{id}/role       # {"role": "super_admin" | "admin"}
+```
+
+Both refuse a decision about your own account, and refuse to remove the last
+approved super admin.
+
 ## GET /areas
 
 The administrative hierarchy — country, province, district, village — without

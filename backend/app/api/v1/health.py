@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_session
+from app.services.auth import require_user
 from app.services.coverage import coverage_summary
 
 router = APIRouter(tags=["health"])
@@ -29,11 +30,14 @@ async def health_db(session: AsyncSession = Depends(get_session)) -> dict[str, A
     return {"status": "ok", "postgis": postgis or "not installed"}
 
 
-@router.get("/stats")
+# Gated individually rather than by moving it: it lives beside the health
+# checks for historical reasons, but it is coverage data, not liveness. A load
+# balancer needs /health; nobody needs the national figures without an account.
+@router.get("/stats", dependencies=[Depends(require_user)])
 async def stats(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
     """Headline numbers for the map header.
 
-    Shares an implementation with the dashboard summary so the public map and
-    the operator view can never quote different figures for the same thing.
+    Shares an implementation with the dashboard summary so the map and the
+    operator view can never quote different figures for the same thing.
     """
     return await coverage_summary(session)

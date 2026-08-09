@@ -7,6 +7,7 @@ from app.models.measurement import CellObservation, IngestBatch, Measurement
 from app.models.report import UserReport
 from app.models.features import HexFeature
 from app.models.tile import CandidateSite, H3Tile, H3TileOperator
+from app.models.user import User
 
 __all__ = [
     "AdminArea",
@@ -19,5 +20,6 @@ __all__ = [
     "H3TileOperator",
     "IngestBatch",
     "Measurement",
+    "User",
     "UserReport",
 ]

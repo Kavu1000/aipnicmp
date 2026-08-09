@@ -207,6 +207,47 @@ and deleting it would erase the rest of the map. `h3_tiles` is deliberately not
 cleaned the same way — it also carries model predictions, which are not derived
 from the measurement table.
 
+## 22. Google proves identity; a super admin grants access
+
+Signing in with Google establishes that an address belongs to whoever presented
+it, and nothing more. A new account is therefore created `pending` and can read
+nothing until a super admin approves it.
+
+An allowlist checked at sign-in would be the same idea with the decision moved
+into a config file, and everyone who needed access would wait for a redeploy.
+The one thing configuration *does* decide is `SUPER_ADMIN_EMAILS`, because the
+first super admin cannot approve themselves into existence — and keeping it in
+configuration is what makes losing every super admin account recoverable.
+
+Two rules stop the platform locking itself: nobody may decide about their own
+account, and the last approved super admin cannot be demoted or rejected.
+
+## 23. The session is a cookie this platform signs, not Google's token
+
+Google's id token is evidence of a sign-in at one moment, not a session, and it
+carries claims this application has no reason to keep. The server verifies it
+once and issues its own short-lived JWT in an httpOnly, SameSite=Lax cookie —
+httpOnly because any XSS bug would otherwise hand over the session.
+
+The role and the approval are read from the database on every request rather
+than baked into the token, so revoking somebody takes effect immediately
+instead of whenever their token happens to expire.
+
+The audience check on the Google token is the load-bearing one: without it, a
+token minted for *any* Google application would verify here, and anyone able to
+register their own app could sign in as anyone.
+
+## 24. The collector endpoints are never gated
+
+Enrolment and upload stay open, because a phone has no Google account and
+authenticates instead with a device signature over every record. Gating them
+would have stopped the Android fleet silently the moment sign-in was switched
+on, and the map would simply have stopped growing.
+
+Health checks stay open for the same reason: a load balancer cannot sign in
+either. `/stats` does not — it is coverage data that happens to live beside
+them.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified
