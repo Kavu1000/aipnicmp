@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.serverValue.setText(prefs.apiBaseUrl)
         binding.saveServerButton.setOnClickListener { onSaveServer() }
+        binding.checkConnectionButton.setOnClickListener { onCheckConnection() }
         binding.resetServerButton.setOnClickListener { onResetServer() }
         binding.toggleButton.setOnClickListener { onToggle() }
         binding.uploadButton.setOnClickListener {
@@ -200,6 +201,50 @@ class MainActivity : AppCompatActivity() {
         binding.serverValue.setText(prefs.apiBaseUrl)
         showMessage(getString(R.string.server_reset, prefs.apiBaseUrl))
         refresh()
+    }
+
+    /**
+     * Answer "is this phone actually talking to the server" directly.
+     *
+     * Without it the only signals are counters, and "Sent 0 / Last upload
+     * Never" looks identical whether the address is wrong, the device was never
+     * registered, or nothing has been recorded yet. Someone carrying this phone
+     * up a mountain road deserves to know before they set off, not after.
+     */
+    private fun onCheckConnection() {
+        binding.checkConnectionButton.isEnabled = false
+        binding.connectionValue.setText(R.string.connection_checking)
+        binding.connectionDetail.text = ""
+
+        lifecycleScope.launch {
+            val status = withContext(Dispatchers.IO) {
+                val hardwareBacked = runCatching { DeviceKeystore.ensureKey() }.getOrDefault(false)
+                ApiClient(prefs.apiBaseUrl).checkConnection(
+                    installId = prefs.ensureInstallId(),
+                    appVersion = BuildConfig.VERSION_NAME,
+                    hardwareBacked = hardwareBacked,
+                )
+            }
+
+            // A successful check has already registered the device, so record
+            // that rather than making the user press Start to find out.
+            if (status.enrolled) prefs.enrolled = true
+
+            binding.checkConnectionButton.isEnabled = true
+            binding.connectionValue.setText(
+                when {
+                    status.enrolled -> R.string.connection_ok
+                    status.reachable -> R.string.connection_reachable_not_enrolled
+                    else -> R.string.connection_failed
+                }
+            )
+            binding.connectionDetail.text = getString(
+                R.string.connection_checked_at,
+                DateFormat.getTimeInstance(DateFormat.SHORT).format(Date()),
+            ) + " · " + status.detail
+
+            refresh()
+        }
     }
 
     private fun hasForegroundLocation(): Boolean =

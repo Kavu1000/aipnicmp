@@ -31,6 +31,64 @@ class ApiClient(private val baseUrl: String = BuildConfig.API_BASE_URL) {
     data class EnrollResult(val ok: Boolean, val trustLevel: String?, val error: String?)
 
     /**
+     * What a connection check found.
+     *
+     * Deliberately separates "the server answered" from "the server will accept
+     * my uploads". A phone can have perfect internet and still be unable to
+     * contribute — wrong address, not enrolled, or enrolled under a key the
+     * server no longer holds — and every one of those looks identical from the
+     * outside if the only signal is a counter that never moves.
+     */
+    data class ConnectionStatus(
+        val reachable: Boolean,
+        val enrolled: Boolean,
+        val detail: String,
+    )
+
+    /**
+     * Ask the server two questions: are you there, and will you take my data.
+     *
+     * The second is answered by re-enrolling, which is idempotent — the server
+     * returns the existing registration for a device whose key it already
+     * holds, and refuses with 409 only if the key differs. That makes it a
+     * genuine end-to-end check rather than a ping: it exercises TLS, the
+     * hostname, the path, and the signature key in one go.
+     */
+    fun checkConnection(installId: String?, appVersion: String, hardwareBacked: Boolean): ConnectionStatus {
+        val request = Request.Builder().url("$baseUrl/api/v1/health").get().build()
+
+        val reachable = try {
+            http.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return ConnectionStatus(false, false, "Server answered HTTP ${response.code}")
+                }
+                true
+            }
+        } catch (error: Exception) {
+            return ConnectionStatus(
+                reachable = false,
+                enrolled = false,
+                detail = error.message ?: "Could not reach the server",
+            )
+        }
+
+        if (!reachable || installId == null) {
+            return ConnectionStatus(true, false, "Server reachable, device not set up yet")
+        }
+
+        val enrolment = enroll(installId, appVersion, hardwareBacked)
+        return when {
+            enrolment.ok -> ConnectionStatus(true, true, "Connected and registered")
+            enrolment.error?.contains("409") == true -> ConnectionStatus(
+                true,
+                false,
+                "This server knows this device under a different key. Reinstall the app to register again.",
+            )
+            else -> ConnectionStatus(true, false, enrolment.error ?: "Server refused registration")
+        }
+    }
+
+    /**
      * Register this installation and its public key.
      *
      * A 409 means the id is already enrolled with a *different* key — the
