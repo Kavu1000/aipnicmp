@@ -188,8 +188,37 @@ async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None)
 
     await session.flush()
     await _rebuild_operator_tiles(session, since, tagger)
+    if since is None:
+        await _drop_stale_tiles(session, {row["h3_index"] for row in metrics})
     await session.commit()
     return written
+
+
+async def _drop_stale_tiles(session: AsyncSession, current: set[str]) -> int:
+    """Remove tiles the measurements no longer support.
+
+    The loop above only visits hexagons that still have measurements, so a tile
+    whose readings have all gone was never revisited and stayed on the map
+    showing the coverage it had when it was last written. Clearing out the
+    simulated pilot data left 125 such hexagons behind, all of them claiming
+    measured coverage in places nobody has been.
+
+    Predicted tiles are left alone: they legitimately have no measurements
+    behind them, which is the whole point of a prediction. A hexagon that gains
+    a real reading has ``is_predicted`` cleared by the loop above before this
+    runs, so it is judged as measured and kept.
+
+    Only on a full rebuild, for the same reason as the operator tiles: an
+    incremental run has looked at a slice of the measurements on purpose, and
+    everything outside that slice is missing rather than stale.
+    """
+    existing = (await session.scalars(select(H3Tile))).all()
+    dropped = 0
+    for tile in existing:
+        if tile.h3_index not in current and not tile.is_predicted:
+            await session.delete(tile)
+            dropped += 1
+    return dropped
 
 
 async def _rebuild_operator_tiles(

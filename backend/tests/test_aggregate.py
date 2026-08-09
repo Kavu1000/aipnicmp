@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.radio import RadioState
-from app.models.tile import H3Tile
+from app.models.measurement import Measurement
+from app.models.tile import H3Tile, H3TileOperator
 from app.services.aggregate import median_state, rebuild_tiles, worst_state
 from tests.conftest import BASE_LAT, BASE_LON, make_record, sign_record
 from tests.test_ingest_api import batch, enroll
@@ -98,6 +99,54 @@ async def test_rebuild_is_idempotent(
 
     assert first == second
     assert counts_before == counts_after
+
+
+async def test_deleting_the_measurements_takes_their_tiles_off_the_map(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """A hexagon with nothing behind it must not keep showing coverage.
+
+    Rebuilding only ever visited hexagons that still had measurements, so
+    deleting readings left their tiles in place, unchanged and still coloured.
+    That went unnoticed until the simulated pilot data was cleared out and the
+    map carried on reporting measured coverage across the country.
+    """
+    await _upload_journey(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+    assert (await session.scalars(select(H3Tile))).all()
+
+    await session.execute(delete(Measurement))
+    await session.commit()
+
+    await rebuild_tiles(session)
+    assert (await session.scalars(select(H3Tile))).all() == []
+    assert (await session.scalars(select(H3TileOperator))).all() == []
+
+
+async def test_a_prediction_survives_a_rebuild_that_finds_no_measurements(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """Predicted tiles have no measurements by definition, so the cleanup above
+    must not treat them as leftovers and erase the modelled layer."""
+    session.add(
+        H3Tile(
+            h3_index="8a2a1072b59ffff",
+            resolution=8,
+            centroid_lat=BASE_LAT,
+            centroid_lon=BASE_LON,
+            colour="amber",
+            is_predicted=True,
+            prediction_confidence=0.6,
+            measurement_count=0,
+            device_count=0,
+        )
+    )
+    await session.commit()
+
+    await rebuild_tiles(session)
+
+    surviving = (await session.scalars(select(H3Tile))).all()
+    assert [tile.h3_index for tile in surviving] == ["8a2a1072b59ffff"]
 
 
 async def test_map_endpoint_returns_geojson_hexagons(
