@@ -12,6 +12,7 @@ the old name lingering on the map after the fix.
 
 from __future__ import annotations
 
+import h3
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.operators import NETWORK_NAMES, canonical_operator, normalise_mnc
 from app.models.tile import H3TileOperator
 from app.services.aggregate import rebuild_tiles
-from tests.conftest import BASE_LAT, make_record, sign_record
+from app.services.geo import h3_centroid
+from tests.conftest import BASE_LAT, BASE_LON, make_record, sign_record
 from tests.test_ingest_api import batch, enroll
 
 
@@ -196,8 +198,40 @@ async def test_the_collector_list_names_each_phones_network(
     # Both reported spellings were one SIM, so one network — not two.
     assert fleet[0]["networks"] == ["Lao Telecom"]
 
-    # Still no position of any kind: that is what the hexagons exist to hide.
-    assert not {"lat", "lon", "h3"} & set(fleet[0])
+    # A position is published now, but only ever a hexagon — see below.
+    assert not {"lat", "lon"} & set(fleet[0])
+
+
+async def test_a_collectors_position_is_a_hexagon_and_never_a_gps_fix(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """The limit on the fleet view.
+
+    Publishing where each collector is reverses an earlier decision to publish
+    no position at all. The replacement is bounded: the hexagon centroid, about
+    740 m across, and never the coordinates the handset actually recorded.
+    """
+    await enroll(client, public_key_b64)
+    record = sign_record(
+        make_record(record_id="rec-pos00000001", lat=BASE_LAT, lon=BASE_LON), device_key
+    )
+    assert (
+        await client.post("/api/v1/measurements/batch", json=batch([record]))
+    ).json()["accepted"] == 1
+
+    fleet = (await client.get("/api/v1/dashboard/collectors")).json()["collectors"]
+    position = fleet[0]["position"]
+
+    expected = h3_centroid(h3.latlng_to_cell(BASE_LAT, BASE_LON, position["resolution"]))
+    assert (position["lat"], position["lon"]) == expected
+
+    # The whole point: the published point is not where the phone was.
+    assert position["lat"] != BASE_LAT
+    assert position["lon"] != BASE_LON
+
+    # One hexagon, not a trail. A history here would be a movement record.
+    assert isinstance(position["h3_index"], str)
+    assert not any(isinstance(v, list) for v in position.values())
 
 
 async def test_a_phone_that_has_not_reported_yet_lists_no_network(

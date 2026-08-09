@@ -1265,3 +1265,50 @@ main {
     max-height: calc(100% - 1rem);
   }
 }
+
+/* --- live updates ------------------------------------------------------- */
+
+/*
+  The live control doubles as the fleet count, because the two questions are
+  really one: "is this page still listening, and is anything being collected".
+  A dashboard that has quietly stopped refreshing looks exactly like one where
+  nothing is happening, and the difference matters at 3am on a wall display.
+*/
+.live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+}
+
+.live-toggle .live-dot {
+  inline-size: 0.55em;
+  block-size: 0.55em;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.live-toggle.live-on {
+  color: #1f7a3d;
+}
+
+.live-toggle.live-on .live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* A steady dot reads as a status light; a pulsing one reads as a heartbeat.
+   Only the live state pulses, so "paused" is legible at a glance. */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-toggle.live-on .live-dot { animation: none; }
+}

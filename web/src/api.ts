@@ -174,8 +174,27 @@ export interface AreaChildren {
   features: AreaChildFeature[];
 }
 
+/**
+ * Where a phone last reported from, to the nearest hexagon.
+ *
+ * Never the GPS fix the handset recorded — the server publishes the hexagon
+ * centroid, about 740 m across, and only the latest one. There is no history
+ * here by design: a sequence of these would be a movement record.
+ */
+export interface CollectorPosition {
+  h3_index: string;
+  lat: number;
+  lon: number;
+  resolution: number;
+  at: string;
+}
+
 export interface Collector {
   id: string;
+  position: CollectorPosition | null;
+  /** Uploaded recently enough to count as active. See REPORTING_WINDOW. */
+  is_reporting: boolean;
+  silent_for_s: number | null;
   model: string | null;
   manufacturer: string | null;
   /**

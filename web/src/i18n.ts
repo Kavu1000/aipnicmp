@@ -56,6 +56,13 @@ export interface Strings {
   statNoService: string;
   statDevices: string;
   statUpdated: string;
+  live: string;
+  livePaused: string;
+  liveResume: string;
+  livePause: string;
+  collectingNow: string;
+  collectorHere: string;
+  approxPosition: string;
   ofCountry: string;
   never: string;
   none: string;
@@ -197,6 +204,13 @@ const en: Strings = {
   statNoService: "Readings with no service",
   statDevices: "Contributing devices",
   statUpdated: "Updated",
+  live: "Live",
+  livePaused: "Paused",
+  liveResume: "Resume live updates",
+  livePause: "Pause live updates",
+  collectingNow: "collecting now",
+  collectorHere: "Collector",
+  approxPosition: "Approximate position — hexagon centre, not an exact location.",
   ofCountry: "of Lao PDR",
   never: "Never",
   none: "None",
@@ -346,6 +360,13 @@ const lo: Strings = {
   statNoService: "ຈຸດທີ່ບໍ່ມີສັນຍານ",
   statDevices: "ອຸປະກອນທີ່ຮ່ວມ",
   statUpdated: "ອັບເດດ",
+  live: "ສົດ",
+  livePaused: "ຢຸດຊົ່ວຄາວ",
+  liveResume: "ສືບຕໍ່ອັບເດດສົດ",
+  livePause: "ຢຸດອັບເດດສົດ",
+  collectingNow: "ກຳລັງເກັບຂໍ້ມູນ",
+  collectorHere: "ຜູ້ເກັບຂໍ້ມູນ",
+  approxPosition: "ຕຳແໜ່ງໂດຍປະມານ — ຈຸດກາງຂອງຮວງເຜິ້ງ, ບໍ່ແມ່ນຕຳແໜ່ງແທ້.",
   ofCountry: "ຂອງ ສປປ ລາວ",
   never: "ຍັງບໍ່ມີ",
   none: "ບໍ່ມີ",

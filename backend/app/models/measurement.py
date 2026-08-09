@@ -28,7 +28,10 @@ class IngestBatch(Base):
     batch_id: Mapped[str] = mapped_column(String(64), index=True)
     device_id: Mapped[str] = mapped_column(ForeignKey("devices.install_id", ondelete="CASCADE"), index=True)
 
-    received_at: Mapped[datetime] = timestamp_column(server_default=func.now())
+    # Indexed because incremental aggregation asks "what arrived since?".
+    # Capture time cannot answer that: a phone back from a dead zone brings
+    # records hours older than the window being rebuilt.
+    received_at: Mapped[datetime] = timestamp_column(server_default=func.now(), index=True)
     record_count: Mapped[int] = mapped_column(Integer, default=0)
     accepted_count: Mapped[int] = mapped_column(Integer, default=0)
     rejected_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -71,7 +74,10 @@ class Measurement(Base):
     client_record_id: Mapped[str] = mapped_column(String(64))
 
     captured_at: Mapped[datetime] = timestamp_column(index=True)
-    received_at: Mapped[datetime] = timestamp_column(server_default=func.now())
+    # Indexed because incremental aggregation asks "what arrived since?".
+    # Capture time cannot answer that: a phone back from a dead zone brings
+    # records hours older than the window being rebuilt.
+    received_at: Mapped[datetime] = timestamp_column(server_default=func.now(), index=True)
     # How long the record sat on the device. A large value is normal here and is
     # exactly what store-and-forward is for; it is also the window in which
     # tampering would have to happen, so it is worth keeping visible.

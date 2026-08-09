@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from httpx import AsyncClient
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,6 +101,85 @@ async def test_rebuild_is_idempotent(
 
     assert first == second
     assert counts_before == counts_after
+
+
+async def test_an_incremental_rebuild_agrees_with_a_full_one(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """The guarantee that lets aggregation run every minute.
+
+    ``since`` may narrow which hexagons are revisited. It must never narrow
+    what they are built from, so the two runs have to be indistinguishable.
+    """
+    await enroll(client, public_key_b64)
+
+    # A well-measured hexagon: twenty good readings in one place.
+    early = [
+        sign_record(
+            make_record(record_id=f"rec-inc-a{i:04d}", minutes_ago=120 - i, lat=BASE_LAT),
+            device_key,
+        )
+        for i in range(20)
+    ]
+    assert (await client.post("/api/v1/measurements/batch", json=batch(early, batch_id="batch-inc-a"))).json()["accepted"] == 20
+    await rebuild_tiles(session)
+
+    tile = (await session.scalars(select(H3Tile))).one()
+    index, before_colour, before_first = tile.h3_index, tile.colour, tile.first_measured_at
+    assert tile.measurement_count == 20
+
+    # One dead reading arrives in the same hexagon a moment later.
+    boundary = datetime.now(timezone.utc) - timedelta(minutes=5)
+    late = [
+        sign_record(
+            make_record(
+                record_id="rec-inc-b0000",
+                minutes_ago=1,
+                lat=BASE_LAT,
+                registered=False,
+                network_type=None,
+                cells=0,
+                signal={"rsrp_dbm": None, "level": 0},
+            ),
+            device_key,
+        )
+    ]
+    assert (await client.post("/api/v1/measurements/batch", json=batch(late, batch_id="batch-inc-b"))).json()["accepted"] == 1
+
+    await rebuild_tiles(session, since=boundary)
+
+    tile = (await session.scalars(select(H3Tile))).one()
+    # The lifetime history, not the slice: this read 1 before the fix.
+    assert tile.measurement_count == 21
+    assert tile.first_measured_at == before_first
+    # Twenty good readings still outvote one dead one.
+    assert tile.colour == before_colour
+    incremental = {
+        c: getattr(tile, c) for c in ("colour", "measurement_count", "dominant_state", "worst_state")
+    }
+
+    await rebuild_tiles(session)
+    tile = (await session.scalars(select(H3Tile))).one()
+    assert tile.h3_index == index
+    assert {
+        c: getattr(tile, c) for c in ("colour", "measurement_count", "dominant_state", "worst_state")
+    } == incremental
+
+
+async def test_an_incremental_rebuild_leaves_untouched_hexagons_alone(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """A quiet hexagon must survive a run that only looked at a busy one —
+    the reason the stale-tile cleanup is confined to full rebuilds."""
+    await _upload_journey(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+    before = {t.h3_index: t.measurement_count for t in (await session.scalars(select(H3Tile))).all()}
+    assert len(before) > 1
+
+    await rebuild_tiles(session, since=datetime.now(timezone.utc) + timedelta(minutes=1))
+
+    after = {t.h3_index: t.measurement_count for t in (await session.scalars(select(H3Tile))).all()}
+    assert after == before
 
 
 async def test_deleting_the_measurements_takes_their_tiles_off_the_map(

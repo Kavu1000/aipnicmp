@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -65,14 +65,34 @@ def worst_state(counts: dict[str, int]) -> RadioState | None:
     return min(present, key=lambda state: STATE_SCORE[state])
 
 
-async def _state_counts(session: AsyncSession, since: datetime | None) -> dict[str, dict[str, int]]:
+async def _dirty_indexes(session: AsyncSession, since: datetime) -> set[str]:
+    """The hexagons that have gained a measurement since the last run.
+
+    This is all ``since`` is ever used for. It selects *which* tiles to redo,
+    never *what they are made of* — see rebuild_tiles.
+
+    Keyed on arrival, not capture. A phone out of coverage for five hours
+    uploads readings captured five hours ago, and asking for records *captured*
+    in the last minute would never see them — the incremental pass would
+    quietly skip precisely the store-and-forward data this project exists to
+    collect, and the gap would only close at the nightly full rebuild.
+    """
+    query = select(Measurement.h3_index).where(
+        Measurement.h3_index.is_not(None), Measurement.received_at >= since
+    ).distinct()
+    return set((await session.scalars(query)).all())
+
+
+async def _state_counts(
+    session: AsyncSession, scope: set[str] | None
+) -> dict[str, dict[str, int]]:
     query = (
         select(Measurement.h3_index, Measurement.radio_state, func.count())
         .where(Measurement.h3_index.is_not(None))
         .group_by(Measurement.h3_index, Measurement.radio_state)
     )
-    if since is not None:
-        query = query.where(Measurement.captured_at >= since)
+    if scope is not None:
+        query = query.where(Measurement.h3_index.in_(scope))
 
     counts: dict[str, dict[str, int]] = {}
     for h3_index, state, count in (await session.execute(query)).all():
@@ -80,7 +100,7 @@ async def _state_counts(session: AsyncSession, since: datetime | None) -> dict[s
     return counts
 
 
-async def _tile_metrics(session: AsyncSession, since: datetime | None):
+async def _tile_metrics(session: AsyncSession, scope: set[str] | None):
     query = (
         select(
             Measurement.h3_index,
@@ -95,8 +115,8 @@ async def _tile_metrics(session: AsyncSession, since: datetime | None):
         .where(Measurement.h3_index.is_not(None))
         .group_by(Measurement.h3_index)
     )
-    if since is not None:
-        query = query.where(Measurement.captured_at >= since)
+    if scope is not None:
+        query = query.where(Measurement.h3_index.in_(scope))
     return (await session.execute(query)).mappings().all()
 
 
@@ -133,15 +153,46 @@ def _apply_areas(tile: H3Tile | H3TileOperator, areas: AreaAssignment) -> None:
     tile.adm3_code = areas.adm3
 
 
+"""How many changed hexagons is still worth doing incrementally.
+
+Past this, scanning the whole table beats sending a bind parameter per
+hexagon, and an incremental pass has stopped being incremental in any
+useful sense. Reached by a long outage or a bulk import, not by a minute
+of collection: a thousand phones sampling every 30s touch a few thousand
+hexagons an hour, and most of those repeat.
+"""
+INCREMENTAL_CEILING = 20_000
+
+
 async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None) -> int:
-    """Recompute every tile from the measurements. Returns the number written.
+    """Recompute tiles from the measurements. Returns the number written.
+
+    ``since`` narrows *which* hexagons are recomputed. It never narrows what
+    they are computed from: every tile touched is rebuilt from its entire
+    history, so an incremental run and a full run produce the same tile.
+
+    That distinction is the whole design. Filtering the aggregation itself by
+    time — which is what this used to do — makes a tile describe only its
+    recent traffic: the lifetime measurement_count is overwritten with the
+    last minute's, first_measured_at jumps forward, and the median state is
+    taken over a handful of readings, so one bad sample flips a hexagon that
+    500 good ones had earned. It was wrong in a way that got worse the more
+    often you ran it, which is presumably why nothing ever ran it.
 
     A measured tile always overrides a predicted one: ``is_predicted`` is
     cleared here, so a single real reading immediately replaces the model's
     guess for that hexagon. A prediction must never outrank a measurement.
     """
-    counts = await _state_counts(session, since)
-    metrics = await _tile_metrics(session, since)
+    scope: set[str] | None = None
+    if since is not None:
+        scope = await _dirty_indexes(session, since)
+        if not scope:
+            return 0
+        if len(scope) > INCREMENTAL_CEILING:
+            scope = None
+
+    counts = await _state_counts(session, scope)
+    metrics = await _tile_metrics(session, scope)
     tagger = _AreaTagger(await load_resolver(session))
 
     existing = {
@@ -187,14 +238,15 @@ async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None)
         written += 1
 
     await session.flush()
-    await _rebuild_operator_tiles(session, since, tagger)
-    if since is None:
-        await _drop_stale_tiles(session, {row["h3_index"] for row in metrics})
+    await _rebuild_operator_tiles(session, scope, tagger)
+    if scope is None:
+        await _drop_stale_tiles(session)
+        await _drop_stale_operator_tiles(session)
     await session.commit()
     return written
 
 
-async def _drop_stale_tiles(session: AsyncSession, current: set[str]) -> int:
+async def _drop_stale_tiles(session: AsyncSession) -> int:
     """Remove tiles the measurements no longer support.
 
     The loop above only visits hexagons that still have measurements, so a tile
@@ -211,18 +263,25 @@ async def _drop_stale_tiles(session: AsyncSession, current: set[str]) -> int:
     Only on a full rebuild, for the same reason as the operator tiles: an
     incremental run has looked at a slice of the measurements on purpose, and
     everything outside that slice is missing rather than stale.
+
+    Expressed as one DELETE rather than a scan in Python. Laos holds about
+    321,000 hexagons at resolution 8, and loading each as an ORM object to
+    decide its fate — which is what this did — is a lot of memory to answer a
+    question the database can answer in place.
     """
-    existing = (await session.scalars(select(H3Tile))).all()
-    dropped = 0
-    for tile in existing:
-        if tile.h3_index not in current and not tile.is_predicted:
-            await session.delete(tile)
-            dropped += 1
-    return dropped
+    result = await session.execute(
+        delete(H3Tile).where(
+            H3Tile.is_predicted.is_(False),
+            ~select(Measurement.id)
+            .where(Measurement.h3_index == H3Tile.h3_index)
+            .exists(),
+        )
+    )
+    return result.rowcount or 0
 
 
 async def _rebuild_operator_tiles(
-    session: AsyncSession, since: datetime | None, tagger: _AreaTagger
+    session: AsyncSession, scope: set[str] | None, tagger: _AreaTagger
 ) -> int:
     """The same hexagons again, split by operator.
 
@@ -265,9 +324,9 @@ async def _rebuild_operator_tiles(
         .where(*identified)
         .group_by(Measurement.h3_index, operator)
     )
-    if since is not None:
-        state_query = state_query.where(Measurement.captured_at >= since)
-        metric_query = metric_query.where(Measurement.captured_at >= since)
+    if scope is not None:
+        state_query = state_query.where(Measurement.h3_index.in_(scope))
+        metric_query = metric_query.where(Measurement.h3_index.in_(scope))
 
     counts: dict[tuple[str, str], dict[str, int]] = {}
     for h3_index, operator, state, count in (await session.execute(state_query)).all():
@@ -313,15 +372,10 @@ async def _rebuild_operator_tiles(
         tile.updated_at = datetime.now(timezone.utc)
         written += 1
 
-    if since is None:
-        await _drop_stale_operator_tiles(session, set(keys))
-
     return written
 
 
-async def _drop_stale_operator_tiles(
-    session: AsyncSession, current: set[tuple[str, str]]
-) -> int:
+async def _drop_stale_operator_tiles(session: AsyncSession) -> int:
     """Remove operator tiles the measurements no longer support.
 
     Aggregation only ever wrote rows; nothing removed them. That was invisible
@@ -333,10 +387,15 @@ async def _drop_stale_operator_tiles(
     slice of the measurements, so anything outside that slice is missing, not
     stale, and deleting it would erase the rest of the map.
     """
-    existing = (await session.scalars(select(H3TileOperator))).all()
-    dropped = 0
-    for tile in existing:
-        if (tile.h3_index, tile.operator_name) not in current:
-            await session.delete(tile)
-            dropped += 1
-    return dropped
+    result = await session.execute(
+        delete(H3TileOperator).where(
+            ~select(Measurement.id)
+            .where(
+                Measurement.h3_index == H3TileOperator.h3_index,
+                canonical_operator_column() == H3TileOperator.operator_name,
+                has_operator_identity(),
+            )
+            .exists()
+        )
+    )
+    return result.rowcount or 0

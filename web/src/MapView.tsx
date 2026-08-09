@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import maplibregl, { type MapGeoJSONFeature, type StyleSpecification } from "maplibre-gl";
 import {
   MAX_BBOX_DEGREES,
   type AreaChildren,
   type Bounds,
+  type Collector,
   type GeoBounds,
   type Geometry,
   type Summary,
@@ -22,6 +23,8 @@ const AREAS_FILL = "areas-fill";
 const AREAS_POINT = "areas-point";
 
 /** The selected area's own border, and the dimming of everything outside it. */
+const COLLECTORS_SOURCE = "collectors";
+const COLLECTORS_LAYER = "collector-points";
 const OUTLINE_SOURCE = "area-outline";
 const MASK_SOURCE = "area-mask";
 const BORDER_LAYER = "area-border";
@@ -233,6 +236,11 @@ interface Props {
   /** The selected area's border, outlined and used to dim everything else. */
   areaOutline: AreaOutline | null;
   fitTo: FitTarget | null;
+  /**
+   * The fleet, drawn at hexagon resolution. Devices with no reading yet carry
+   * no position and are simply not drawn.
+   */
+  collectors: Collector[];
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
   /** A click on a shaded area — the drill-down from province to district. */
@@ -269,6 +277,7 @@ export function MapView({
   childAreas,
   areaOutline,
   fitTo,
+  collectors,
   onBoundsChange,
   onSelect,
   onAreaSelect,
@@ -281,8 +290,41 @@ export function MapView({
   const latestAreas = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestOutline = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect });
   handlers.current = { onBoundsChange, onSelect, onAreaSelect };
+
+  /**
+   * Positions as GeoJSON.
+   *
+   * Built from what the server published — a hexagon centroid — so nothing
+   * here can be more precise than the server intended it to be.
+   */
+  const collectorPoints = useMemo<GeoJsonData>(
+    () => ({
+      type: "FeatureCollection",
+      features: collectors
+        .filter((row) => row.position !== null)
+        .map((row) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [row.position!.lon, row.position!.lat],
+          },
+          properties: { id: row.id, reporting: row.is_reporting },
+        })),
+    }) as unknown as GeoJsonData,
+    [collectors],
+  );
+  latestCollectors.current = collectorPoints;
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !instance.getSource(COLLECTORS_SOURCE)) return;
+    (instance.getSource(COLLECTORS_SOURCE) as maplibregl.GeoJSONSource).setData(
+      collectorPoints as never,
+    );
+  }, [collectorPoints]);
 
   // The auto-fit must happen once, and must not fight the user afterwards.
   const hasFitted = useRef(false);
@@ -471,6 +513,29 @@ export function MapView({
         source: OUTLINE_SOURCE,
         filter: ["get", "approximate"],
         paint: { "line-color": "#16202c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+
+      // Where the fleet is, to the nearest hexagon. Drawn last so a collector
+      // is never hidden under the coverage it just produced.
+      instance.addSource(COLLECTORS_SOURCE, {
+        type: "geojson",
+        data: latestCollectors.current,
+      });
+      instance.addLayer({
+        id: COLLECTORS_LAYER,
+        type: "circle",
+        source: COLLECTORS_SOURCE,
+        paint: {
+          // Deliberately soft-edged and wide: this marks a hexagon a phone
+          // reported from, not a pin on a person. A crisp small dot would
+          // claim a precision the data does not have.
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 4, 12, 11],
+          "circle-color": ["case", ["get", "reporting"], "#1f7a3d", "#8a94a6"],
+          "circle-opacity": 0.55,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": ["case", ["get", "reporting"], "#2fbf6b", "#c2c9d4"],
+          "circle-stroke-opacity": 0.9,
+        },
       });
 
       instance.on("click", FILL_LAYER, (event) => {

@@ -16,7 +16,7 @@ number would throw away the distinction the platform exists to make.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import h3
@@ -30,6 +30,7 @@ from app.models.device import Device
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
 from app.services.network import canonical_operator_column, has_operator_identity
+from app.services.geo import h3_centroid
 
 # CIA World Factbook / UN figure for Lao PDR.
 LAO_AREA_KM2 = 236_800
@@ -295,14 +296,35 @@ def isoformat(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
 
 
+"""How recently a phone must have uploaded to count as reporting.
+
+Set well above the one-minute upload cadence so a single missed cycle — a
+lost signal, a retry, a phone briefly in a lift — does not flip a working
+collector to silent and back.
+"""
+REPORTING_WINDOW = timedelta(minutes=10)
+
+
 async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
     """The devices contributing measurements, most recently active first.
 
-    Deliberately carries no position of any kind. This view answers "is the
-    fleet working" — which phones are reporting, which are being refused — and
-    that is a question about equipment, not about people. A collector's own
-    movements are exactly what the H3 aggregation exists to hide, so they must
-    not reappear here under an operational heading.
+    Carries a *coarse* position: the hexagon a phone last reported from, at
+    resolution 8 — about 740 m across — and never its GPS fix. This reverses an
+    earlier decision that published no position at all, and the reasoning for
+    that decision still holds, so the replacement is deliberately limited:
+
+    * the hexagon centroid only, so the answer is "somewhere in this 0.74 km²",
+      not "here";
+    * the latest one only, never a history, so it cannot become a movement
+      record. Yesterday's hexagon is not retrievable through this view;
+    * exact coordinates never leave the server for this endpoint.
+
+    That is enough to answer the operational question — is anyone collecting in
+    Attapeu today, is a phone stuck in one place, is the fleet spread out or
+    all in Vientiane — without turning a coverage platform into a way of
+    watching the people carrying the phones. A collector's own movements are
+    what the H3 aggregation exists to hide, and it would be a poor trade to
+    hide them from the public map and hand them to the operations page.
 
     The network each phone reports on *is* included, and is equipment
     information in the same sense as the handset model. It also answers the
@@ -338,12 +360,51 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
         if name:
             networks.setdefault(device_id, []).append(name)
 
+    # The hexagon each phone last reported from. Ordered oldest-first so the
+    # newest reading overwrites, which settles the tie when a device has two
+    # measurements sharing the same captured_at.
+    last_cell: dict[str, tuple[str, datetime]] = {}
+    for device_id, h3_index, captured_at in (
+        await session.execute(
+            select(Measurement.device_id, Measurement.h3_index, Measurement.captured_at)
+            .where(Measurement.h3_index.is_not(None))
+            .order_by(Measurement.captured_at.asc())
+        )
+    ).all():
+        last_cell[device_id] = (h3_index, captured_at)
+
+    now = datetime.now(timezone.utc)
+
     out: list[dict[str, Any]] = []
     for device in rows:
         total = device.records_accepted + device.records_rejected
+        cell = last_cell.get(device.install_id)
+        position = None
+        if cell is not None:
+            lat, lon = h3_centroid(cell[0])
+            position = {
+                "h3_index": cell[0],
+                "lat": lat,
+                "lon": lon,
+                "resolution": settings.h3_resolution,
+                "at": cell[1].isoformat(),
+            }
+
+        # "Reporting" rather than "online": the server only ever learns that a
+        # phone uploaded, which is not the same as it being switched on now. A
+        # collector in a dead zone is working exactly as intended and will look
+        # silent from here until they reach coverage.
+        last_seen = device.last_seen_at
+        if last_seen is not None and last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+        reporting = last_seen is not None and (now - last_seen) <= REPORTING_WINDOW
+
         out.append(
             {
                 "id": device.install_id[:16],
+                "position": position,
+                "is_reporting": reporting,
+                "silent_for_s": int((now - last_seen).total_seconds()) if last_seen else None,
                 "model": device.model,
                 "manufacturer": device.manufacturer,
                 # Empty for a phone that has enrolled but not yet uploaded a

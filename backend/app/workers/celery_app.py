@@ -7,6 +7,8 @@ heavy work is idempotent, so deferring it costs nothing.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from celery import Celery
 from celery.schedules import crontab
 
@@ -27,10 +29,23 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    # A minute-scale task must not pile up behind a slow run. If the queue is
+    # already late the work is stale anyway, and the next tick redoes it.
+    task_default_expires=120,
     beat_schedule={
-        "rebuild-tiles-hourly": {
+        # Incremental: only the hexagons that gained a measurement, rebuilt
+        # from their full history. Usually a no-op, which is what makes a
+        # one-minute cadence affordable.
+        "rebuild-tiles": {
             "task": "app.workers.tasks.rebuild_tiles_task",
-            "schedule": crontab(minute=10),
+            "schedule": timedelta(minutes=1),
+            "options": {"expires": 120},
+        },
+        # Full: the only pass that removes tiles whose measurements are gone,
+        # and the safety net if an incremental run is ever missed.
+        "rebuild-tiles-full": {
+            "task": "app.workers.tasks.rebuild_all_tiles_task",
+            "schedule": crontab(hour=3, minute=10),
         },
     },
 )

@@ -159,6 +159,7 @@ async def process_batch(
     duplicates = 0
     rejected: list[RejectedRecord] = []
     seen_in_batch: set[str] = set()
+    pending_cells: list[tuple[Measurement, list[CellObservation]]] = []
 
     for record in batch.records:
         if record.client_record_id in already_stored or record.client_record_id in seen_in_batch:
@@ -204,13 +205,25 @@ async def process_batch(
             flags=outcome.flag_string,
         )
         session.add(measurement)
-        await session.flush()
-
-        for cell_row in _cell_rows(record):
-            cell_row.measurement_id = measurement.id
-            session.add(cell_row)
+        cells = _cell_rows(record)
+        if cells:
+            pending_cells.append((measurement, cells))
 
         accepted += 1
+
+    # One flush for the whole batch, not one per record.
+    #
+    # The flush used to sit inside the loop, purely to learn each measurement's
+    # id before attaching its cell observations — 250 round trips to Postgres
+    # for a batch of 250, each waiting on the last. Flushing once assigns every
+    # id in a single statement, which is the difference between a batch costing
+    # one network round trip and costing hundreds.
+    if pending_cells:
+        await session.flush()
+        for measurement, cells in pending_cells:
+            for cell_row in cells:
+                cell_row.measurement_id = measurement.id
+                session.add(cell_row)
 
     batch_row.accepted_count = accepted
     batch_row.rejected_count = len(rejected)

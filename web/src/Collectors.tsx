@@ -6,10 +6,12 @@ import type { Strings } from "./i18n";
 /**
  * The fleet: which phones are reporting, and whether their records land.
  *
- * Deliberately shows no position of any kind. This answers "is the equipment
- * working" — a question about phones, not about people — and a collector's own
- * movements are exactly what the map's hexagons exist to hide. Reintroducing
- * them here under an operational heading would undo that quietly.
+ * Shows where each phone last reported from, at hexagon resolution — roughly
+ * 740 m — and never its GPS fix. That is a deliberate limit, not an oversight:
+ * a collector's own movements are what the map's hexagons exist to hide, so
+ * the operations view is allowed to answer "is anyone working in Attapeu"
+ * without being able to answer "where is this person". Only the latest hexagon
+ * is available, so no history can be assembled from it.
  *
  * The refused column is the one worth watching. A collector whose records are
  * all being rejected looks identical to a healthy one by every other measure,

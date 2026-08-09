@@ -3,6 +3,7 @@ import {
   ApiError,
   fetchArea,
   fetchAreaChildren,
+  fetchCollectors,
   fetchNetworks,
   fetchPriorityAreas,
   fetchSummary,
@@ -10,6 +11,7 @@ import {
   type AreaChildren,
   type AreaDetail,
   type Bounds,
+  type Collector,
   type Network,
   type Summary,
   type TileCollection,
@@ -30,6 +32,15 @@ import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
 import { Sidebar, type View } from "./Sidebar";
 import { formatAge, formatArea, formatShare } from "./coverage";
+
+/**
+ * How often the map asks the server what changed.
+ *
+ * Matched to the aggregation cadence on the server. Anything faster asks the
+ * same question of the same tiles; anything slower makes a map that claims to
+ * be live but is not.
+ */
+const REFRESH_INTERVAL_MS = 60_000;
 import { outlineOf } from "./geo";
 import { LANGUAGE_NAMES, TRANSLATIONS, loadLanguage, saveLanguage, type Language } from "./i18n";
 
@@ -65,6 +76,8 @@ export function App() {
   const [childAreas, setChildAreas] = useState<AreaChildren | null>(null);
   const [fitTo, setFitTo] = useState<FitTarget | null>(null);
   const [areaNotice, setAreaNotice] = useState<string | null>(null);
+  const [collectors, setCollectors] = useState<Collector[]>([]);
+  const [live, setLive] = useState(true);
 
   const t = TRANSLATIONS[language];
 
@@ -73,7 +86,8 @@ export function App() {
   const lastBounds = useRef<Bounds | null>(null);
 
   const loadTiles = useCallback(
-    (bounds: Bounds) => {
+    (bounds: Bounds, options?: { silent?: boolean }) => {
+      const silent = options?.silent === true;
       lastBounds.current = bounds;
       // An area selection is not a viewport query. Panning inside a chosen
       // district must not silently widen the answer back out to the screen.
@@ -84,7 +98,7 @@ export function App() {
         inFlight.current?.abort();
         const controller = new AbortController();
         inFlight.current = controller;
-        setLoading(true);
+        if (!silent) setLoading(true);
 
         fetchTiles({ bounds, operator }, controller.signal)
           .then((collection) => {
@@ -98,7 +112,7 @@ export function App() {
           .finally(() => {
             if (inFlight.current === controller) setLoading(false);
           });
-      }, 250);
+      }, silent ? 0 : 250);
     },
     [operator, areaCode],
   );
@@ -184,12 +198,59 @@ export function App() {
     return geometry ? { geometry, approximate: !area.has_boundary } : null;
   }, [areaDetail]);
 
+  /**
+   * Pull everything that changes on its own: the headline figures, the fleet,
+   * and the hexagons currently on screen.
+   *
+   * The network catalogue is not refreshed here — it changes when an operator
+   * is added, not when a measurement lands, and reloading it would reset the
+   * filter under the reader's cursor.
+   */
+  const refresh = useCallback(
+    (signal?: AbortSignal) => {
+      fetchSummary(signal).then(setSummary).catch(() => undefined);
+      fetchCollectors(signal)
+        .then((body) => setCollectors(body.collectors))
+        .catch(() => undefined);
+      if (!areaCode && lastBounds.current) loadTiles(lastBounds.current, { silent: true });
+    },
+    [areaCode, loadTiles],
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     fetchSummary(controller.signal).then(setSummary).catch(() => undefined);
     fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
+    fetchCollectors(controller.signal)
+      .then((body) => setCollectors(body.collectors))
+      .catch(() => undefined);
     return () => controller.abort();
   }, []);
+
+  /**
+   * Keep the map current while it is being watched.
+   *
+   * Matched to the server's one-minute aggregation: polling faster would ask
+   * the same question of the same tiles and get the same answer.
+   *
+   * Paused when the tab is hidden, and refreshed once on return. A dashboard
+   * left open on a wall display should not spend the night requesting a map
+   * nobody is reading, and one left open for a week should not show Monday's
+   * coverage the moment someone looks back at it.
+   */
+  useEffect(() => {
+    if (!live) return;
+
+    const tick = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const timer = window.setInterval(tick, REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [live, refresh]);
 
   const changeLanguage = (next: Language) => {
     setLanguage(next);
@@ -222,6 +283,11 @@ export function App() {
     if (!bounds) return;
     showOnMap((bounds.min_lat + bounds.max_lat) / 2, (bounds.min_lon + bounds.max_lon) / 2);
   }, [summary, showOnMap]);
+
+  const reporting = useMemo(
+    () => collectors.filter((row) => row.is_reporting).length,
+    [collectors],
+  );
 
   const freshness = useMemo(
     () => formatAge(summary?.latest_measurement_at, t.never),
@@ -358,6 +424,25 @@ export function App() {
               <dt>{t.statUpdated}</dt>
               <dd className="small">{freshness}</dd>
             </div>
+            {/* Whether the page is still listening, and how many phones are
+                sending. A dashboard that has quietly stopped updating looks
+                exactly like one where nothing is happening. */}
+            <div>
+              <dt>{live ? t.live : t.livePaused}</dt>
+              <dd className="small">
+                <button
+                  className={live ? "live-toggle live-on" : "live-toggle"}
+                  onClick={() => {
+                    if (!live) refresh();
+                    setLive(!live);
+                  }}
+                  title={live ? t.livePause : t.liveResume}
+                >
+                  <span className="live-dot" aria-hidden="true" />
+                  {reporting} {t.collectingNow}
+                </button>
+              </dd>
+            </div>
           </dl>
         )}
 
@@ -373,6 +458,7 @@ export function App() {
               childAreas={childAreas}
               areaOutline={areaOutline}
               fitTo={fitTo}
+              collectors={collectors}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
               onAreaSelect={setAreaCode}
