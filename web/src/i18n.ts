@@ -57,6 +57,8 @@ export interface Strings {
   statDevices: string;
   statUpdated: string;
   live: string;
+  railCollapse: string;
+  railExpand: string;
   livePaused: string;
   liveResume: string;
   livePause: string;
@@ -205,6 +207,8 @@ const en: Strings = {
   statDevices: "Contributing devices",
   statUpdated: "Updated",
   live: "Live",
+  railCollapse: "Hide details",
+  railExpand: "Show details",
   livePaused: "Paused",
   liveResume: "Resume live updates",
   livePause: "Pause live updates",
@@ -361,6 +365,8 @@ const lo: Strings = {
   statDevices: "ອຸປະກອນທີ່ຮ່ວມ",
   statUpdated: "ອັບເດດ",
   live: "ສົດ",
+  railCollapse: "ເຊື່ອງລາຍລະອຽດ",
+  railExpand: "ສະແດງລາຍລະອຽດ",
   livePaused: "ຢຸດຊົ່ວຄາວ",
   liveResume: "ສືບຕໍ່ອັບເດດສົດ",
   livePause: "ຢຸດອັບເດດສົດ",

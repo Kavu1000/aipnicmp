@@ -303,16 +303,24 @@ export function MapView({
   const collectorPoints = useMemo<GeoJsonData>(
     () => ({
       type: "FeatureCollection",
+      // Truthiness, not `!== null`: an older server omits the field entirely,
+      // and `undefined !== null` is true — which passed the filter and then
+      // threw on the first property read, taking the whole page down with it.
       features: collectors
-        .filter((row) => row.position !== null)
-        .map((row) => ({
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates: [row.position!.lon, row.position!.lat],
-          },
-          properties: { id: row.id, reporting: row.is_reporting },
-        })),
+        .flatMap((row) =>
+          row.position
+            ? [
+                {
+                  type: "Feature" as const,
+                  geometry: {
+                    type: "Point" as const,
+                    coordinates: [row.position.lon, row.position.lat],
+                  },
+                  properties: { id: row.id, reporting: row.is_reporting === true },
+                },
+              ]
+            : [],
+        ),
     }) as unknown as GeoJsonData,
     [collectors],
   );

@@ -78,6 +78,7 @@ export function App() {
   const [areaNotice, setAreaNotice] = useState<string | null>(null);
   const [collectors, setCollectors] = useState<Collector[]>([]);
   const [live, setLive] = useState(true);
+  const [railOpen, setRailOpen] = useState(true);
 
   const t = TRANSLATIONS[language];
 
@@ -289,6 +290,9 @@ export function App() {
     [collectors],
   );
 
+  // The rail exists only when it has something to say.
+  const detail = areaDetail !== null || selected !== null;
+
   const freshness = useMemo(
     () => formatAge(summary?.latest_measurement_at, t.never),
     [summary, t.never],
@@ -449,7 +453,8 @@ export function App() {
         <main>
           {/* The map stays mounted behind the other views so switching back
               never rebuilds it or loses the user's position. */}
-          <div className={view === "map" ? "pane" : "pane hidden"}>
+          <div className={view === "map" ? "pane map-shell" : "pane map-shell hidden"}>
+            <div className="map-area">
             <MapView
               tiles={tiles}
               summary={summary}
@@ -464,16 +469,6 @@ export function App() {
               onAreaSelect={setAreaCode}
             />
             <Legend t={t} />
-            <TileInspector tile={selected} t={t} onClose={() => setSelected(null)} />
-
-            {areaDetail && (
-              <AreaSummary
-                detail={areaDetail}
-                language={language}
-                t={t}
-                onClear={() => setAreaCode(null)}
-              />
-            )}
 
             {loading && <div className="toast">{t.loading}</div>}
             {error && <div className="toast error">{error}</div>}
@@ -490,6 +485,41 @@ export function App() {
                   </button>
                 )}
               </div>
+            )}
+            </div>
+
+            {/*
+              One rail, not two floating cards.
+              A selected area and a clicked hexagon used to open separate
+              panels over the map, both covering the thing they described, and
+              each able to hide the other. Docking them shrinks the map instead
+              of covering it, so nothing the reader is looking at disappears
+              behind the answer to a question about it.
+            */}
+            {detail && (
+              <aside className={railOpen ? "detail-rail" : "detail-rail collapsed"}>
+                <button
+                  className="rail-handle"
+                  onClick={() => setRailOpen(!railOpen)}
+                  aria-expanded={railOpen}
+                  title={railOpen ? t.railCollapse : t.railExpand}
+                >
+                  {railOpen ? "›" : "‹"}
+                </button>
+                <div className="rail-body">
+                  {selected && (
+                    <TileInspector tile={selected} t={t} onClose={() => setSelected(null)} />
+                  )}
+                  {areaDetail && (
+                    <AreaSummary
+                      detail={areaDetail}
+                      language={language}
+                      t={t}
+                      onClear={() => setAreaCode(null)}
+                    />
+                  )}
+                </div>
+              </aside>
             )}
           </div>
 

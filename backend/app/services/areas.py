@@ -36,6 +36,7 @@ from app.models.tile import H3Tile, H3TileOperator
 from app.services.coverage import INVESTMENT_ACTION, tile_area_km2
 from app.services.geo import haversine_m
 from app.services.polygon import ShapeIndex, bbox_of, shape_of
+from app.services.network import canonical_operator_column, has_operator_identity
 
 # How far from a village point the platform is willing to say "this is that
 # village", when no polygon was published. Deliberately modest: a Lao village
@@ -275,7 +276,15 @@ async def coverage_by_area(
         .join(model, model.h3_index == Measurement.h3_index)
     )
     if operator:
-        device_query = device_query.where(Measurement.operator_name == operator)
+        # Canonical identity, not the string the handset reported. Every other
+        # query in the project resolves an operator through MCC/MNC, because
+        # one SIM comes back as "LTC" on one phone and "LAO TELECOM" on the
+        # next. Matching the raw name here meant a province filtered by "Lao
+        # Telecom" counted zero contributing devices while still reporting the
+        # area those devices had measured — a panel contradicting itself.
+        device_query = device_query.where(
+            canonical_operator_column() == operator, has_operator_identity()
+        )
 
     if grouped:
         state_query = state_query.add_columns(column).group_by(column)

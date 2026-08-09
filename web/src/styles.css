@@ -745,18 +745,10 @@ main {
 /* ---------- tile inspector ---------- */
 
 .inspector {
-  position: absolute;
-  top: 1rem;
-  inset-inline-end: 1rem;
-  width: 320px;
-  max-height: calc(100% - 2rem);
-  overflow-y: auto;
   padding: 1.1rem 1.2rem 1.3rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  z-index: 2;
 }
 
 .inspector .close {
@@ -900,18 +892,10 @@ main {
 /* ---------- selected area summary ---------- */
 
 .area-summary {
-  position: absolute;
-  top: 1rem;
-  inset-inline-start: 1rem;
-  width: 300px;
-  max-height: calc(100% - 2rem);
-  overflow-y: auto;
   padding: 1rem 1.1rem 1.1rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  z-index: 2;
 }
 
 .area-summary-head {
@@ -1311,4 +1295,107 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
   .live-toggle.live-on .live-dot { animation: none; }
+}
+
+/* ---------- docked detail rail ---------- */
+
+/*
+  The map and its explanation share the width rather than fighting for it.
+
+  Both panels used to float over the map, which put the answer on top of the
+  thing it described — select a province and the province disappeared under
+  its own summary. Docking costs some map width and hides nothing.
+*/
+.map-shell {
+  display: flex;
+  align-items: stretch;
+}
+
+.map-area {
+  position: relative;
+  flex: 1 1 auto;
+  /* Without this a flex child refuses to shrink below its content, and the
+     rail pushes the map off the side instead of narrowing it. */
+  min-width: 0;
+}
+
+.detail-rail {
+  position: relative;
+  flex: 0 0 340px;
+  display: flex;
+  border-inline-start: 1px solid var(--line);
+  background: var(--page);
+  transition: flex-basis 0.18s ease;
+}
+
+.detail-rail.collapsed {
+  flex-basis: 0;
+}
+
+.rail-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.detail-rail.collapsed .rail-body {
+  display: none;
+}
+
+/* Sits on the map side of the border so it stays reachable when collapsed —
+   a rail with no way back is just a closed panel. */
+.rail-handle {
+  position: absolute;
+  inset-inline-start: -22px;
+  top: 1rem;
+  inline-size: 22px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-inline-end: 0;
+  border-start-start-radius: var(--radius);
+  border-end-start-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.rail-handle:hover {
+  color: var(--text);
+}
+
+/*
+  Below this the rail would leave too little map to be worth looking at, so it
+  becomes a sheet across the bottom instead — the same panel, docked to the
+  edge with the most room on a phone held upright.
+*/
+@media (max-width: 900px) {
+  .map-shell {
+    flex-direction: column;
+  }
+
+  .detail-rail {
+    flex: 0 0 auto;
+    max-block-size: 45vh;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--line);
+  }
+
+  .detail-rail.collapsed {
+    max-block-size: 0;
+    border-block-start: 0;
+  }
+
+  .rail-handle {
+    inset-inline-start: 50%;
+    top: -22px;
+    transform: translateX(-50%) rotate(90deg);
+  }
 }

@@ -191,10 +191,10 @@ export interface CollectorPosition {
 
 export interface Collector {
   id: string;
-  position: CollectorPosition | null;
+  position?: CollectorPosition | null;
   /** Uploaded recently enough to count as active. See REPORTING_WINDOW. */
-  is_reporting: boolean;
-  silent_for_s: number | null;
+  is_reporting?: boolean;
+  silent_for_s?: number | null;
   model: string | null;
   manufacturer: string | null;
   /**
