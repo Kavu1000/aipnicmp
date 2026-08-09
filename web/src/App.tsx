@@ -519,7 +519,7 @@ export function App() {
                     if (!live) refresh();
                     setLive(!live);
                   }}
-                  title={live ? t.livePause : t.liveResume}
+                  title={`${live ? t.livePause : t.liveResume} — ${t.reportingExplain}`}
                 >
                   <span className="live-dot" aria-hidden="true" />
                   {reporting} {t.collectingNow}

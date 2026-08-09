@@ -63,6 +63,7 @@ export interface Strings {
   liveResume: string;
   livePause: string;
   collectingNow: string;
+  reportingExplain: string;
   collectorHere: string;
   approxPosition: string;
   ofCountry: string;
@@ -251,7 +252,9 @@ const en: Strings = {
   livePaused: "Paused",
   liveResume: "Resume live updates",
   livePause: "Pause live updates",
-  collectingNow: "collecting now",
+  collectingNow: "uploaded recently",
+  reportingExplain:
+    "Phones that have uploaded in the last 10 minutes. A collector in a dead zone is still working and will look silent until they reach coverage.",
   collectorHere: "Collector",
   approxPosition: "Approximate position — hexagon centre, not an exact location.",
   ofCountry: "of Lao PDR",
@@ -454,7 +457,9 @@ const lo: Strings = {
   livePaused: "ຢຸດຊົ່ວຄາວ",
   liveResume: "ສືບຕໍ່ອັບເດດສົດ",
   livePause: "ຢຸດອັບເດດສົດ",
-  collectingNow: "ກຳລັງເກັບຂໍ້ມູນ",
+  collectingNow: "ອັບໂຫຼດເມື່ອບໍ່ດົນມານີ້",
+  reportingExplain:
+    "ໂທລະສັບທີ່ອັບໂຫຼດພາຍໃນ 10 ນາທີຜ່ານມາ. ຜູ້ເກັບຂໍ້ມູນຢູ່ເຂດບໍ່ມີສັນຍານຍັງເຮັດວຽກຢູ່ ແຕ່ຈະເບິ່ງຄືງຽບຈົນກວ່າຈະຮອດເຂດມີສັນຍານ.",
   collectorHere: "ຜູ້ເກັບຂໍ້ມູນ",
   approxPosition: "ຕຳແໜ່ງໂດຍປະມານ — ຈຸດກາງຂອງຮວງເຜິ້ງ, ບໍ່ແມ່ນຕຳແໜ່ງແທ້.",
   ofCountry: "ຂອງ ສປປ ລາວ",
