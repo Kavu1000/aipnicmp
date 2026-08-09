@@ -28,6 +28,9 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       DATABASE_URL_SYNC: ${DATABASE_URL_SYNC}
     command: ["python", "-c", "print('migrations complete')"]
+    # The image's healthcheck curls the API, which this one-shot never runs.
+    healthcheck:
+      disable: true
     networks: [aipnicmp]
 
   api:
@@ -95,6 +98,19 @@ services:
       ENV: ${ENV:-production}
       H3_RESOLUTION: ${H3_RESOLUTION:-8}
     command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=2"]
+    # The backend image carries a healthcheck that curls the API on port 8000.
+    # This container runs Celery and never listens on that port, so the inherited
+    # check could only ever fail — reporting "unhealthy" for a worker that is
+    # working. Ask Celery itself instead: a reply proves both that the worker is
+    # alive and that it can reach the broker, which is what actually matters.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 60s
+      timeout: 20s
+      # Celery takes a while to connect to Redis and register; probing too early
+      # would flap between healthy and not on every restart.
+      start_period: 60s
+      retries: 3
     networks: [aipnicmp]
 
 networks:
