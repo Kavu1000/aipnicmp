@@ -107,8 +107,14 @@ Create credentials → OAuth client ID → Web application**, and add the site t
 
 ```
 https://aipn.chax.site
-http://localhost:5173
 ```
+
+Add `http://localhost:5173` as well **only if somebody develops locally** — it
+is the Vite dev server's address and has no part in the deployed site. Listing
+it means any program on port 5173, on any machine, can ask Google for a token
+issued to this client; the sign-in still needs the person's consent and a super
+admin's approval, so the risk is small, but an unused origin is a door with no
+purpose behind it. It can be added in one click later.
 
 Origins are exact — scheme, host and port, no path and no trailing slash. A
 missing origin is the usual cause of a sign-in button that renders and then
