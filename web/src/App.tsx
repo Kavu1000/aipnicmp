@@ -228,6 +228,10 @@ export function App() {
     try {
       await signOut();
     } finally {
+      // Tell Google to forget the account too, so the next visitor to this
+      // browser gets the chooser rather than a one-click way back into
+      // somebody else's session.
+      window.google?.accounts?.id?.disableAutoSelect?.();
       // Whatever the server said, stop showing data this browser may no longer
       // be entitled to.
       setSession((current) =>

@@ -99,6 +99,8 @@ export interface Strings {
 
   loginTitle: string;
   loginWhy: string;
+  loginWithGoogle: string;
+  loginChooseAccount: string;
   loginApprovalNote: string;
   loginSigningIn: string;
   loginFailed: string;
@@ -290,6 +292,8 @@ const en: Strings = {
 
   loginTitle: "Sign in",
   loginWhy: "This platform holds national coverage data. Access is granted to named accounts.",
+  loginWithGoogle: "Sign in with Google",
+  loginChooseAccount: "Use your institutional account",
   loginApprovalNote:
     "New accounts are reviewed by a super administrator before access is granted.",
   loginSigningIn: "Signing in…",
@@ -491,6 +495,8 @@ const lo: Strings = {
 
   loginTitle: "ເຂົ້າສູ່ລະບົບ",
   loginWhy: "ລະບົບນີ້ເກັບຂໍ້ມູນການຄອບຄຸມສັນຍານລະດັບຊາດ. ອະນຸຍາດໃຫ້ສະເພາະບັນຊີທີ່ໄດ້ຮັບການອະນຸມັດ.",
+  loginWithGoogle: "ເຂົ້າສູ່ລະບົບດ້ວຍ Google",
+  loginChooseAccount: "ໃຊ້ບັນຊີຂອງສະຖາບັນ",
   loginApprovalNote: "ບັນຊີໃໝ່ຕ້ອງໄດ້ຮັບການອະນຸມັດຈາກຜູ້ດູແລລະບົບສູງສຸດກ່ອນ.",
   loginSigningIn: "ກຳລັງເຂົ້າສູ່ລະບົບ…",
   loginFailed: "ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.",

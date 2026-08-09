@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "./api";
+import { LoginBackdrop } from "./LoginBackdrop";
 import { ADVISORS, AFFILIATION, TEAM, personName, personRole } from "./team";
 import type { Language, Strings } from "./i18n";
 
@@ -29,6 +30,8 @@ interface GoogleIdentity {
         cancel_on_tap_outside?: boolean;
       }): void;
       renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+      /** Makes Google forget the last account used in this browser. */
+      disableAutoSelect(): void;
     };
   };
 }
@@ -148,13 +151,30 @@ export function Login({
           auto_select: false,
           cancel_on_tap_outside: true,
         });
+        // Any account this browser has used before is forgotten, so Google
+        // offers the chooser instead of resuming a session. On a shared
+        // machine — which this platform is meant to be usable from — resuming
+        // somebody else's is the wrong default.
+        window.google.accounts.id.disableAutoSelect();
+
+        // The icon button, not the standard one.
+        //
+        // Google's standard button is *personalised*: when a Google session
+        // exists it renders "Sign in as <name>" with the address underneath,
+        // and because the button lives in Google's own iframe there is no
+        // setting that turns that off. Two reasons that is wrong here. It puts
+        // somebody's address on a screen that is often a projector or a shared
+        // desk, and it invites a one-click sign-in as whichever account the
+        // browser happens to hold — usually a personal one, when this platform
+        // wants the institutional account.
+        //
+        // The icon variant carries no text at all, so the label beside it is
+        // ours and always says the same thing.
         window.google.accounts.id.renderButton(buttonHost.current, {
+          type: "icon",
           theme: "outline",
           size: "large",
-          shape: "pill",
-          text: "signin_with",
-          logo_alignment: "left",
-          width: 280,
+          shape: "circle",
         });
       })
       .catch(() => setError(t.loginScriptFailed));
@@ -166,6 +186,8 @@ export function Login({
 
   return (
     <div className="login">
+      <LoginBackdrop />
+
       <div className="login-card">
         <header className="login-head">
           <span className="brand-mark" aria-hidden="true">
@@ -218,7 +240,20 @@ export function Login({
               <>
                 <h2>{t.loginTitle}</h2>
                 <p className="login-why">{t.loginWhy}</p>
-                <div className="login-button" ref={buttonHost} />
+
+                {/* The label is ours, so it never carries an address. Hidden
+                    when Google is unconfigured: an empty button beside an
+                    error explaining there is no button would be a puzzle. */}
+                {session.google_client_id && (
+                  <div className="login-google">
+                    <div className="login-button" ref={buttonHost} />
+                    <span className="login-google-label">
+                      <strong>{t.loginWithGoogle}</strong>
+                      <em>{t.loginChooseAccount}</em>
+                    </span>
+                  </div>
+                )}
+
                 {busy && <p className="login-note">{t.loginSigningIn}</p>}
                 {error && <p className="login-error">{error}</p>}
                 <p className="login-note">{t.loginApprovalNote}</p>
