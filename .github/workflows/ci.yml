@@ -10,7 +10,11 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded pull-request runs are worth cancelling; pushes to main are not.
+  # Two pushes in quick succession queue, and the second to *start* cancelled
+  # the first to start — which happened to be the newer commit, leaving main
+  # with no images built from its head.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -143,7 +147,11 @@ jobs:
     name: Build and push images
     # Only after everything that could tell us the code is broken.
     needs: [backend, migrations, web, android]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    # workflow_dispatch included on purpose: without it a manual re-run could
+    # never publish, which is exactly what you want after a cancelled run.
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
