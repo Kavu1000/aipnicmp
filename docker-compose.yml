@@ -51,6 +51,12 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_TOKEN: ${ADMIN_TOKEN}
+      # Sign-in with Google. Defaulted so the platform stays closed when these
+      # are unset: no client id means nobody can sign in, and AUTH_ENABLED has
+      # to be set to false deliberately rather than by omission.
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SUPER_ADMIN_EMAILS: ${SUPER_ADMIN_EMAILS:-}
       REQUIRE_RECORD_SIGNATURE: ${REQUIRE_RECORD_SIGNATURE:-true}
       H3_RESOLUTION: ${H3_RESOLUTION:-8}
       TILE_MIN_DEVICES: ${TILE_MIN_DEVICES:-2}
