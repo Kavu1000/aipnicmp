@@ -16,6 +16,28 @@ class CollectorPrefs(context: Context) {
     private val prefs = context.applicationContext
         .getSharedPreferences("collector", Context.MODE_PRIVATE)
 
+    init {
+        forgetAddressesFromTheEditableEra()
+    }
+
+    /**
+     * Clear a server address saved back when the field was on screen.
+     *
+     * App data survives an upgrade, so a phone that was once pointed at a
+     * laptop keeps pointing there — and now that the field is hidden, its owner
+     * cannot see why nothing uploads or put it right. Anything entered
+     * deliberately after this build, through the long press, is kept: the
+     * generation marker is written once and never rewritten.
+     */
+    private fun forgetAddressesFromTheEditableEra() {
+        if (prefs.getInt(KEY_SETTINGS_GENERATION, 0) >= SETTINGS_GENERATION) return
+        prefs.edit()
+            .remove(KEY_API_URL)
+            .remove(KEY_API_URL_USER_SET)
+            .putInt(KEY_SETTINGS_GENERATION, SETTINGS_GENERATION)
+            .apply()
+    }
+
     /** Created on first access and never changed. */
     val installId: String?
         get() = prefs.getString(KEY_INSTALL_ID, null)
@@ -124,6 +146,14 @@ class CollectorPrefs(context: Context) {
         }
 
     private companion object {
+        /**
+         * Bumped when a stored setting stops meaning what it used to. Currently
+         * 1: the server address became read-only, so addresses saved under the
+         * old editable field are discarded once.
+         */
+        const val SETTINGS_GENERATION = 1
+        const val KEY_SETTINGS_GENERATION = "settings_generation"
+
         const val KEY_INSTALL_ID = "install_id"
         const val KEY_ENROLLED = "enrolled"
         const val KEY_COLLECTING = "collecting"
