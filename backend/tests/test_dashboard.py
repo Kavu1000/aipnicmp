@@ -7,6 +7,8 @@ mistake would be a rounding decision, not a bug anyone would notice.
 
 from __future__ import annotations
 
+import h3
+
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,8 +20,12 @@ from tests.test_ingest_api import batch, enroll
 
 
 def test_a_res_8_hexagon_is_under_a_square_kilometre():
-    """If this changes, every area figure on the dashboard changes with it."""
-    assert 0.7 < tile_area_km2(8) < 0.8
+    """If this changes, every area figure on the dashboard changes with it.
+
+    The bound used to be 0.7-0.8, which was H3's global average and not the
+    size of a cell anywhere in Laos. It pinned the error rather than the fact.
+    """
+    assert 0.8 < tile_area_km2(8) < 0.9
 
 
 def test_the_country_area_is_the_published_figure():
@@ -230,3 +236,19 @@ async def test_stats_and_dashboard_summary_cannot_disagree(
     stats = (await client.get("/api/v1/stats")).json()
     summary = (await client.get("/api/v1/dashboard/summary")).json()
     assert stats == summary
+
+
+def test_a_hexagon_is_sized_for_laos_not_for_the_globe():
+    """H3 cells are not equal-area, and the global average is not the Lao one.
+
+    Measured over all 279,918 resolution-8 cells covering the country: they run
+    0.815-0.858 km2, mean 0.836. The global average for that resolution is
+    0.737, which understated every reported area and share by 11.8%.
+    """
+    from app.services.coverage import tile_area_km2
+
+    area = tile_area_km2(8)
+    assert 0.815 <= area <= 0.858, area
+    # Within 3% of the true national mean, against 11.8% for the global figure.
+    assert abs(area - 0.8355) / 0.8355 < 0.03
+    assert area > h3.average_hexagon_area(8, unit="km^2")

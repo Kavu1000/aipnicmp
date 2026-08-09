@@ -46,8 +46,32 @@ INVESTMENT_ACTION: dict[RadioState, str] = {
 }
 
 
+# The centre of the country, used to size a representative hexagon. See below.
+LAO_CENTRE_LAT = 18.0
+LAO_CENTRE_LON = 103.5
+
+
 def tile_area_km2(resolution: int | None = None) -> float:
-    return h3.average_hexagon_area(resolution or settings.h3_resolution, unit="km^2")
+    """The area of one hexagon, as it actually is over Laos.
+
+    ``h3.average_hexagon_area`` is a mean over the whole sphere, and H3 cells
+    are not equal-area. At resolution 8 the global average is 0.737 km2, but
+    across Laos the real cells run 0.815-0.858 km2 with a mean of 0.836 —
+    measured over all 279,918 cells covering the country.
+
+    Using the global figure understated every area and every share this module
+    reports by 11.8%. That is the wrong direction for a platform whose whole
+    argument rests on saying honestly how little has been measured: it made the
+    pilot look smaller than it is, in a number quoted to policymakers.
+
+    A single representative cell rather than a per-tile sum: the spread across
+    the country is 5.1%, so a mid-country cell is within about 2.5% anywhere in
+    Laos, against 11.8% before. Summing real areas per tile would be exact, but
+    it would put a 280,000-row scan behind every dashboard request to remove an
+    error smaller than the simplification already in the boundaries.
+    """
+    res = resolution or settings.h3_resolution
+    return h3.cell_area(h3.latlng_to_cell(LAO_CENTRE_LAT, LAO_CENTRE_LON, res), unit="km^2")
 
 
 async def coverage_summary(session: AsyncSession) -> dict[str, Any]:
