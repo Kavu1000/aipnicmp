@@ -44,6 +44,24 @@
     <string name="error_server_invalid">Enter a full address starting with http:// or https://, for example https://api.example.com</string>
     <string name="error_server_while_running">Stop recording before changing the server. Records already waiting were signed for the old one.</string>
 
+    <string name="action_view_records">See all records</string>
+    <string name="records_title">Records</string>
+    <string name="records_waiting">Waiting to send (%1$d)</string>
+    <string name="records_sent">Already sent (%1$d)</string>
+    <string name="records_none_waiting">Nothing waiting. Everything recorded has been sent.</string>
+    <string name="records_none_sent">Nothing sent yet.</string>
+    <string name="records_waiting_row">Waiting for internet</string>
+    <string name="records_sent_at">Sent %1$s</string>
+    <string name="records_cells">%1$d cells</string>
+    <string name="records_no_network">No network</string>
+    <string name="records_no_signal_value">no signal reading</string>
+
+    <string name="state_good">Good service</string>
+    <string name="state_weak">Weak 4G</string>
+    <string name="state_calls_only">Calls only</string>
+    <string name="state_unusable">Too weak to use</string>
+    <string name="state_none">No network at all</string>
+
     <string name="upload_requested">Upload requested. It will run as soon as this phone has internet.</string>
 
     <string name="warning_permissions">Location permission is not fully granted. Without it the phone cannot read signal strength, and recording will stop when the screen turns off.</string>

@@ -28,8 +28,16 @@ class MeasurementStore(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "collector.db"
-        private const val VERSION = 1
+        private const val VERSION = 2
         private const val TABLE = "queued_measurements"
+        private const val SENT_TABLE = "sent_measurements"
+
+        /**
+         * How many uploaded records to remember for the history view. Enough
+         * to review a day's collecting; small enough that it can never rival
+         * the queue itself for space, which is what the storage cap protects.
+         */
+        const val SENT_HISTORY_LIMIT = 300
 
         /**
          * Queue cap from proposal 2.3, so a phone that never regains coverage
@@ -52,11 +60,37 @@ class MeasurementStore(context: Context) :
             """.trimIndent()
         )
         db.execSQL("CREATE INDEX idx_captured_at ON $TABLE (captured_at_millis)")
+        createSentTable(db)
+    }
+
+    /**
+     * A short history of what was uploaded and what the server said about it.
+     *
+     * The queue deletes a record the moment the server rules on it, which is
+     * correct — but it left the collector with nothing but a counter. Someone
+     * who has just driven a mountain road deserves to see what they actually
+     * gathered, and to see plainly if the server refused it and why.
+     */
+    private fun createSentTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $SENT_TABLE (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_record_id TEXT NOT NULL,
+                captured_at_millis INTEGER NOT NULL,
+                sent_at_millis INTEGER NOT NULL,
+                outcome TEXT NOT NULL,
+                payload TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_sent_at ON $SENT_TABLE (sent_at_millis)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // No migrations yet. When one is needed, migrate rather than drop:
-        // queued records may be the only evidence that a place has no coverage.
+        // Migrate, never drop: queued records may be the only evidence that a
+        // place has no coverage, and they cannot be collected again.
+        if (oldVersion < 2) createSentTable(db)
     }
 
     fun enqueue(record: Measurement, payload: JSONObject): Boolean {
@@ -82,7 +116,7 @@ class MeasurementStore(context: Context) :
         val out = mutableListOf<QueuedRecord>()
         readableDatabase.query(
             TABLE,
-            arrayOf("id", "client_record_id", "payload"),
+            arrayOf("id", "client_record_id", "payload", "captured_at_millis"),
             null, null, null, null,
             "captured_at_millis ASC",
             limit.toString(),
@@ -93,6 +127,7 @@ class MeasurementStore(context: Context) :
                         id = cursor.getLong(0),
                         clientRecordId = cursor.getString(1),
                         payload = cursor.getString(2),
+                        capturedAtMillis = cursor.getLong(3),
                     )
                 )
             }
@@ -122,6 +157,85 @@ class MeasurementStore(context: Context) :
         if (it.moveToFirst()) it.getInt(0) else 0
     }
 
+    /** Queued records, oldest first — the order they will be uploaded in. */
+    fun listPending(limit: Int = 200): List<RecordSummary> {
+        val out = mutableListOf<RecordSummary>()
+        readableDatabase.query(
+            TABLE,
+            arrayOf("captured_at_millis", "payload"),
+            null, null, null, null,
+            "captured_at_millis ASC",
+            limit.toString(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                RecordSummary.fromPayload(cursor.getString(1), cursor.getLong(0))?.let(out::add)
+            }
+        }
+        return out
+    }
+
+    /** Uploaded records, most recent first. */
+    fun listSent(limit: Int = 200): List<RecordSummary> {
+        val out = mutableListOf<RecordSummary>()
+        readableDatabase.query(
+            SENT_TABLE,
+            arrayOf("captured_at_millis", "payload", "outcome", "sent_at_millis"),
+            null, null, null, null,
+            "sent_at_millis DESC, id DESC",
+            limit.toString(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                RecordSummary.fromPayload(
+                    payload = cursor.getString(1),
+                    capturedAtMillis = cursor.getLong(0),
+                    outcome = cursor.getString(2),
+                    sentAtMillis = cursor.getLong(3),
+                )?.let(out::add)
+            }
+        }
+        return out
+    }
+
+    fun sentCount(): Int = readableDatabase.rawQuery("SELECT COUNT(*) FROM $SENT_TABLE", null).use {
+        if (it.moveToFirst()) it.getInt(0) else 0
+    }
+
+    /**
+     * Remember what the server said before the queued rows are deleted.
+     *
+     * Recorded for rejections too, and with the reason: a collector whose
+     * records are all being refused should be able to see that from the phone
+     * rather than discovering it weeks later from an empty map.
+     */
+    fun recordSent(records: List<QueuedRecord>, outcomes: Map<String, String>) {
+        val now = System.currentTimeMillis()
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            for (record in records) {
+                val values = ContentValues().apply {
+                    put("client_record_id", record.clientRecordId)
+                    put("captured_at_millis", record.capturedAtMillis)
+                    put("sent_at_millis", now)
+                    put("outcome", outcomes[record.clientRecordId] ?: "sent")
+                    put("payload", record.payload)
+                }
+                db.insert(SENT_TABLE, null, values)
+            }
+            db.execSQL(
+                """
+                DELETE FROM $SENT_TABLE WHERE id NOT IN (
+                    SELECT id FROM $SENT_TABLE ORDER BY sent_at_millis DESC, id DESC LIMIT ?
+                )
+                """.trimIndent(),
+                arrayOf(SENT_HISTORY_LIMIT.toString()),
+            )
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun oldestCapturedAt(): Long? =
         readableDatabase.rawQuery("SELECT MIN(captured_at_millis) FROM $TABLE", null).use {
             if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null
@@ -149,4 +263,9 @@ class MeasurementStore(context: Context) :
     }
 }
 
-data class QueuedRecord(val id: Long, val clientRecordId: String, val payload: String)
+data class QueuedRecord(
+    val id: Long,
+    val clientRecordId: String,
+    val payload: String,
+    val capturedAtMillis: Long,
+)

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lao translation of the collector.
+
+  The people carrying this phone are bus drivers, health workers and provincial
+  staff, not engineers — an English-only app would put the burden of the pilot
+  on the people least equipped to carry it.
+
+  Written without a native reviewer and should be checked by one. Technical
+  terms with no settled Lao equivalent (RSRP, dBm, 4G, SMS, GPS) are kept in
+  English, which is what Lao technical writing generally does.
+-->
+<resources>
+    <string name="app_name">ເກັບຂໍ້ມູນສັນຍານ</string>
+    <string name="app_tagline">ວັດແທກສັນຍານມືຖືຕາມເສັ້ນທາງທີ່ທ່ານເດີນທາງ ລວມທັງບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ.</string>
+
+    <string name="label_status">ສະຖານະ</string>
+    <string name="status_not_enrolled">ຍັງບໍ່ທັນຕັ້ງຄ່າ</string>
+    <string name="status_enrolling">ກຳລັງຕັ້ງຄ່າ…</string>
+    <string name="status_idle">ພ້ອມແລ້ວ ແຕ່ຍັງບໍ່ໄດ້ບັນທຶກ</string>
+    <string name="status_collecting">ກຳລັງບັນທຶກ</string>
+
+    <string name="action_start">ເລີ່ມບັນທຶກ</string>
+    <string name="action_stop">ຢຸດ</string>
+    <string name="action_upload_now">ລອງສົ່ງດຽວນີ້</string>
+
+    <string name="label_queued">ລໍຖ້າສົ່ງ</string>
+    <string name="hint_queued">ຂໍ້ມູນຈະຖືກເກັບໄວ້ໃນໂທລະສັບຈົນກວ່າທ່ານຈະໄປຮອດບ່ອນທີ່ມີອິນເຕີເນັດ. ບໍ່ມີຫຍັງສູນເສຍໃນຂະນະທີ່ບໍ່ມີສັນຍານ.</string>
+
+    <string name="label_oldest">ຂໍ້ມູນເກົ່າສຸດທີ່ລໍຖ້າ</string>
+    <string name="none">ບໍ່ມີ</string>
+    <string name="never">ຍັງບໍ່ມີ</string>
+    <string name="age_under_hour">ໜ້ອຍກວ່າໜຶ່ງຊົ່ວໂມງ</string>
+    <string name="age_hours">%1$d ຊົ່ວໂມງ</string>
+    <string name="age_days">%1$d ມື້</string>
+
+    <string name="label_sent">ສົ່ງແລ້ວ</string>
+    <string name="label_rejected">ຖືກປະຕິເສດ</string>
+    <string name="label_last_upload">ສົ່ງສຳເລັດຄັ້ງລ່າສຸດ</string>
+    <string name="label_server">ເຊີບເວີ</string>
+    <string name="hint_server">https://example.com</string>
+    <string name="action_save_server">ບັນທຶກທີ່ຢູ່ເຊີບເວີ</string>
+    <string name="action_check_connection">ກວດການເຊື່ອມຕໍ່</string>
+    <string name="connection_label">ການເຊື່ອມຕໍ່</string>
+    <string name="connection_unknown">ຍັງບໍ່ໄດ້ກວດ</string>
+    <string name="connection_checking">ກຳລັງກວດ…</string>
+    <string name="connection_ok">ເຊື່ອມຕໍ່ໄດ້ — ເຊີບເວີຮັບອຸປະກອນນີ້</string>
+    <string name="connection_reachable_not_enrolled">ຕິດຕໍ່ເຊີບເວີໄດ້ ແຕ່ອຸປະກອນນີ້ຍັງບໍ່ໄດ້ລົງທະບຽນ</string>
+    <string name="connection_failed">ຕິດຕໍ່ເຊີບເວີບໍ່ໄດ້</string>
+    <string name="connection_checked_at">ກວດເມື່ອ %1$s</string>
+    <string name="action_reset_server">ໃຊ້ຄ່າເລີ່ມຕົ້ນ</string>
+    <string name="server_reset">ກຳລັງໃຊ້ທີ່ຢູ່ທີ່ມາກັບແອັບລຸ້ນນີ້: %1$s</string>
+    <string name="hint_server_help">ປ່ຽນຄ່ານີ້ຖ້າເຊີບເວີຍ້າຍ. ທີ່ຢູ່ຕ້ອງເລີ່ມດ້ວຍ http:// ຫຼື https:// ແລະ ບໍ່ມີເສັ້ນທາງຕໍ່ທ້າຍ.</string>
+    <string name="server_saved">ບັນທຶກທີ່ຢູ່ເຊີບເວີແລ້ວ.</string>
+    <string name="error_server_invalid">ກະລຸນາໃສ່ທີ່ຢູ່ເຕັມທີ່ເລີ່ມດ້ວຍ http:// ຫຼື https:// ຕົວຢ່າງ https://api.example.com</string>
+    <string name="error_server_while_running">ກະລຸນາຢຸດການບັນທຶກກ່ອນປ່ຽນເຊີບເວີ. ຂໍ້ມູນທີ່ລໍຖ້າຢູ່ໄດ້ຖືກເຊັນສຳລັບເຊີບເວີເກົ່າແລ້ວ.</string>
+
+    <string name="action_view_records">ເບິ່ງຂໍ້ມູນທັງໝົດ</string>
+    <string name="records_title">ຂໍ້ມູນທີ່ບັນທຶກ</string>
+    <string name="records_waiting">ລໍຖ້າສົ່ງ (%1$d)</string>
+    <string name="records_sent">ສົ່ງແລ້ວ (%1$d)</string>
+    <string name="records_none_waiting">ບໍ່ມີຂໍ້ມູນລໍຖ້າ. ທຸກຢ່າງທີ່ບັນທຶກໄດ້ຖືກສົ່ງແລ້ວ.</string>
+    <string name="records_none_sent">ຍັງບໍ່ໄດ້ສົ່ງຫຍັງ.</string>
+    <string name="records_waiting_row">ລໍຖ້າອິນເຕີເນັດ</string>
+    <string name="records_sent_at">ສົ່ງເມື່ອ %1$s</string>
+    <string name="records_cells">%1$d ເສົາສັນຍານ</string>
+    <string name="records_no_network">ບໍ່ມີເຄືອຂ່າຍ</string>
+    <string name="records_no_signal_value">ບໍ່ມີຄ່າສັນຍານ</string>
+
+    <string name="state_good">ສັນຍານດີ</string>
+    <string name="state_weak">4G ອ່ອນ</string>
+    <string name="state_calls_only">ໂທໄດ້ຢ່າງດຽວ</string>
+    <string name="state_unusable">ອ່ອນເກີນໄປ ໃຊ້ບໍ່ໄດ້</string>
+    <string name="state_none">ບໍ່ມີສັນຍານເລີຍ</string>
+
+    <string name="upload_requested">ຮ້ອງຂໍການສົ່ງແລ້ວ. ຈະສົ່ງທັນທີທີ່ໂທລະສັບມີອິນເຕີເນັດ.</string>
+
+    <string name="warning_permissions">ຍັງບໍ່ໄດ້ອະນຸຍາດການເຂົ້າເຖິງທີ່ຕັ້ງຢ່າງຄົບຖ້ວນ. ຖ້າບໍ່ມີສິດນີ້ ໂທລະສັບຈະອ່ານຄວາມແຮງສັນຍານບໍ່ໄດ້ ແລະ ການບັນທຶກຈະຢຸດເມື່ອປິດໜ້າຈໍ.</string>
+
+    <string name="background_title">ອະນຸຍາດການເຂົ້າເຖິງທີ່ຕັ້ງຕະຫຼອດເວລາ</string>
+    <string name="background_message">ການບັນທຶກຈະສືບຕໍ່ໃນຂະນະທີ່ໂທລະສັບຢູ່ໃນຖົງ ຫຼື ກະເປົາ ດັ່ງນັ້ນແອັບຈຶ່ງຕ້ອງການສິດເຂົ້າເຖິງທີ່ຕັ້ງຕະຫຼອດເວລາ. ຖ້າບໍ່ມີ ການວັດແທກຈະຢຸດທັນທີທີ່ປິດໜ້າຈໍ ແລະ ເສັ້ນທາງສ່ວນໃຫຍ່ຈະບໍ່ຖືກບັນທຶກ.\n\nໃນໜ້າຕໍ່ໄປ ກະລຸນາເລືອກ “ອະນຸຍາດຕະຫຼອດເວລາ”.</string>
+    <string name="background_continue">ສືບຕໍ່</string>
+    <string name="background_skip">ຍັງບໍ່ດຽວນີ້</string>
+
+    <string name="error_location_required">ຕ້ອງການສິດເຂົ້າເຖິງທີ່ຕັ້ງ. ຖ້າບໍ່ມີ ໂທລະສັບຈະອ່ານບໍ່ໄດ້ວ່າມີເສົາສັນຍານໃດຢູ່ໃກ້.</string>
+    <string name="error_enrolment">ຕັ້ງຄ່າອຸປະກອນນີ້ບໍ່ໄດ້.\n\n%1$s\n\nກະລຸນາກວດວ່າໂທລະສັບມີອິນເຕີເນັດ ແລະ ທີ່ຢູ່ເຊີບເວີຖືກຕ້ອງ ແລ້ວລອງໃໝ່.</string>
+
+    <string name="privacy_note">ແອັບນີ້ບັນທຶກແຕ່ຄວາມແຮງສັນຍານ ແລະ ຕຳແໜ່ງເທົ່ານັ້ນ. ບໍ່ໄດ້ເກັບເບີໂທ, ລາຍຊື່ຜູ້ຕິດຕໍ່ ຫຼື ບັນຊີໃດໆ. ຕຳແໜ່ງຈະຖືກລວມເປັນພື້ນທີ່ໃນແຜນທີ່ກ່ອນທີ່ຜູ້ໃດຈະເຫັນ.</string>
+
+    <string name="notification_title">ກຳລັງບັນທຶກສັນຍານ</string>
+    <string name="notification_text">ບັນທຶກແລ້ວ %1$d ໃນຮອບນີ້ · ລໍຖ້າສົ່ງ %2$d</string>
+
+    <string name="channel_collection">ການບັນທຶກສັນຍານ</string>
+    <string name="channel_collection_description">ສະແດງໃນຂະນະທີ່ແອັບກຳລັງວັດແທກສັນຍານມືຖື.</string>
+</resources>

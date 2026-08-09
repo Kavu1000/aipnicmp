@@ -78,6 +78,9 @@ class MainActivity : AppCompatActivity() {
         binding.checkConnectionButton.setOnClickListener { onCheckConnection() }
         binding.resetServerButton.setOnClickListener { onResetServer() }
         binding.toggleButton.setOnClickListener { onToggle() }
+        binding.recordsButton.setOnClickListener {
+            startActivity(Intent(this, RecordsActivity::class.java))
+        }
         binding.uploadButton.setOnClickListener {
             UploadScheduler.requestUpload(this)
             showMessage(getString(R.string.upload_requested))

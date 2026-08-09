@@ -72,6 +72,17 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 return if (result.retryable) Result.retry() else Result.failure()
             }
 
+            // Remember what the server said before the rows go. The queue is
+            // right to delete a ruled-on record, but that left the collector
+            // with nothing but a counter — and no way to see that every record
+            // was being refused, or why.
+            val outcomes = buildMap {
+                result.rejectedIds.forEachIndexed { index, id ->
+                    put(id, "rejected: " + (result.rejectionReasons.getOrNull(index) ?: "unknown"))
+                }
+            }
+            store.recordSent(queued, outcomes)
+
             // Accepted, duplicate and rejected all mean "the server is done with
             // this record". Every rejection reason is permanent — a bad
             // signature or an impossible position will not become valid later —

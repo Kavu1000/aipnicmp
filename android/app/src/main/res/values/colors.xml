@@ -4,4 +4,12 @@
          and the map it feeds read as one system. -->
     <color name="primary">#C1121F</color>
     <color name="on_primary">#FFFFFF</color>
+
+    <!-- The five states, in the same colours the map uses. A collector who has
+         seen the map should recognise a reading on sight. -->
+    <color name="good">#1F9D55</color>
+    <color name="weak">#B08900</color>
+    <color name="calls_only">#E07B00</color>
+    <color name="unusable">#D64500</color>
+    <color name="muted">#5A6675</color>
 </resources>
