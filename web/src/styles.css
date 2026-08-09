@@ -867,6 +867,170 @@ main {
   border-color: #f6c9ce;
 }
 
+/* ---------- area filter ---------- */
+
+.area-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* The cascade can reach four controls. On a laptop that is wider than the
+     rest of the toolbar put together, so it scrolls rather than pushing the
+     language and basemap controls off the edge. */
+  max-width: 46vw;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.area-filter.busy {
+  opacity: 0.65;
+}
+
+.area-filter .select {
+  max-width: 11rem;
+}
+
+.area-root {
+  padding: 0.4rem 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---------- selected area summary ---------- */
+
+.area-summary {
+  position: absolute;
+  top: 1rem;
+  inset-inline-start: 1rem;
+  width: 300px;
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 2;
+}
+
+.area-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.area-summary-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.area-summary-head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.area-summary-head button {
+  flex: none;
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.area-caveat {
+  margin: 0.8rem 0 0;
+}
+
+.area-empty {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.area-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.area-headline span:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.area-headline strong {
+  font-size: 0.9rem;
+}
+
+.area-headline em {
+  font-size: 0.73rem;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.area-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.9rem;
+  margin: 0.95rem 0 0;
+}
+
+.area-stats div {
+  margin: 0;
+}
+
+.area-stats dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.area-stats dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.area-stats dd.good {
+  color: var(--good);
+}
+
+.area-stats dd.bad {
+  color: var(--accent);
+}
+
+.area-stats .sub {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.area-note {
+  margin: 0.9rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.area-source {
+  margin: 0.5rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
 /* ---------- narrow screens ---------- */
 
 @media (max-width: 900px) {
@@ -945,11 +1109,21 @@ main {
   }
 
   .legend,
-  .inspector {
+  .inspector,
+  .area-summary {
     width: calc(100% - 2rem);
   }
 
   .inspector {
     max-height: 55%;
+  }
+
+  .area-summary {
+    max-height: 50%;
+  }
+
+  /* The toolbar wraps on a phone, so the cascade may use the full width. */
+  .area-filter {
+    max-width: 100%;
   }
 }

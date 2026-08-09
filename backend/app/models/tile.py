@@ -42,6 +42,17 @@ class H3Tile(Base):
     is_predicted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     prediction_confidence: Mapped[float | None] = mapped_column(Float)
 
+    # Which administrative areas this hexagon falls in, resolved once at rebuild
+    # time from the centroid. Stored rather than joined so that filtering the
+    # map by province is an indexed equality instead of a point-in-polygon test
+    # on every pan — and so the whole feature works on a server with no PostGIS.
+    #
+    # A hexagon is ~740 m across at resolution 8, so some straddle a border. The
+    # centroid decides, always; see docs/decisions.md.
+    adm1_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    adm2_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    adm3_code: Mapped[str | None] = mapped_column(String(32), index=True)
+
     first_measured_at: Mapped[datetime | None] = timestamp_column()
     last_measured_at: Mapped[datetime | None] = timestamp_column()
     updated_at: Mapped[datetime] = timestamp_column(server_default=func.now())
@@ -80,10 +91,20 @@ class H3TileOperator(Base):
     avg_rsrp_dbm: Mapped[float | None] = mapped_column(Float)
     avg_download_kbps: Mapped[float | None] = mapped_column(Float)
 
+    # Same assignment as H3Tile, repeated here rather than joined: "this
+    # operator, in this district" is the single most common operator query, and
+    # it should not have to reach across tables to answer.
+    adm1_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    adm2_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    adm3_code: Mapped[str | None] = mapped_column(String(32), index=True)
+
     last_measured_at: Mapped[datetime | None] = timestamp_column()
     updated_at: Mapped[datetime] = timestamp_column(server_default=func.now())
 
-    __table_args__ = (Index("ix_h3_tile_operators_operator", "operator_name", "colour"),)
+    __table_args__ = (
+        Index("ix_h3_tile_operators_operator", "operator_name", "colour"),
+        Index("ix_h3_tile_operators_adm2", "adm2_code", "operator_name"),
+    )
 
 
 class CandidateSite(Base):

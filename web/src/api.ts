@@ -97,6 +97,83 @@ export interface PriorityArea {
   last_measured_at: string | null;
 }
 
+/** 0 country, 1 province, 2 district, 3 village — mirrors app/models/area.py. */
+export type AreaLevel = 0 | 1 | 2 | 3;
+
+export interface GeoBounds {
+  min_lat: number;
+  min_lon: number;
+  max_lat: number;
+  max_lon: number;
+}
+
+export type Geometry =
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] }
+  | { type: "Point"; coordinates: number[] };
+
+export interface Area {
+  code: string;
+  level: AreaLevel;
+  name_en: string;
+  name_lo: string | null;
+  parent_code: string | null;
+  centroid: { lat: number; lon: number };
+  bounds: GeoBounds;
+  area_km2: number | null;
+  /**
+   * False for a village published as a point rather than a polygon. The map
+   * must draw a stated-radius circle in that case, never a border — see
+   * backend/app/models/area.py.
+   */
+  has_boundary: boolean;
+  radius_m: number | null;
+  source: string | null;
+  /** Present only on the single-area endpoint. */
+  boundary?: Geometry;
+}
+
+export interface AreaCoverage {
+  tiles: number;
+  devices: number;
+  measured_area_km2: number;
+  by_state: Partial<Record<RadioState, number>>;
+  by_action: Record<InvestmentAction, number>;
+  good_pct: number;
+  unusable_pct: number;
+  /** The area's median state — always the one `colour` describes. */
+  state: RadioState | null;
+  colour: TileColour;
+  /** Too few separate devices to publish the detail below. */
+  low_confidence: boolean;
+  measurements: number | null;
+  avg_rsrp_dbm: number | null;
+  avg_download_kbps: number | null;
+  last_measured_at: string | null;
+}
+
+export interface AreaDetail {
+  area: Area;
+  operator: string | null;
+  /** Null means nothing has been measured here — not that coverage is zero. */
+  coverage: AreaCoverage | null;
+}
+
+export interface AreaChildFeature {
+  type: "Feature";
+  geometry: Geometry;
+  properties: Area & { coverage: AreaCoverage | null; colour: TileColour };
+}
+
+export interface AreaChildren {
+  type: "FeatureCollection";
+  parent: string;
+  level: AreaLevel | null;
+  level_name: string | null;
+  operator: string | null;
+  features: AreaChildFeature[];
+}
+
 export interface Collector {
   id: string;
   model: string | null;
@@ -118,27 +195,85 @@ const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 /** The server refuses a viewport wider than this; see backend tiles.py. */
 export const MAX_BBOX_DEGREES = 6;
 
+/**
+ * Thrown when the server refused the request for a stated reason, as opposed to
+ * failing. Carries the status so callers can tell "this area holds too many
+ * hexagons to draw" from "the server is down" — the first is answerable by
+ * showing the summary instead, the second is not.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(detail);
+    this.name = "ApiError";
+  }
+}
+
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${BASE}${path}`, { signal });
   if (!response.ok) {
-    throw new Error(`${path} responded ${response.status}`);
+    const detail = await response
+      .json()
+      .then((body: { detail?: string }) => body?.detail)
+      .catch(() => undefined);
+    throw new ApiError(response.status, detail ?? `${path} responded ${response.status}`);
   }
   return (await response.json()) as T;
 }
 
-export async function fetchTiles(
-  bounds: Bounds,
+export interface TileQuery {
+  /** Ignored when `area` is set: an area bounds its own query. */
+  bounds?: Bounds | null;
+  operator?: string | null;
+  area?: string | null;
+}
+
+export async function fetchTiles(query: TileQuery, signal?: AbortSignal): Promise<TileCollection> {
+  const params = new URLSearchParams();
+  if (query.area) {
+    params.set("area", query.area);
+  } else if (query.bounds) {
+    params.set("min_lat", String(query.bounds.minLat));
+    params.set("min_lon", String(query.bounds.minLon));
+    params.set("max_lat", String(query.bounds.maxLat));
+    params.set("max_lon", String(query.bounds.maxLon));
+  }
+  if (query.operator) params.set("operator", query.operator);
+  return getJson<TileCollection>(`/tiles?${params}`, signal);
+}
+
+/** One level of the Country → Province → District → Village cascade. */
+export async function fetchAreas(
+  parent: string | null,
+  signal?: AbortSignal,
+): Promise<Area[]> {
+  const params = new URLSearchParams();
+  if (parent) params.set("parent", parent);
+  const body = await getJson<{ areas: Area[] }>(`/areas?${params}`, signal);
+  return body.areas;
+}
+
+export async function fetchArea(
+  code: string,
   operator?: string | null,
   signal?: AbortSignal,
-): Promise<TileCollection> {
-  const params = new URLSearchParams({
-    min_lat: String(bounds.minLat),
-    min_lon: String(bounds.minLon),
-    max_lat: String(bounds.maxLat),
-    max_lon: String(bounds.maxLon),
-  });
+): Promise<AreaDetail> {
+  const params = new URLSearchParams();
   if (operator) params.set("operator", operator);
-  return getJson<TileCollection>(`/tiles?${params}`, signal);
+  return getJson<AreaDetail>(`/areas/${encodeURIComponent(code)}?${params}`, signal);
+}
+
+/** Every child area with its border and its coverage — the choropleth. */
+export async function fetchAreaChildren(
+  code: string,
+  operator?: string | null,
+  signal?: AbortSignal,
+): Promise<AreaChildren> {
+  const params = new URLSearchParams();
+  if (operator) params.set("operator", operator);
+  return getJson<AreaChildren>(`/areas/${encodeURIComponent(code)}/children?${params}`, signal);
 }
 
 export async function fetchSummary(signal?: AbortSignal): Promise<Summary> {

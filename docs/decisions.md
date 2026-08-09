@@ -139,6 +139,44 @@ the URL into it makes any percent-encoded character in the password raise
 containing `@` *must* be percent-encoded, that is not an edge case. `env.py`
 takes the URL straight from settings instead.
 
+## 16. A hexagon belongs to the area its centroid falls in
+
+At resolution 8 a hexagon is about 740 m across, so some straddle an
+administrative border. The centroid decides, always. Assigning a tile to every
+area it touches would double-count area totals, and splitting it proportionally
+would invent a precision the measurements do not have.
+
+The assignment is computed once, during the tile rebuild, and stored on the tile
+as `adm1_code` / `adm2_code` / `adm3_code`. Filtering the map by province is
+then an indexed equality rather than a geometry query on every pan — and it
+works on a server with no PostGIS, consistent with decision 9.
+
+## 17. Boundaries are stored as JSONB and tested in Python, not in PostGIS
+
+Point-in-polygon, area and simplification are implemented in
+`app/services/polygon.py` rather than delegated to GEOS. Four textbook
+algorithms are a smaller commitment than a C library in every backend and worker
+image, they run unchanged in the SQLite test suite, and they keep the area
+filter working on a stock PostgreSQL server.
+
+## 18. A village with no published boundary is a point, never an invented border
+
+Lao province and district boundaries are published; village boundaries largely
+are not — villages are recorded as points. Rather than carve a district into
+village-shaped pieces, such a village is stored as its point with a stated
+radius, `has_boundary` is false, and the map draws a dashed circle captioned as
+an approximation.
+
+A fabricated border on a national coverage map is the same class of error as
+presenting a prediction as a measurement, and it is refused for the same reason.
+
+## 19. A country or province view is shaded child areas, not hexagons
+
+Lao PDR at resolution 8 is roughly 300,000 hexagons, each smaller than a pixel
+at national zoom. The map therefore draws provinces shaded by their coverage at
+country level and districts at province level, dropping to hexagons at district
+and village. This is also the view a ministry actually reads.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified
@@ -152,3 +190,7 @@ takes the URL straight from settings instead.
 - **H3 resolution**: currently 8 (~0.7 km² hexes). The right value depends on
   measurement density in the pilot province and should be revisited with real
   data before the public map launches.
+- **Village boundary data**: whether ADM3 polygons exist for Lao PDR at all is
+  unresolved. The platform handles both cases (decision 18), but which one the
+  pilot ships with depends on what the Lao Statistics Bureau publishes. Until a
+  boundary file is imported the area filter simply does not appear.

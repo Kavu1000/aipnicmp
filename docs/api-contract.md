@@ -149,6 +149,51 @@ at all are absent from the response — the client renders "not measured" itself
 
 The viewport may not span more than 6 degrees per side.
 
+`area` replaces the bounding box entirely — an area bounds its own query:
+
+```
+GET /tiles?area=LA0601&operator=LTC
+```
+
+The response then carries an `area` block naming what was filtered to. An area
+holding more than 20,000 tiles is refused with 400 rather than truncated: a
+partial map that looks complete is worse than a stated refusal. Use
+`/areas/{code}/children` for those.
+
+## GET /areas
+
+The administrative hierarchy — country, province, district, village — without
+geometry, one level at a time. This is what the map's cascading filter reads.
+
+```
+GET /areas                  # the root: the country
+GET /areas?parent=LA06      # its districts
+GET /areas?q=nambak         # name search
+```
+
+## GET /areas/{code}
+
+One area's border and what has been measured inside it. Accepts `operator`.
+
+`has_boundary: false` means the area is a point with a stated `radius_m`, not a
+polygon — the normal case for Lao villages, whose boundaries are unpublished.
+Clients must render that as a circle labelled as an approximation, never as a
+border. `coverage: null` means nothing has been measured there; it does not
+mean coverage is zero.
+
+Area coverage follows the same privacy rule as a single hexagon: `colour`,
+`state` and the percentages are always published, while `measurements`,
+`avg_rsrp_dbm`, `avg_download_kbps` and `last_measured_at` are withheld — set to
+null, with `low_confidence: true` — when fewer than `TILE_MIN_DEVICES` distinct
+devices contributed. `state` is the area's median hexagon and always matches
+`colour`.
+
+## GET /areas/{code}/children
+
+Every child area with its geometry *and* its coverage, as one FeatureCollection
+— the choropleth a national or provincial view is drawn from. A child published
+as a point comes back as a `Point` feature. Accepts `operator`.
+
 ## POST /reports
 
 Citizen problem report (proposal 2.6). `category` is one of `no_service`,

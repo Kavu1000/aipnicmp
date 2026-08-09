@@ -1,10 +1,30 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { type MapGeoJSONFeature, type StyleSpecification } from "maplibre-gl";
-import { MAX_BBOX_DEGREES, type Bounds, type Summary, type TileCollection, type TileProperties } from "./api";
+import {
+  MAX_BBOX_DEGREES,
+  type AreaChildren,
+  type Bounds,
+  type GeoBounds,
+  type Geometry,
+  type Summary,
+  type TileCollection,
+  type TileProperties,
+} from "./api";
 import { COLOUR_HEX } from "./coverage";
+import { maskGeometry } from "./geo";
 
 const SOURCE_ID = "coverage";
 const FILL_LAYER = "coverage-fill";
+
+/** Child areas shaded by coverage — the view at country and province zoom. */
+const AREAS_SOURCE = "areas";
+const AREAS_FILL = "areas-fill";
+const AREAS_POINT = "areas-point";
+
+/** The selected area's own border, and the dimming of everything outside it. */
+const OUTLINE_SOURCE = "area-outline";
+const MASK_SOURCE = "area-mask";
+const BORDER_LAYER = "area-border";
 
 // Laos, framed to fit the whole country. Only used until the real data bounds
 // arrive — see fitToData below.
@@ -69,6 +89,17 @@ const COLOUR_EXPRESSION = [
 ] as unknown as maplibregl.ExpressionSpecification;
 
 const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
+const EMPTY_GEOJSON = { type: "FeatureCollection", features: [] } as const;
+
+/**
+ * The scrim over everything outside the selected area.
+ *
+ * Light rather than dark, and not quite opaque: the surrounding country should
+ * stay legible as context. Hiding it would answer "where is this district"
+ * with a shape floating in nothing.
+ */
+const MASK_COLOUR = "#f5f7fa";
+const MASK_OPACITY = 0.66;
 
 function basemapStyle(basemap: Basemap): string | StyleSpecification {
   return basemap === "satellite" ? SATELLITE_STYLE : STREETS_STYLE;
@@ -115,13 +146,35 @@ export interface FlyTarget {
   nonce: number;
 }
 
+/** A rectangle to frame, re-applied whenever `nonce` changes. */
+export interface FitTarget {
+  bounds: GeoBounds;
+  nonce: number;
+}
+
+export interface AreaOutline {
+  geometry: Geometry;
+  /**
+   * True when this is a radius the platform chose around a village point, not
+   * a published boundary. Drawn dashed, and never solid.
+   */
+  approximate: boolean;
+}
+
 interface Props {
   tiles: TileCollection;
   summary: Summary | null;
   basemap: Basemap;
   flyTo: FlyTarget | null;
+  /** Child areas shaded by coverage, or null when hexagons carry the view. */
+  childAreas: AreaChildren | null;
+  /** The selected area's border, outlined and used to dim everything else. */
+  areaOutline: AreaOutline | null;
+  fitTo: FitTarget | null;
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
+  /** A click on a shaded area — the drill-down from province to district. */
+  onAreaSelect: (code: string) => void;
 }
 
 function clampBounds(map: maplibregl.Map): Bounds {
@@ -146,12 +199,28 @@ function clampBounds(map: maplibregl.Map): Bounds {
   };
 }
 
-export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSelect }: Props) {
+export function MapView({
+  tiles,
+  summary,
+  basemap,
+  flyTo,
+  childAreas,
+  areaOutline,
+  fitTo,
+  onBoundsChange,
+  onSelect,
+  onAreaSelect,
+}: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const latest = useRef<TileCollection>(EMPTY);
-  const handlers = useRef({ onBoundsChange, onSelect });
-  handlers.current = { onBoundsChange, onSelect };
+  // Held so the layers can be rebuilt from scratch after a basemap switch,
+  // which discards every source the style did not define.
+  const latestAreas = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestOutline = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect });
+  handlers.current = { onBoundsChange, onSelect, onAreaSelect };
 
   // The auto-fit must happen once, and must not fight the user afterwards.
   const hasFitted = useRef(false);
@@ -192,6 +261,40 @@ export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSele
     const addLayers = () => {
       if (instance.getSource(SOURCE_ID)) return;
 
+      // Order matters and is the whole visual argument: shaded areas underneath
+      // as context, hexagons over them as evidence, and the mask over both so
+      // that everything outside the chosen area recedes.
+      instance.addSource(AREAS_SOURCE, { type: "geojson", data: latestAreas.current });
+
+      instance.addLayer({
+        id: AREAS_FILL,
+        type: "fill",
+        source: AREAS_SOURCE,
+        filter: ["!=", ["geometry-type"], "Point"],
+        paint: { "fill-color": COLOUR_EXPRESSION, "fill-opacity": 0.55 },
+      });
+      instance.addLayer({
+        id: "areas-line",
+        type: "line",
+        source: AREAS_SOURCE,
+        filter: ["!=", ["geometry-type"], "Point"],
+        paint: { "line-color": "#ffffff", "line-width": 1.2, "line-opacity": 0.9 },
+      });
+      // A village published as a point, not a polygon. Drawn as a marker so it
+      // cannot read as a surveyed extent.
+      instance.addLayer({
+        id: AREAS_POINT,
+        type: "circle",
+        source: AREAS_SOURCE,
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 6,
+          "circle-color": COLOUR_EXPRESSION,
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
+
       instance.addSource(SOURCE_ID, { type: "geojson", data: latest.current as GeoJsonData });
 
       instance.addLayer({
@@ -231,6 +334,34 @@ export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSele
         },
       });
 
+      instance.addSource(MASK_SOURCE, { type: "geojson", data: latestMask.current });
+      instance.addLayer({
+        id: "area-mask",
+        type: "fill",
+        source: MASK_SOURCE,
+        paint: { "fill-color": MASK_COLOUR, "fill-opacity": MASK_OPACITY },
+      });
+
+      instance.addSource(OUTLINE_SOURCE, { type: "geojson", data: latestOutline.current });
+      // Two layers rather than one, because `line-dasharray` cannot be driven
+      // from a feature property. The distinction they draw is the difference
+      // between a surveyed boundary and a radius the platform chose, and it has
+      // to be visible without reading a caption.
+      instance.addLayer({
+        id: BORDER_LAYER,
+        type: "line",
+        source: OUTLINE_SOURCE,
+        filter: ["!", ["get", "approximate"]],
+        paint: { "line-color": "#16202c", "line-width": 2.2 },
+      });
+      instance.addLayer({
+        id: "area-border-approximate",
+        type: "line",
+        source: OUTLINE_SOURCE,
+        filter: ["get", "approximate"],
+        paint: { "line-color": "#16202c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+
       instance.on("click", FILL_LAYER, (event) => {
         const feature = event.features?.[0] as MapGeoJSONFeature | undefined;
         handlers.current.onSelect(
@@ -241,12 +372,25 @@ export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSele
         const hits = instance.queryRenderedFeatures(event.point, { layers: [FILL_LAYER] });
         if (hits.length === 0) handlers.current.onSelect(null);
       });
-      instance.on("mouseenter", FILL_LAYER, () => {
-        instance.getCanvas().style.cursor = "pointer";
-      });
-      instance.on("mouseleave", FILL_LAYER, () => {
-        instance.getCanvas().style.cursor = "";
-      });
+
+      for (const layer of [AREAS_FILL, AREAS_POINT]) {
+        instance.on("click", layer, (event) => {
+          const feature = event.features?.[0] as MapGeoJSONFeature | undefined;
+          const code = feature?.properties?.code;
+          // Clicking a province is how you get to its districts — the same
+          // journey the selects offer, for people who navigate by looking.
+          if (typeof code === "string") handlers.current.onAreaSelect(code);
+        });
+      }
+
+      for (const layer of [FILL_LAYER, AREAS_FILL, AREAS_POINT]) {
+        instance.on("mouseenter", layer, () => {
+          instance.getCanvas().style.cursor = "pointer";
+        });
+        instance.on("mouseleave", layer, () => {
+          instance.getCanvas().style.cursor = "";
+        });
+      }
     };
 
     instance.on("style.load", () => {
@@ -329,6 +473,69 @@ export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSele
     const source = map.current?.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
     source?.setData(tiles as unknown as GeoJsonData);
   }, [tiles]);
+
+  useEffect(() => {
+    const data = (childAreas ?? EMPTY_GEOJSON) as unknown as GeoJsonData;
+    latestAreas.current = data;
+    const source = map.current?.getSource(AREAS_SOURCE) as maplibregl.GeoJSONSource | undefined;
+    source?.setData(data);
+  }, [childAreas]);
+
+  useEffect(() => {
+    // Absent geometry clears both sources: "no area selected" must leave
+    // nothing outlined and nothing dimmed.
+    const outline = areaOutline
+      ? {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: areaOutline.geometry,
+              properties: { approximate: areaOutline.approximate },
+            },
+          ],
+        }
+      : EMPTY_GEOJSON;
+    const mask = areaOutline
+      ? {
+          type: "FeatureCollection",
+          features: [
+            { type: "Feature", geometry: maskGeometry(areaOutline.geometry), properties: {} },
+          ],
+        }
+      : EMPTY_GEOJSON;
+
+    latestOutline.current = outline as unknown as GeoJsonData;
+    latestMask.current = mask as unknown as GeoJsonData;
+
+    const instance = map.current;
+    (instance?.getSource(OUTLINE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(
+      latestOutline.current,
+    );
+    (instance?.getSource(MASK_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(
+      latestMask.current,
+    );
+  }, [areaOutline]);
+
+  /**
+   * Frame the selected area.
+   *
+   * Keyed by nonce rather than by the bounds themselves so that re-selecting
+   * the same area, after panning away from it, brings the map back.
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !fitTo) return;
+    const { min_lat, min_lon, max_lat, max_lon } = fitTo.bounds;
+    hasFitted.current = true;
+    instance.fitBounds(
+      [
+        [min_lon, min_lat],
+        [max_lon, max_lat],
+      ],
+      { padding: 64, maxZoom: 13, duration: 900 },
+    );
+  }, [fitTo]);
 
   return <div ref={container} className="map" />;
 }

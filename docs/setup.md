@@ -73,6 +73,31 @@ cd backend && .venv/Scripts/python scripts/enable_postgis.py
 Idempotent, and safe to run repeatedly. Migration 0002 will already be stamped
 on this database, which is exactly why the standalone script exists.
 
+## Administrative boundaries (optional, enables the area filter)
+
+Until a boundary file is imported the map has no Country / Province / District /
+Village filter — everything else works exactly as before. To enable it, fetch
+GeoJSON for Lao PDR and load it:
+
+```bash
+cd backend && .venv/Scripts/python scripts/import_admin_areas.py --provinces lao_adm1.geojson --districts lao_adm2.geojson --source "COD-AB, Lao Statistics Bureau" --dry-run
+```
+
+Drop `--dry-run` once the report looks right, then rebuild the tiles
+(`POST /api/v1/admin/rebuild-tiles`) so each hexagon picks up its area codes.
+
+The script reads the property conventions of COD-AB/HDX, GADM and OSM exports,
+resolves missing parent codes geometrically, and reports anything it could not
+place. Two things worth checking before you commit to a source:
+
+- **Licence.** GADM forbids commercial use. COD-AB on HDX, sourced from the Lao
+  Statistics Bureau, does not — and it also carries Lao-script names, which the
+  UI uses.
+- **Village level.** ADM3 for Lao PDR is often points rather than polygons.
+  Points are supported and clearly labelled as approximate (decision 18), but if
+  village-level filtering has to show real borders, confirm the polygons exist
+  before promising it.
+
 ## Still needed from you
 
 **A public HTTPS endpoint for the API.** Android 9+ blocks cleartext HTTP, so

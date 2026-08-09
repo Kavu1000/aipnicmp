@@ -1,24 +1,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ApiError,
+  fetchArea,
+  fetchAreaChildren,
   fetchOperatorNames,
   fetchPriorityAreas,
   fetchSummary,
   fetchTiles,
+  type AreaChildren,
+  type AreaDetail,
   type Bounds,
   type Summary,
   type TileCollection,
   type TileProperties,
 } from "./api";
-import { MapView, type Basemap, type FlyTarget } from "./MapView";
+import {
+  MapView,
+  type AreaOutline,
+  type Basemap,
+  type FitTarget,
+  type FlyTarget,
+} from "./MapView";
+import { AreaFilter } from "./AreaFilter";
+import { AreaSummary } from "./AreaSummary";
 import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
 import { Sidebar, type View } from "./Sidebar";
 import { formatAge, formatArea, formatShare } from "./coverage";
+import { outlineOf } from "./geo";
 import { LANGUAGE_NAMES, TRANSLATIONS, loadLanguage, saveLanguage, type Language } from "./i18n";
 
 const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
+
+/**
+ * Below this level the map draws hexagons; at or above it, shaded child areas.
+ *
+ * A national view at hexagon resolution is several hundred thousand shapes,
+ * smaller than a pixel each — technically the same data, practically unreadable.
+ * A province shaded by district is what a ministry actually reads.
+ */
+const CHOROPLETH_MAX_LEVEL = 1;
 
 export function App() {
   const [language, setLanguage] = useState<Language>(loadLanguage);
@@ -34,6 +57,14 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // The administrative area the map is filtered to, and everything that hangs
+  // off it: its border, its coverage, and its children shaded by coverage.
+  const [areaCode, setAreaCode] = useState<string | null>(null);
+  const [areaDetail, setAreaDetail] = useState<AreaDetail | null>(null);
+  const [childAreas, setChildAreas] = useState<AreaChildren | null>(null);
+  const [fitTo, setFitTo] = useState<FitTarget | null>(null);
+  const [areaNotice, setAreaNotice] = useState<string | null>(null);
+
   const t = TRANSLATIONS[language];
 
   const inFlight = useRef<AbortController | null>(null);
@@ -43,6 +74,10 @@ export function App() {
   const loadTiles = useCallback(
     (bounds: Bounds) => {
       lastBounds.current = bounds;
+      // An area selection is not a viewport query. Panning inside a chosen
+      // district must not silently widen the answer back out to the screen.
+      if (areaCode) return;
+
       if (debounce.current) window.clearTimeout(debounce.current);
       debounce.current = window.setTimeout(() => {
         inFlight.current?.abort();
@@ -50,7 +85,7 @@ export function App() {
         inFlight.current = controller;
         setLoading(true);
 
-        fetchTiles(bounds, operator, controller.signal)
+        fetchTiles({ bounds, operator }, controller.signal)
           .then((collection) => {
             setTiles(collection);
             setError(null);
@@ -64,14 +99,89 @@ export function App() {
           });
       }, 250);
     },
-    [operator],
+    [operator, areaCode],
   );
 
   // Switching network refetches the current viewport rather than waiting for
   // the next pan, which would leave the map showing the previous operator.
   useEffect(() => {
-    if (lastBounds.current) loadTiles(lastBounds.current);
-  }, [operator, loadTiles]);
+    if (!areaCode && lastBounds.current) loadTiles(lastBounds.current);
+  }, [operator, areaCode, loadTiles]);
+
+  /**
+   * Load everything that belongs to the selected area.
+   *
+   * Three requests, because they answer three questions and fail
+   * independently: the area's own border and totals, its children for the
+   * choropleth, and the hexagons inside it. A country-sized selection has too
+   * many hexagons to draw, and the server says so rather than truncating —
+   * that refusal is expected here, not an error.
+   */
+  useEffect(() => {
+    if (!areaCode) {
+      setAreaDetail(null);
+      setChildAreas(null);
+      setAreaNotice(null);
+      if (lastBounds.current) loadTiles(lastBounds.current);
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    setLoading(true);
+    setAreaNotice(null);
+
+    void (async () => {
+      try {
+        const detail = await fetchArea(areaCode, operator, signal);
+        if (signal.aborted) return;
+        setAreaDetail(detail);
+        setFitTo({ bounds: detail.area.bounds, nonce: Date.now() });
+
+        if (detail.area.level <= CHOROPLETH_MAX_LEVEL) {
+          fetchAreaChildren(areaCode, operator, signal)
+            .then((children) => !signal.aborted && setChildAreas(children))
+            .catch(() => undefined);
+        } else {
+          setChildAreas(null);
+        }
+
+        try {
+          const collection = await fetchTiles({ area: areaCode, operator }, signal);
+          if (!signal.aborted) setTiles(collection);
+        } catch (cause) {
+          if (cause instanceof ApiError && cause.status === 400) {
+            // Too many hexagons to draw honestly. The shaded children are the
+            // answer to this question, so say that rather than showing a
+            // partial map that looks complete.
+            setTiles(EMPTY);
+            setAreaNotice(t.areaTooLarge);
+          } else {
+            throw cause;
+          }
+        }
+        if (!signal.aborted) setError(null);
+      } catch (cause: unknown) {
+        if (signal.aborted) return;
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setError(cause instanceof Error ? cause.message : "could not load this area");
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+    // `t` changes with the language; the notice is re-read from it on the next
+    // load rather than refetching everything on a language switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaCode, operator]);
+
+  const areaOutline = useMemo<AreaOutline | null>(() => {
+    const area = areaDetail?.area;
+    if (!area) return null;
+    const geometry = outlineOf(area);
+    return geometry ? { geometry, approximate: !area.has_boundary } : null;
+  }, [areaDetail]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -165,6 +275,15 @@ export function App() {
               </div>
             )}
 
+            {view === "map" && (
+              <AreaFilter
+                strings={t}
+                language={language}
+                selected={areaDetail?.area ?? null}
+                onChange={(area) => setAreaCode(area?.code ?? null)}
+              />
+            )}
+
             {view === "map" && operatorNames.length > 0 && (
               <select
                 className="select"
@@ -240,18 +359,35 @@ export function App() {
               summary={summary}
               basemap={basemap}
               flyTo={flyTo}
+              childAreas={childAreas}
+              areaOutline={areaOutline}
+              fitTo={fitTo}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
+              onAreaSelect={setAreaCode}
             />
             <Legend t={t} />
             <TileInspector tile={selected} t={t} onClose={() => setSelected(null)} />
 
+            {areaDetail && (
+              <AreaSummary
+                detail={areaDetail}
+                language={language}
+                t={t}
+                onClear={() => setAreaCode(null)}
+              />
+            )}
+
             {loading && <div className="toast">{t.loading}</div>}
             {error && <div className="toast error">{error}</div>}
-            {!loading && !error && tiles.features.length === 0 && (
+            {/* The area's own summary is still on screen when this shows, so
+                this explains the empty hexagon layer rather than the empty
+                answer — they are different things. */}
+            {!loading && !error && areaNotice && <div className="toast">{areaNotice}</div>}
+            {!loading && !error && !areaNotice && tiles.features.length === 0 && (
               <div className="toast">
-                {t.noTilesInView}
-                {summary?.bounds && (
+                {areaCode ? t.areaNotMeasured : t.noTilesInView}
+                {!areaCode && summary?.bounds && (
                   <button className="link" onClick={jumpToData}>
                     {t.jumpToData}
                   </button>

@@ -22,9 +22,12 @@ from app.core.config import settings
 from app.core.radio import STATE_COLOUR, STATE_SCORE, RadioState, TileColour
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
+from app.services.areas import AreaAssignment, AreaResolver, load_resolver
 from app.services.geo import h3_centroid
 
 SCORE_STATE = {score: state for state, score in STATE_SCORE.items()}
+
+NO_AREAS = AreaAssignment()
 
 
 def median_state(counts: dict[str, int]) -> RadioState | None:
@@ -96,6 +99,39 @@ async def _tile_metrics(session: AsyncSession, since: datetime | None):
     return (await session.execute(query)).mappings().all()
 
 
+class _AreaTagger:
+    """Resolves each hexagon to its administrative areas, once.
+
+    The combined and per-operator passes both need the answer for the same
+    hexagons, and a point-in-polygon test is the most expensive thing in a
+    rebuild, so results are memoised across both.
+
+    When no boundaries have been imported this does nothing at all and every
+    tile keeps a null area — the platform is fully usable before anyone loads a
+    boundary file, it simply has no area filter yet.
+    """
+
+    def __init__(self, resolver: AreaResolver) -> None:
+        self._resolver = resolver
+        self._active = not resolver.is_empty
+        self._cache: dict[str, AreaAssignment] = {}
+
+    def of(self, h3_index: str, lat: float, lon: float) -> AreaAssignment:
+        if not self._active:
+            return NO_AREAS
+        cached = self._cache.get(h3_index)
+        if cached is None:
+            cached = self._resolver.assign(lat, lon)
+            self._cache[h3_index] = cached
+        return cached
+
+
+def _apply_areas(tile: H3Tile | H3TileOperator, areas: AreaAssignment) -> None:
+    tile.adm1_code = areas.adm1
+    tile.adm2_code = areas.adm2
+    tile.adm3_code = areas.adm3
+
+
 async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None) -> int:
     """Recompute every tile from the measurements. Returns the number written.
 
@@ -105,6 +141,7 @@ async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None)
     """
     counts = await _state_counts(session, since)
     metrics = await _tile_metrics(session, since)
+    tagger = _AreaTagger(await load_resolver(session))
 
     existing = {
         tile.h3_index: tile
@@ -142,18 +179,21 @@ async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None)
         tile.avg_latency_ms = row["avg_latency_ms"]
         tile.is_predicted = False
         tile.prediction_confidence = None
+        _apply_areas(tile, tagger.of(h3_index, lat, lon))
         tile.first_measured_at = row["first_measured_at"]
         tile.last_measured_at = row["last_measured_at"]
         tile.updated_at = datetime.now(timezone.utc)
         written += 1
 
     await session.flush()
-    await _rebuild_operator_tiles(session, since)
+    await _rebuild_operator_tiles(session, since, tagger)
     await session.commit()
     return written
 
 
-async def _rebuild_operator_tiles(session: AsyncSession, since: datetime | None) -> int:
+async def _rebuild_operator_tiles(
+    session: AsyncSession, since: datetime | None, tagger: _AreaTagger
+) -> int:
     """The same hexagons again, split by operator.
 
     A village where one network works and three do not is a different finding
@@ -230,6 +270,7 @@ async def _rebuild_operator_tiles(session: AsyncSession, since: datetime | None)
         tile.device_count = row["device_count"]
         tile.avg_rsrp_dbm = row["avg_rsrp_dbm"]
         tile.avg_download_kbps = row["avg_download_kbps"]
+        _apply_areas(tile, tagger.of(key[0], lat, lon))
         tile.last_measured_at = row["last_measured_at"]
         tile.updated_at = datetime.now(timezone.utc)
         written += 1

@@ -119,6 +119,10 @@ export function formatArea(km2: number | null | undefined): string {
  */
 export function formatShare(pct: number | null | undefined): string {
   if (pct == null) return "—";
+  // Exactly zero is a finding, not a rounding artefact. Printing "<0.01%" for
+  // it would claim a trace of something that was not measured at all — which
+  // matters most where it reads best: "no usable service: 0%".
+  if (pct === 0) return "0%";
   if (pct >= 10) return `${pct.toFixed(0)}%`;
   if (pct >= 1) return `${pct.toFixed(1)}%`;
   if (pct >= 0.01) return `${pct.toFixed(2)}%`;

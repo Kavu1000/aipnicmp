@@ -64,6 +64,27 @@ export interface Strings {
   allOperators: string;
   operator: string;
 
+  areaCountry: string;
+  areaProvince: string;
+  areaDistrict: string;
+  areaVillage: string;
+  areaAllCountry: string;
+  areaAllProvinces: string;
+  areaAllDistricts: string;
+  areaAllVillages: string;
+  areaClear: string;
+  areaNotMeasured: string;
+  areaGood: string;
+  areaUnusable: string;
+  areaMeasuredHere: string;
+  areaOfArea: string;
+  areaDevices: string;
+  areaLowConfidence: string;
+  areaApproximate: string;
+  areaSource: string;
+  areaTooLarge: string;
+  areaDrillHint: string;
+
   legendPredicted: string;
   legendUnmeasured: string;
   legendShow: string;
@@ -180,6 +201,30 @@ const en: Strings = {
   coverage: "Coverage",
   allOperators: "All networks",
   operator: "Network",
+
+  areaCountry: "Country",
+  areaProvince: "Province",
+  areaDistrict: "District",
+  areaVillage: "Village",
+  areaAllCountry: "Whole country",
+  areaAllProvinces: "All provinces",
+  areaAllDistricts: "All districts",
+  areaAllVillages: "All villages",
+  areaClear: "Clear selection",
+  areaNotMeasured: "Nothing has been measured here yet. The map claims nothing about this area.",
+  areaGood: "Usable service",
+  areaUnusable: "No usable service",
+  areaMeasuredHere: "Measured here",
+  areaOfArea: "of this area",
+  areaDevices: "Contributing devices",
+  areaLowConfidence:
+    "Too few separate devices have measured this area to publish the details without risking identifying whoever travelled through.",
+  areaApproximate:
+    "This village has no published boundary. The circle shows everything within %R% of its recorded centre — an approximation, not a surveyed border.",
+  areaSource: "Boundaries: %S%",
+  areaTooLarge:
+    "This area holds too many hexagons to draw at once. The shaded areas show coverage by district; choose one to see the detail.",
+  areaDrillHint: "Select a shaded area to go deeper.",
 
   legendPredicted: "Dashed and faded hexagons are predicted, not measured.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
@@ -301,6 +346,30 @@ const lo: Strings = {
   coverage: "ການຄອບຄຸມສັນຍານ",
   allOperators: "ທຸກເຄືອຂ່າຍ",
   operator: "ເຄືອຂ່າຍ",
+
+  areaCountry: "ປະເທດ",
+  areaProvince: "ແຂວງ",
+  areaDistrict: "ເມືອງ",
+  areaVillage: "ບ້ານ",
+  areaAllCountry: "ທົ່ວປະເທດ",
+  areaAllProvinces: "ທຸກແຂວງ",
+  areaAllDistricts: "ທຸກເມືອງ",
+  areaAllVillages: "ທຸກບ້ານ",
+  areaClear: "ລຶບການເລືອກ",
+  areaNotMeasured: "ຍັງບໍ່ມີການວັດແທກຢູ່ນີ້. ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບພື້ນທີ່ນີ້.",
+  areaGood: "ບໍລິການໃຊ້ໄດ້",
+  areaUnusable: "ໃຊ້ບໍລິການບໍ່ໄດ້",
+  areaMeasuredHere: "ວັດແທກຢູ່ນີ້",
+  areaOfArea: "ຂອງພື້ນທີ່ນີ້",
+  areaDevices: "ອຸປະກອນທີ່ຮ່ວມ",
+  areaLowConfidence:
+    "ມີອຸປະກອນວັດແທກພື້ນທີ່ນີ້ໜ້ອຍເກີນໄປ ຈຶ່ງບໍ່ສະແດງລາຍລະອຽດ ເພື່ອປົກປ້ອງຄວາມເປັນສ່ວນຕົວຂອງຜູ້ເດີນທາງ.",
+  areaApproximate:
+    "ບ້ານນີ້ບໍ່ມີເສັ້ນເຂດແດນທີ່ເຜີຍແຜ່ໄວ້. ວົງມົນສະແດງທຸກຢ່າງພາຍໃນ %R% ຈາກຈຸດໃຈກາງທີ່ບັນທຶກໄວ້ — ເປັນການປະມານ ບໍ່ແມ່ນເສັ້ນເຂດແດນຈິງ.",
+  areaSource: "ເສັ້ນເຂດແດນ: %S%",
+  areaTooLarge:
+    "ພື້ນທີ່ນີ້ມີຮູບຫົກແຈຫຼາຍເກີນໄປທີ່ຈະສະແດງພ້ອມກັນ. ພື້ນທີ່ທີ່ແຕ້ມສີສະແດງການຄອບຄຸມຕາມເມືອງ; ເລືອກເມືອງໜຶ່ງເພື່ອເບິ່ງລາຍລະອຽດ.",
+  areaDrillHint: "ເລືອກພື້ນທີ່ທີ່ແຕ້ມສີເພື່ອເບິ່ງລະອຽດຂຶ້ນ.",
 
   legendPredicted: "ຮູບຫົກແຈທີ່ເປັນເສັ້ນຂີດ ແລະ ຈາງ ແມ່ນການຄາດຄະເນ ບໍ່ແມ່ນການວັດແທກ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
