@@ -251,41 +251,68 @@
             android:textSize="12sp"
             android:textAllCaps="true" />
 
-        <EditText
-            android:id="@+id/serverValue"
+        <!--
+          Read-only by default. A collector has no reason to retype a server
+          address, and every chance to mistype one — the field is how a handset
+          ended up stranded on a laptop's wifi address, silently collecting
+          nothing, for a day.
+
+          The controls are not deleted, only hidden behind a long press on the
+          address. If the server ever moves, the alternative recovery is
+          reinstalling, and uninstalling wipes the queue and the signing key —
+          the one set of records that cannot be collected again.
+        -->
+        <TextView
+            android:id="@+id/serverDisplay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/hint_server"
-            android:importantForAutofill="no"
-            android:inputType="textUri"
-            android:maxLines="1"
-            android:textSize="14sp" />
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:textSize="15sp" />
 
         <LinearLayout
+            android:id="@+id/serverAdvanced"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:visibility="gone">
 
-            <Button
-                android:id="@+id/saveServerButton"
-                style="?attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+            <EditText
+                android:id="@+id/serverValue"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/action_save_server" />
+                android:hint="@string/hint_server"
+                android:importantForAutofill="no"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:textSize="14sp" />
 
-            <Button
-                android:id="@+id/resetServerButton"
-                style="?attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/action_reset_server" />
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/saveServerButton"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/action_save_server" />
+
+                <Button
+                    android:id="@+id/resetServerButton"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/action_reset_server" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/hint_server_help"
+                android:textSize="12sp" />
         </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/hint_server_help"
-            android:textSize="12sp" />
 
         <TextView
             android:layout_width="match_parent"

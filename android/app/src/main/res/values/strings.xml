@@ -38,6 +38,8 @@
     <string name="connection_key_conflict">This server knows this device under a different key. Reinstall the app to register again.</string>
     <string name="connection_failed">Cannot reach the server</string>
     <string name="connection_checked_at">Checked %1$s</string>
+    <string name="server_unlocked">Server settings unlocked.</string>
+    <string name="server_custom_warning">Custom server — not the address this app version ships with.</string>
     <string name="action_reset_server">Use default</string>
     <string name="server_reset">Using the address this app version ships with: %1$s</string>
     <string name="hint_server_help">Change this if the server moves. The address must start with http:// or https://, with no path after the host.</string>

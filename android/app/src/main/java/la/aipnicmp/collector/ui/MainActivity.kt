@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -80,6 +81,13 @@ class MainActivity : AppCompatActivity() {
         store = MeasurementStore(this)
 
         binding.serverValue.setText(prefs.apiBaseUrl)
+        // Long press, not a visible control: the people carrying this phone
+        // should never need it, and whoever is running the pilot will be told.
+        binding.serverDisplay.setOnLongClickListener {
+            binding.serverAdvanced.visibility = View.VISIBLE
+            showMessage(getString(R.string.server_unlocked))
+            true
+        }
         binding.saveServerButton.setOnClickListener { onSaveServer() }
         binding.checkConnectionButton.setOnClickListener { onCheckConnection() }
         binding.resetServerButton.setOnClickListener { onResetServer() }
@@ -373,6 +381,13 @@ class MainActivity : AppCompatActivity() {
                 else -> getString(R.string.age_days, hours / 24)
             }
         }
+
+        // Shown rather than editable. A collector who has to phone for help
+        // should be able to read out where the app is pointing.
+        binding.serverDisplay.text = prefs.apiBaseUrl
+        binding.serverDisplay.setTextColor(
+            getColor(if (prefs.apiBaseUrlIsCustom) R.color.calls_only else R.color.muted)
+        )
 
         binding.permissionWarning.visibility =
             if (hasForegroundLocation() && hasBackgroundLocation()) android.view.View.GONE

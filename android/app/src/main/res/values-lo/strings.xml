@@ -49,6 +49,8 @@
     <string name="connection_key_conflict">ເຊີບເວີຮູ້ຈັກອຸປະກອນນີ້ດ້ວຍກະແຈອື່ນ. ກະລຸນາຕິດຕັ້ງແອັບໃໝ່ ເພື່ອລົງທະບຽນອີກຄັ້ງ.</string>
     <string name="connection_failed">ຕິດຕໍ່ເຊີບເວີບໍ່ໄດ້</string>
     <string name="connection_checked_at">ກວດເມື່ອ %1$s</string>
+    <string name="server_unlocked">ເປີດການຕັ້ງຄ່າເຊີບເວີແລ້ວ.</string>
+    <string name="server_custom_warning">ເຊີບເວີກຳນົດເອງ — ບໍ່ແມ່ນທີ່ຢູ່ທີ່ມາກັບແອັບລຸ້ນນີ້.</string>
     <string name="action_reset_server">ໃຊ້ຄ່າເລີ່ມຕົ້ນ</string>
     <string name="server_reset">ກຳລັງໃຊ້ທີ່ຢູ່ທີ່ມາກັບແອັບລຸ້ນນີ້: %1$s</string>
     <string name="hint_server_help">ປ່ຽນຄ່ານີ້ຖ້າເຊີບເວີຍ້າຍ. ທີ່ຢູ່ຕ້ອງເລີ່ມດ້ວຍ http:// ຫຼື https:// ແລະ ບໍ່ມີເສັ້ນທາງຕໍ່ທ້າຍ.</string>
