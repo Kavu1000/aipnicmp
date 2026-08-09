@@ -32,6 +32,8 @@ export interface Strings {
   navCollectors: string;
   navCollectorsHint: string;
   menu: string;
+  basemapStreets: string;
+  basemapSatellite: string;
 
   collectorsTitle: string;
   collectorsSubtitle: string;
@@ -146,6 +148,8 @@ const en: Strings = {
   navCollectors: "Collectors",
   navCollectorsHint: "Phones reporting data",
   menu: "Menu",
+  basemapStreets: "Map",
+  basemapSatellite: "Satellite",
 
   collectorsTitle: "Collectors",
   collectorsSubtitle:
@@ -265,6 +269,8 @@ const lo: Strings = {
   navCollectors: "ອຸປະກອນເກັບຂໍ້ມູນ",
   navCollectorsHint: "ໂທລະສັບທີ່ສົ່ງຂໍ້ມູນ",
   menu: "ເມນູ",
+  basemapStreets: "ແຜນທີ່",
+  basemapSatellite: "ພາບດາວທຽມ",
 
   collectorsTitle: "ອຸປະກອນເກັບຂໍ້ມູນ",
   collectorsSubtitle:

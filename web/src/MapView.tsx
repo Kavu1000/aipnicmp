@@ -11,8 +11,40 @@ const FILL_LAYER = "coverage-fill";
 const INITIAL_CENTRE: [number, number] = [103.2, 19.0];
 const INITIAL_ZOOM = 5.6;
 
-const STYLE_URL =
+export type Basemap = "streets" | "satellite";
+
+const STREETS_STYLE =
   import.meta.env.VITE_MAP_STYLE ?? "https://tiles.openfreemap.org/styles/positron";
+
+/**
+ * Sentinel-2 cloudless, served by EOX under CC BY 4.0.
+ *
+ * Chosen over the usual commercial imagery for two reasons. It needs no API
+ * key, so there is one less credential for a pilot to manage or leak. And it is
+ * the same source proposal 2.5(2) names for detecting settlements and
+ * electrification — so what an operator sees under the hexagons is the imagery
+ * the coverage model will later reason about, not a different picture.
+ *
+ * Cloudless composites stop at zoom 14; beyond that MapLibre overzooms and the
+ * imagery softens. That is past the point where a ~0.7 km hexagon fills the
+ * screen, so nothing decision-relevant is lost.
+ */
+const SATELLITE_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    "s2cloudless": {
+      type: "raster",
+      tiles: [
+        "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
+      ],
+      tileSize: 256,
+      maxzoom: 14,
+      attribution:
+        '<a href="https://s2maps.eu">Sentinel-2 cloudless</a> by EOX IT Services GmbH (CC BY 4.0)',
+    },
+  },
+  layers: [{ id: "s2cloudless", type: "raster", source: "s2cloudless" }],
+};
 
 /** How long to wait for the basemap before giving up and drawing without it. */
 const STYLE_TIMEOUT_MS = 8000;
@@ -37,6 +69,10 @@ const COLOUR_EXPRESSION = [
 ] as unknown as maplibregl.ExpressionSpecification;
 
 const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
+
+function basemapStyle(basemap: Basemap): string | StyleSpecification {
+  return basemap === "satellite" ? SATELLITE_STYLE : STREETS_STYLE;
+}
 
 /**
  * The position a shared link asked for, or null for a fresh visit.
@@ -82,6 +118,7 @@ export interface FlyTarget {
 interface Props {
   tiles: TileCollection;
   summary: Summary | null;
+  basemap: Basemap;
   flyTo: FlyTarget | null;
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
@@ -109,7 +146,7 @@ function clampBounds(map: maplibregl.Map): Bounds {
   };
 }
 
-export function MapView({ tiles, summary, flyTo, onBoundsChange, onSelect }: Props) {
+export function MapView({ tiles, summary, basemap, flyTo, onBoundsChange, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const latest = useRef<TileCollection>(EMPTY);
@@ -124,7 +161,7 @@ export function MapView({ tiles, summary, flyTo, onBoundsChange, onSelect }: Pro
 
     const instance = new maplibregl.Map({
       container: container.current,
-      style: STYLE_URL,
+      style: basemapStyle(basemap),
       center: INITIAL_VIEW ? [INITIAL_VIEW.lon, INITIAL_VIEW.lat] : INITIAL_CENTRE,
       zoom: INITIAL_VIEW ? INITIAL_VIEW.zoom : INITIAL_ZOOM,
       attributionControl: { compact: true },
@@ -265,6 +302,21 @@ export function MapView({ tiles, summary, flyTo, onBoundsChange, onSelect }: Pro
       { padding: 80, maxZoom: 12, duration: 0 },
     );
   }, [summary]);
+
+  /**
+   * Swap the basemap without disturbing anything else.
+   *
+   * The coverage layers are rebuilt by the existing `style.load` handler, which
+   * reads from `latest` — the same path the offline fallback already uses — so
+   * the hexagons survive the switch and no refetch is needed.
+   */
+  const currentBasemap = useRef(basemap);
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || currentBasemap.current === basemap) return;
+    currentBasemap.current = basemap;
+    instance.setStyle(basemapStyle(basemap));
+  }, [basemap]);
 
   useEffect(() => {
     const instance = map.current;

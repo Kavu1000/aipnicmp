@@ -239,6 +239,33 @@ body,
   color: var(--ink);
 }
 
+.segmented {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.segmented button {
+  border: none;
+  background: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmented button.on {
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(16 32 44 / 12%);
+}
+
 .menu-button {
   display: none;
   border: none;
@@ -869,7 +896,34 @@ main {
     z-index: 19;
   }
 
-  .menu-button {
+  .segmented {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.segmented button {
+  border: none;
+  background: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmented button.on {
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(16 32 44 / 12%);
+}
+
+.menu-button {
     display: block;
   }
 

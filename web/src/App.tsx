@@ -9,7 +9,7 @@ import {
   type TileCollection,
   type TileProperties,
 } from "./api";
-import { MapView, type FlyTarget } from "./MapView";
+import { MapView, type Basemap, type FlyTarget } from "./MapView";
 import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
@@ -24,6 +24,7 @@ export function App() {
   const [language, setLanguage] = useState<Language>(loadLanguage);
   const [view, setView] = useState<View>("map");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [basemap, setBasemap] = useState<Basemap>("streets");
   const [tiles, setTiles] = useState<TileCollection>(EMPTY);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [operatorNames, setOperatorNames] = useState<string[]>([]);
@@ -147,6 +148,23 @@ export function App() {
           </div>
 
           <div className="topbar-actions">
+            {view === "map" && (
+              <div className="segmented" role="group">
+                <button
+                  className={basemap === "streets" ? "on" : ""}
+                  onClick={() => setBasemap("streets")}
+                >
+                  {t.basemapStreets}
+                </button>
+                <button
+                  className={basemap === "satellite" ? "on" : ""}
+                  onClick={() => setBasemap("satellite")}
+                >
+                  {t.basemapSatellite}
+                </button>
+              </div>
+            )}
+
             {view === "map" && operatorNames.length > 0 && (
               <select
                 className="select"
@@ -220,6 +238,7 @@ export function App() {
             <MapView
               tiles={tiles}
               summary={summary}
+              basemap={basemap}
               flyTo={flyTo}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
