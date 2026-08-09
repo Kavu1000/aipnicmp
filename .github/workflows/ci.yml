@@ -114,6 +114,14 @@ jobs:
         working-directory: web
         run: npm run build
 
+      # The config is a template rendered by envsubst at container start, so a
+      # syntax error would only appear on deploy — as a site that will not come
+      # up. This renders it exactly as the container does and asks nginx to
+      # check it.
+      - name: Validate the nginx config
+        run: |
+          docker run --rm             -v "$PWD/web/nginx.conf:/etc/nginx/templates/default.conf.template:ro"             -e API_UPSTREAM=http://api:8000             nginx:1.27-alpine nginx -t
+
   android:
     name: Android build
     runs-on: ubuntu-latest
