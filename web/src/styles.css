@@ -1060,34 +1060,7 @@ main {
     z-index: 19;
   }
 
-  .segmented {
-  display: flex;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--page);
-}
-
-.segmented button {
-  border: none;
-  background: none;
-  padding: 0.3rem 0.75rem;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.segmented button.on {
-  background: var(--panel);
-  color: var(--ink);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgb(16 32 44 / 12%);
-}
-
-.menu-button {
+  .menu-button {
     display: block;
   }
 
@@ -1100,20 +1073,30 @@ main {
     font-size: 1.1rem;
   }
 
+  /* The controls no longer fit beside the title, so they take a row of their
+     own and wrap within it. Without this the toolbar simply ran off the side
+     of the screen and took the whole document's width with it. */
   .topbar {
+    flex-wrap: wrap;
     padding: 0.75rem 1rem;
+  }
+
+  .topbar-title {
+    flex: 1 1 100%;
+  }
+
+  .topbar-actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
   }
 
   .page {
     padding: 1rem 1rem 3rem;
   }
 
-  .legend,
-  .inspector,
-  .area-summary {
-    width: calc(100% - 2rem);
-  }
-
+  /* Panels keep their natural width here. A tablet has room for a 300 px card
+     beside the map; stretching it across a 768 px screen buries the map it is
+     describing. Full width is a phone measure, applied further down. */
   .inspector {
     max-height: 55%;
   }
@@ -1122,8 +1105,163 @@ main {
     max-height: 50%;
   }
 
-  /* The toolbar wraps on a phone, so the cascade may use the full width. */
+  /* The toolbar wraps on a phone, so the cascade may use the full width and
+     wrap its own selects rather than scroll them out of reach. */
   .area-filter {
     max-width: 100%;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* A basis small enough that two selects share a row rather than each
+     claiming one — province and district are read together. */
+  .area-filter .select {
+    flex: 1 1 6.5rem;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+/* ---------- phones ----------
+
+   The map is the product. On a 375 px screen the header and the metric strip
+   were taking 571 px of an 812 px viewport and leaving the map 240 px, which
+   is a caption with a map attached rather than the other way round. Everything
+   below buys that space back.
+*/
+
+@media (max-width: 640px) {
+  /* The tagline is two lines of prose the map itself already makes. */
+  .topbar-title p {
+    display: none;
+  }
+
+  .topbar {
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  .topbar-title h1 {
+    font-size: 1rem;
+  }
+
+  .topbar-actions {
+    gap: 0.4rem;
+  }
+
+  .select {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* "Lao People's Democratic Republic" is the official name and it costs a
+     whole row on a phone to state something this map never stops being about.
+     The province select's "All provinces" already means the whole country. */
+  .area-root {
+    display: none;
+  }
+
+  /* One scrolling row instead of a wrapped block: five stacked statistics cost
+     more vertical space than they are worth next to the map they describe. */
+  .metrics {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0 1.5rem;
+    padding: 0.55rem 0.9rem;
+    scrollbar-width: none;
+  }
+
+  .metrics::-webkit-scrollbar {
+    display: none;
+  }
+
+  .metrics div {
+    flex: 0 0 auto;
+  }
+
+  .metrics dd {
+    font-size: 1rem;
+  }
+
+  .metrics dt,
+  .metrics .sub {
+    font-size: 0.62rem;
+  }
+
+  /*
+    Two panels that sit on opposite sides of a desktop map land on top of each
+    other once both are full width. The area summary keeps the top; the tile
+    inspector becomes a bottom sheet, which is where a phone expects detail
+    about the thing it just tapped anyway.
+  */
+  .legend,
+  .area-summary {
+    width: calc(100% - 2rem);
+  }
+
+  .area-summary {
+    max-height: 42%;
+  }
+
+  .inspector {
+    top: auto;
+    bottom: 0;
+    inset-inline: 0;
+    width: 100%;
+    max-height: 48%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: none;
+    z-index: 4;
+  }
+
+  .toast {
+    max-width: calc(100% - 2rem);
+    font-size: 0.75rem;
+  }
+}
+
+/* ---------- short viewports ----------
+
+   A phone held sideways is 375 px tall, and the header plus the metric strip
+   were taking 301 px of it — leaving 74 px of map, which is a sliver. Width
+   breakpoints cannot see this: the same 812x375 screen is "desktop-wide".
+
+   So the strip goes. It is the least load-bearing thing on the page — every
+   figure in it is on the Overview page in more detail — and it is the only one
+   whose removal buys the map a usable amount of height.
+*/
+
+@media (max-height: 560px) {
+  .metrics {
+    display: none;
+  }
+
+  .topbar-title p {
+    display: none;
+  }
+
+  .topbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .topbar-title h1 {
+    font-size: 1rem;
+  }
+
+  /* Sideways there is width to spare, so the title stops claiming a full row
+     and the controls sit beside it again. They still wrap if they genuinely do
+     not fit. */
+  .topbar-title {
+    flex: 1 1 auto;
+  }
+
+  .topbar-actions {
+    flex: 0 1 auto;
+  }
+
+  .legend,
+  .inspector,
+  .area-summary {
+    max-height: calc(100% - 1rem);
   }
 }

@@ -10,10 +10,12 @@ import type { Strings } from "./i18n";
  * tower, red-orange means an upgrade, and those are very different numbers.
  *
  * Collapsible because at full size it occupied a third of the screen and
- * competed with the map it was explaining.
+ * competed with the map it was explaining. On a phone it starts collapsed for
+ * the same reason, only more so: at full width it covers the map completely,
+ * and the colours are legible enough to ask about rather than be told first.
  */
 export function Legend({ t }: { t: Strings }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => window.innerWidth > 640);
   const info = stateInfo(t);
 
   if (!open) {
