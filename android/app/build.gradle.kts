@@ -18,18 +18,21 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // Where the collector uploads. Override per build rather than editing
-        // source: the pilot points at a Cloudflare-tunnelled HTTPS endpoint.
-        buildConfigField("String", "API_BASE_URL", "\"https://api.chax.site\"")
+        // Where the collector uploads. HTTPS is not a preference here: Android
+        // 9+ refuses cleartext, so an http:// endpoint cannot be used from a
+        // real handset at all. Cloudflare terminates TLS in front of the stack,
+        // so there is no certificate to manage on the server.
+        buildConfigField("String", "API_BASE_URL", "\"https://aipn.chax.site\"")
     }
 
     buildTypes {
         debug {
-            // The development laptop on the current wifi. This is only the
-            // starting value — the address is editable in the app, because a
-            // hardcoded one strands the phone the moment the network changes
-            // or a tunnel hostname is issued.
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.33.252:8000\"")
+            // Also the live server, so a debug build works anywhere — including
+            // over mobile data — rather than only on one wifi. The address stays
+            // editable in the app for pointing at a laptop during development;
+            // the debug network config permits cleartext to private addresses
+            // for exactly that case.
+            buildConfigField("String", "API_BASE_URL", "\"https://aipn.chax.site\"")
         }
         release {
             isMinifyEnabled = true

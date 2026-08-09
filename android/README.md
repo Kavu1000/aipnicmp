@@ -43,8 +43,13 @@ perfectly well-formed.
 
 | Build | Default | Use |
 | --- | --- | --- |
-| debug | `http://10.0.2.2:8000` | Emulator talking to a backend on this machine |
-| release | `https://api.chax.site` | The pilot server — **change this to the real hostname** |
+| debug | `https://aipn.chax.site` | The live pilot server |
+| release | `https://aipn.chax.site` | The live pilot server |
+
+Both point at the deployed stack, so a build works anywhere — including over
+mobile data. During development the address can be changed in the app itself to
+a laptop on the same wifi; the debug build permits cleartext to private
+addresses for that case only.
 
 The address can also be overridden at runtime via `CollectorPrefs.apiBaseUrl`,
 so a pilot that moves hosts does not need a rebuild.
