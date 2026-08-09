@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.radio import STATE_COLOUR, STATE_SCORE, RadioState, TileColour
 from app.models.measurement import Measurement
-from app.models.tile import H3Tile
+from app.models.tile import H3Tile, H3TileOperator
 from app.services.geo import h3_centroid
 
 SCORE_STATE = {score: state for state, score in STATE_SCORE.items()}
@@ -147,5 +147,91 @@ async def rebuild_tiles(session: AsyncSession, *, since: datetime | None = None)
         tile.updated_at = datetime.now(timezone.utc)
         written += 1
 
+    await session.flush()
+    await _rebuild_operator_tiles(session, since)
     await session.commit()
+    return written
+
+
+async def _rebuild_operator_tiles(session: AsyncSession, since: datetime | None) -> int:
+    """The same hexagons again, split by operator.
+
+    A village where one network works and three do not is a different finding
+    from one where none do — the first is a competition and roaming question,
+    the second is a tower question. The combined map cannot say which it is.
+
+    Records with no operator name are skipped rather than bucketed into
+    "unknown": a reading with no network at all has no operator to attribute it
+    to, and inventing one would put dead zones on some carrier's ledger.
+    """
+    state_query = (
+        select(
+            Measurement.h3_index,
+            Measurement.operator_name,
+            Measurement.radio_state,
+            func.count(),
+        )
+        .where(Measurement.h3_index.is_not(None), Measurement.operator_name.is_not(None))
+        .group_by(Measurement.h3_index, Measurement.operator_name, Measurement.radio_state)
+    )
+    metric_query = (
+        select(
+            Measurement.h3_index,
+            Measurement.operator_name,
+            func.count().label("measurement_count"),
+            func.count(func.distinct(Measurement.device_id)).label("device_count"),
+            func.avg(Measurement.rsrp_dbm).label("avg_rsrp_dbm"),
+            func.avg(Measurement.download_kbps).label("avg_download_kbps"),
+            func.max(Measurement.captured_at).label("last_measured_at"),
+        )
+        .where(Measurement.h3_index.is_not(None), Measurement.operator_name.is_not(None))
+        .group_by(Measurement.h3_index, Measurement.operator_name)
+    )
+    if since is not None:
+        state_query = state_query.where(Measurement.captured_at >= since)
+        metric_query = metric_query.where(Measurement.captured_at >= since)
+
+    counts: dict[tuple[str, str], dict[str, int]] = {}
+    for h3_index, operator, state, count in (await session.execute(state_query)).all():
+        counts.setdefault((h3_index, operator), {})[state] = count
+
+    rows = (await session.execute(metric_query)).mappings().all()
+    keys = [(row["h3_index"], row["operator_name"]) for row in rows]
+
+    existing: dict[tuple[str, str], H3TileOperator] = {}
+    if keys:
+        found = await session.scalars(
+            select(H3TileOperator).where(
+                H3TileOperator.h3_index.in_({k[0] for k in keys}),
+                H3TileOperator.operator_name.in_({k[1] for k in keys}),
+            )
+        )
+        existing = {(t.h3_index, t.operator_name): t for t in found.all()}
+
+    written = 0
+    for row in rows:
+        key = (row["h3_index"], row["operator_name"])
+        tile_counts = counts.get(key, {})
+        median = median_state(tile_counts)
+        worst = worst_state(tile_counts)
+        lat, lon = h3_centroid(row["h3_index"])
+
+        tile = existing.get(key)
+        if tile is None:
+            tile = H3TileOperator(h3_index=key[0], operator_name=key[1])
+            session.add(tile)
+
+        tile.centroid_lat = lat
+        tile.centroid_lon = lon
+        tile.colour = (STATE_COLOUR[median] if median else TileColour.GREY).value
+        tile.dominant_state = median.value if median else None
+        tile.worst_state = worst.value if worst else None
+        tile.measurement_count = row["measurement_count"]
+        tile.device_count = row["device_count"]
+        tile.avg_rsrp_dbm = row["avg_rsrp_dbm"]
+        tile.avg_download_kbps = row["avg_download_kbps"]
+        tile.last_measured_at = row["last_measured_at"]
+        tile.updated_at = datetime.now(timezone.utc)
+        written += 1
+
     return written

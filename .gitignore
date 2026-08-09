@@ -55,3 +55,6 @@ Thumbs.db
 # Android Studio generates this with machine-local SDK paths
 android/local.properties
 android/.idea/
+
+# Vite incremental typecheck cache
+web/tsconfig.tsbuildinfo

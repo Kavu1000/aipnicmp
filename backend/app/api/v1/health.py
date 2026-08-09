@@ -3,14 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_session
-from app.models.device import Device
-from app.models.measurement import Measurement
-from app.models.tile import H3Tile
+from app.services.coverage import coverage_summary
 
 router = APIRouter(tags=["health"])
 
@@ -33,20 +31,9 @@ async def health_db(session: AsyncSession = Depends(get_session)) -> dict[str, A
 
 @router.get("/stats")
 async def stats(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
-    """Headline numbers for the dashboard and for demonstrating the pilot."""
-    measurements = await session.scalar(select(func.count()).select_from(Measurement))
-    devices = await session.scalar(select(func.count()).select_from(Device))
-    tiles = await session.scalar(select(func.count()).select_from(H3Tile))
-    no_service = await session.scalar(
-        select(func.count()).select_from(Measurement).where(Measurement.radio_state == "NO_CELL")
-    )
-    latest = await session.scalar(select(func.max(Measurement.captured_at)))
+    """Headline numbers for the map header.
 
-    return {
-        "measurements": measurements or 0,
-        "devices": devices or 0,
-        "tiles": tiles or 0,
-        "no_service_measurements": no_service or 0,
-        "latest_measurement_at": latest.isoformat() if latest else None,
-        "h3_resolution": settings.h3_resolution,
-    }
+    Shares an implementation with the dashboard summary so the public map and
+    the operator view can never quote different figures for the same thing.
+    """
+    return await coverage_summary(session)

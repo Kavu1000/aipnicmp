@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_session
-from app.models.tile import H3Tile
+from app.models.tile import H3Tile, H3TileOperator
 from app.services.geo import h3_polygon_geojson
 
 router = APIRouter(prefix="/tiles", tags=["map"])
@@ -56,6 +56,35 @@ def _feature(tile: H3Tile, *, detailed: bool) -> dict[str, Any]:
     }
 
 
+def _operator_feature(tile: H3TileOperator, *, detailed: bool) -> dict[str, Any]:
+    properties: dict[str, Any] = {
+        "h3": tile.h3_index,
+        "colour": tile.colour,
+        "state": tile.dominant_state,
+        "predicted": False,
+        "operator": tile.operator_name,
+    }
+    if detailed:
+        properties.update(
+            {
+                "measurements": tile.measurement_count,
+                "devices": tile.device_count,
+                "avg_rsrp_dbm": tile.avg_rsrp_dbm,
+                "avg_download_kbps": tile.avg_download_kbps,
+                "worst_state": tile.worst_state,
+                "last_measured_at": tile.last_measured_at.isoformat() if tile.last_measured_at else None,
+            }
+        )
+    else:
+        properties["low_confidence"] = True
+
+    return {
+        "type": "Feature",
+        "geometry": h3_polygon_geojson(tile.h3_index),
+        "properties": properties,
+    }
+
+
 @router.get("")
 async def get_tiles(
     min_lat: float = Query(ge=-90, le=90),
@@ -63,6 +92,10 @@ async def get_tiles(
     max_lat: float = Query(ge=-90, le=90),
     max_lon: float = Query(ge=-180, le=180),
     include_predicted: bool = Query(default=True),
+    operator: str | None = Query(
+        default=None,
+        description="Restrict to one network. Omit for the combined view: can anyone get service here?",
+    ),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Coverage tiles inside a viewport, as GeoJSON.
@@ -78,6 +111,26 @@ async def get_tiles(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"bounding box must span less than {MAX_BBOX_DEGREES} degrees per side",
         )
+
+    if operator:
+        query = (
+            select(H3TileOperator)
+            .where(
+                H3TileOperator.operator_name == operator,
+                H3TileOperator.centroid_lat.between(min_lat, max_lat),
+                H3TileOperator.centroid_lon.between(min_lon, max_lon),
+            )
+            .limit(MAX_TILES)
+        )
+        operator_tiles = (await session.scalars(query)).all()
+        return {
+            "type": "FeatureCollection",
+            "operator": operator,
+            "features": [
+                _operator_feature(tile, detailed=tile.device_count >= settings.tile_min_devices)
+                for tile in operator_tiles
+            ],
+        }
 
     query = select(H3Tile).where(
         H3Tile.centroid_lat.between(min_lat, max_lat),

@@ -4,7 +4,7 @@ from app.db.base import Base
 from app.models.device import Device
 from app.models.measurement import CellObservation, IngestBatch, Measurement
 from app.models.report import UserReport
-from app.models.tile import CandidateSite, H3Tile
+from app.models.tile import CandidateSite, H3Tile, H3TileOperator
 
 __all__ = [
     "Base",
@@ -12,6 +12,7 @@ __all__ = [
     "CellObservation",
     "Device",
     "H3Tile",
+    "H3TileOperator",
     "IngestBatch",
     "Measurement",
     "UserReport",

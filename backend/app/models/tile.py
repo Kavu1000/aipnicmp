@@ -9,7 +9,7 @@ from app.db.base import Base, timestamp_column
 
 
 class H3Tile(Base):
-    """The public map's unit of truth.
+    """The public map's unit of truth, across all operators.
 
     Individual points are never published. Aggregating to a hexagon serves two
     purposes at once (proposal 2.4): it stops the map from revealing where any
@@ -47,6 +47,43 @@ class H3Tile(Base):
     updated_at: Mapped[datetime] = timestamp_column(server_default=func.now())
 
     __table_args__ = (Index("ix_h3_tiles_res_colour", "resolution", "colour"),)
+
+
+class H3TileOperator(Base):
+    """The same hexagons, split by network operator.
+
+    Kept in a separate table rather than as a column on `h3_tiles` because the
+    two answer different questions and are read at different times. The public
+    map asks "can anyone get service here?", which is the combined view; an
+    operator asks "can *my* customers get service here?", which is this one.
+
+    Collapsing them into one table would force every public map request to
+    filter or de-duplicate, and would make the combined row — the one that
+    matters most — just another special case.
+    """
+
+    __tablename__ = "h3_tile_operators"
+
+    h3_index: Mapped[str] = mapped_column(String(20), primary_key=True)
+    operator_name: Mapped[str] = mapped_column(String(80), primary_key=True)
+
+    centroid_lat: Mapped[float] = mapped_column(Float)
+    centroid_lon: Mapped[float] = mapped_column(Float)
+
+    colour: Mapped[str] = mapped_column(String(16), index=True)
+    dominant_state: Mapped[str | None] = mapped_column(String(32))
+    worst_state: Mapped[str | None] = mapped_column(String(32))
+
+    measurement_count: Mapped[int] = mapped_column(Integer, default=0)
+    device_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    avg_rsrp_dbm: Mapped[float | None] = mapped_column(Float)
+    avg_download_kbps: Mapped[float | None] = mapped_column(Float)
+
+    last_measured_at: Mapped[datetime | None] = timestamp_column()
+    updated_at: Mapped[datetime] = timestamp_column(server_default=func.now())
+
+    __table_args__ = (Index("ix_h3_tile_operators_operator", "operator_name", "colour"),)
 
 
 class CandidateSite(Base):
