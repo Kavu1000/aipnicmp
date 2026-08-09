@@ -48,23 +48,40 @@ const STREETS_STYLE =
  * Cloudless composites stop at zoom 14; beyond that MapLibre overzooms and the
  * imagery softens. That is past the point where a ~0.7 km hexagon fills the
  * screen, so nothing decision-relevant is lost.
+ *
+ * Added as a layer inside the vector style rather than as a style of its own.
+ * It used to be its own style, which meant switching to satellite replaced
+ * every layer the vector basemap provided — including all of its place names.
+ * The result was a beautiful, unlabelled green expanse: you could see a valley
+ * had no coverage but not which valley it was, which is most of what a reader
+ * needs. Imagery now slots in *below* the label layers and hides only the
+ * painted land beneath them.
  */
-const SATELLITE_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    "s2cloudless": {
-      type: "raster",
-      tiles: [
-        "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
-      ],
-      tileSize: 256,
-      maxzoom: 14,
-      attribution:
-        '<a href="https://s2maps.eu">Sentinel-2 cloudless</a> by EOX IT Services GmbH (CC BY 4.0)',
-    },
-  },
-  layers: [{ id: "s2cloudless", type: "raster", source: "s2cloudless" }],
+const SATELLITE_SOURCE = "s2cloudless";
+const SATELLITE_LAYER = "s2cloudless";
+
+const SATELLITE_TILES: maplibregl.RasterSourceSpecification = {
+  type: "raster",
+  tiles: ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg"],
+  tileSize: 256,
+  maxzoom: 14,
+  attribution:
+    '<a href="https://s2maps.eu">Sentinel-2 cloudless</a> by EOX IT Services GmbH (CC BY 4.0)',
 };
+
+/**
+ * Labels legible over dark imagery.
+ *
+ * Positron sets dark grey text with a white halo, which is right on a pale
+ * basemap and nearly invisible over Lao forest. Inverting it — white text, dark
+ * halo — is the standard hybrid treatment, and the halo is what carries it over
+ * the bright patches of cleared ground.
+ */
+const IMAGERY_LABEL_PAINT = {
+  "text-color": "#ffffff",
+  "text-halo-color": "rgba(0, 0, 0, 0.8)",
+  "text-halo-width": 1.6,
+} as const;
 
 /** How long to wait for the basemap before giving up and drawing without it. */
 const STYLE_TIMEOUT_MS = 8000;
@@ -101,8 +118,42 @@ const EMPTY_GEOJSON = { type: "FeatureCollection", features: [] } as const;
 const MASK_COLOUR = "#f5f7fa";
 const MASK_OPACITY = 0.66;
 
-function basemapStyle(basemap: Basemap): string | StyleSpecification {
-  return basemap === "satellite" ? SATELLITE_STYLE : STREETS_STYLE;
+/**
+ * Show or hide the imagery, and adapt the basemap around it.
+ *
+ * Everything the vector style paints on the ground — land, water, roads — is
+ * hidden while imagery is showing, because the photograph already says all of
+ * it and more accurately. Its symbol layers stay, restyled for contrast: those
+ * are the place names, and they are the whole reason this is a layer toggle
+ * rather than a second style.
+ */
+function applyBasemap(
+  map: maplibregl.Map,
+  basemap: Basemap,
+  basemapLayers: readonly BasemapLayer[],
+): void {
+  const satellite = basemap === "satellite";
+
+  if (map.getLayer(SATELLITE_LAYER)) {
+    map.setLayoutProperty(SATELLITE_LAYER, "visibility", satellite ? "visible" : "none");
+  }
+
+  for (const layer of basemapLayers) {
+    if (layer.type === "symbol") {
+      // Restore the style's own values when leaving satellite; a hard-coded
+      // "dark grey" would quietly become this app's opinion of positron.
+      for (const [property, imageryValue] of Object.entries(IMAGERY_LABEL_PAINT)) {
+        const value = satellite ? imageryValue : layer.paint[property];
+        try {
+          map.setPaintProperty(layer.id, property, value);
+        } catch {
+          // A layer without that paint property — an icon-only shield, say.
+        }
+      }
+      continue;
+    }
+    map.setLayoutProperty(layer.id, "visibility", satellite ? "none" : "visible");
+  }
 }
 
 /**
@@ -137,6 +188,17 @@ function writeHash(map: maplibregl.Map): void {
 }
 
 type GeoJsonData = Parameters<maplibregl.GeoJSONSource["setData"]>[0];
+
+/**
+ * A layer that came with the basemap style, remembered before this app adds any
+ * of its own — which is the only way to tell the two apart afterwards.
+ */
+interface BasemapLayer {
+  id: string;
+  type: string;
+  /** The style's own paint values, so leaving satellite can restore them. */
+  paint: Record<string, unknown>;
+}
 
 export interface FlyTarget {
   lat: number;
@@ -225,12 +287,28 @@ export function MapView({
   // The auto-fit must happen once, and must not fight the user afterwards.
   const hasFitted = useRef(false);
 
+  // What the basemap style itself contributed, and which basemap is showing.
+  const basemapLayers = useRef<BasemapLayer[]>([]);
+  const currentBasemap = useRef(basemap);
+  currentBasemap.current = basemap;
+
+  /**
+   * Whether `style.load` has fired.
+   *
+   * Deliberately not `isStyleLoaded()`, which stays false until every sprite
+   * and tile has arrived — long after the layers exist and can be toggled.
+   * Guarding on it silently swallowed the first basemap switch.
+   */
+  const styleReady = useRef(false);
+
   useEffect(() => {
     if (!container.current || map.current) return;
 
     const instance = new maplibregl.Map({
       container: container.current,
-      style: basemapStyle(basemap),
+      // Always the vector style. Satellite is a layer inside it, so that its
+      // place names survive the switch.
+      style: STREETS_STYLE,
       center: INITIAL_VIEW ? [INITIAL_VIEW.lon, INITIAL_VIEW.lat] : INITIAL_CENTRE,
       zoom: INITIAL_VIEW ? INITIAL_VIEW.zoom : INITIAL_ZOOM,
       attributionControl: { compact: true },
@@ -257,6 +335,39 @@ export function MapView({
     instance.on("error", (event) => {
       if (String(event?.error?.message ?? "").toLowerCase().includes("style")) useFallback();
     });
+
+    /**
+     * Record what the basemap brought, then slot the imagery in underneath its
+     * labels.
+     *
+     * Everything after this point is added by this app, so capturing the layer
+     * list here is what lets the basemap toggle leave our own layers alone.
+     */
+    const adoptStyle = () => {
+      basemapLayers.current = instance
+        .getStyle()
+        .layers.map((layer) => ({
+          id: layer.id,
+          type: layer.type,
+          paint: { ...((layer as { paint?: Record<string, unknown> }).paint ?? {}) },
+        }));
+
+      if (!instance.getSource(SATELLITE_SOURCE)) {
+        instance.addSource(SATELLITE_SOURCE, SATELLITE_TILES);
+        // Below the first symbol layer, so place names sit on the photograph
+        // instead of being buried by it.
+        const firstLabel = basemapLayers.current.find((layer) => layer.type === "symbol");
+        instance.addLayer(
+          {
+            id: SATELLITE_LAYER,
+            type: "raster",
+            source: SATELLITE_SOURCE,
+            layout: { visibility: "none" },
+          },
+          firstLabel?.id,
+        );
+      }
+    };
 
     const addLayers = () => {
       if (instance.getSource(SOURCE_ID)) return;
@@ -395,7 +506,12 @@ export function MapView({
 
     instance.on("style.load", () => {
       window.clearTimeout(styleTimer);
+      adoptStyle();
       addLayers();
+      styleReady.current = true;
+      // The fallback style can arrive after the user has already chosen
+      // satellite, so the choice is re-applied rather than assumed.
+      applyBasemap(instance, currentBasemap.current, basemapLayers.current);
     });
     instance.on("moveend", () => {
       handlers.current.onBoundsChange(clampBounds(instance));
@@ -450,16 +566,15 @@ export function MapView({
   /**
    * Swap the basemap without disturbing anything else.
    *
-   * The coverage layers are rebuilt by the existing `style.load` handler, which
-   * reads from `latest` — the same path the offline fallback already uses — so
-   * the hexagons survive the switch and no refetch is needed.
+   * A layer toggle, not a style swap. Replacing the style discarded every layer
+   * the vector basemap provided, place names included, which is why satellite
+   * used to be unlabelled. It also tore down and rebuilt the coverage layers on
+   * every switch; now nothing but visibility changes.
    */
-  const currentBasemap = useRef(basemap);
   useEffect(() => {
     const instance = map.current;
-    if (!instance || currentBasemap.current === basemap) return;
-    currentBasemap.current = basemap;
-    instance.setStyle(basemapStyle(basemap));
+    if (!instance || !styleReady.current) return;
+    applyBasemap(instance, basemap, basemapLayers.current);
   }, [basemap]);
 
   useEffect(() => {
