@@ -15,10 +15,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import String, and_, case, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.operators import NETWORK_NAMES
 from app.core.radio import STATE_COLOUR, STATE_SCORE, RadioState, TileColour
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
@@ -28,6 +29,62 @@ from app.services.geo import h3_centroid
 SCORE_STATE = {score: state for state, score in STATE_SCORE.items()}
 
 NO_AREAS = AreaAssignment()
+
+
+def _padded_mnc():
+    """MNC as two digits. One handset reports "1" where another reports "01".
+
+    Concatenation is written with ``+`` on a String column, which SQLAlchemy
+    renders as the ``||`` operator. ``concat()`` is a Postgres function and
+    does not exist in the SQLite the tests run on.
+    """
+    return case(
+        (func.length(Measurement.mnc) == 1, literal("0", String) + Measurement.mnc),
+        else_=Measurement.mnc,
+    )
+
+
+def canonical_operator_column():
+    """The operator's identity, as SQL, so grouping happens in the database.
+
+    Resolved from MCC/MNC rather than from the name the handset reported —
+    see app/core/operators.py for why one company otherwise appears as several.
+
+    It has to be an expression rather than a Python pass because the aggregate
+    it feeds counts *distinct devices*, and distinct counts cannot be summed
+    back together after the fact: a collector seen under two spellings of one
+    network is one collector, and folding the groups in Python would report two.
+    """
+    mnc = _padded_mnc()
+    known = [
+        (and_(Measurement.mcc == mcc, mnc == network_mnc), name)
+        for (mcc, network_mnc), name in NETWORK_NAMES.items()
+    ]
+    return case(
+        *known,
+        # A network not in the table keeps its stable identity as a code, which
+        # is honest and obviously not a company name.
+        (
+            and_(Measurement.mcc.is_not(None), mnc.is_not(None)),
+            Measurement.mcc + literal("-", String) + mnc,
+        ),
+        else_=func.trim(Measurement.operator_name),
+    )
+
+
+def _has_operator_identity():
+    """Something to attribute the reading to — a PLMN, or failing that a name.
+
+    A reading with no network at all has neither, and is excluded: bucketing
+    those into "unknown" would put dead zones on some carrier's ledger.
+    """
+    return or_(
+        and_(Measurement.mcc.is_not(None), Measurement.mnc.is_not(None)),
+        and_(
+            Measurement.operator_name.is_not(None),
+            func.trim(Measurement.operator_name) != "",
+        ),
+    )
 
 
 def median_state(counts: dict[str, int]) -> RadioState | None:
@@ -200,32 +257,40 @@ async def _rebuild_operator_tiles(
     from one where none do — the first is a competition and roaming question,
     the second is a tower question. The combined map cannot say which it is.
 
-    Records with no operator name are skipped rather than bucketed into
+    Records with no operator identity are skipped rather than bucketed into
     "unknown": a reading with no network at all has no operator to attribute it
     to, and inventing one would put dead zones on some carrier's ledger.
+
+    Operators are identified by MCC/MNC, not by the name the handset reported.
+    Grouping by the reported name splits one company across several partial
+    maps, because the string comes from the SIM or the firmware and they
+    disagree — see app/core/operators.py.
     """
+    operator = canonical_operator_column().label("operator_name")
+    identified = (Measurement.h3_index.is_not(None), _has_operator_identity())
+
     state_query = (
         select(
             Measurement.h3_index,
-            Measurement.operator_name,
+            operator,
             Measurement.radio_state,
             func.count(),
         )
-        .where(Measurement.h3_index.is_not(None), Measurement.operator_name.is_not(None))
-        .group_by(Measurement.h3_index, Measurement.operator_name, Measurement.radio_state)
+        .where(*identified)
+        .group_by(Measurement.h3_index, operator, Measurement.radio_state)
     )
     metric_query = (
         select(
             Measurement.h3_index,
-            Measurement.operator_name,
+            operator,
             func.count().label("measurement_count"),
             func.count(func.distinct(Measurement.device_id)).label("device_count"),
             func.avg(Measurement.rsrp_dbm).label("avg_rsrp_dbm"),
             func.avg(Measurement.download_kbps).label("avg_download_kbps"),
             func.max(Measurement.captured_at).label("last_measured_at"),
         )
-        .where(Measurement.h3_index.is_not(None), Measurement.operator_name.is_not(None))
-        .group_by(Measurement.h3_index, Measurement.operator_name)
+        .where(*identified)
+        .group_by(Measurement.h3_index, operator)
     )
     if since is not None:
         state_query = state_query.where(Measurement.captured_at >= since)
@@ -275,4 +340,30 @@ async def _rebuild_operator_tiles(
         tile.updated_at = datetime.now(timezone.utc)
         written += 1
 
+    if since is None:
+        await _drop_stale_operator_tiles(session, set(keys))
+
     return written
+
+
+async def _drop_stale_operator_tiles(
+    session: AsyncSession, current: set[tuple[str, str]]
+) -> int:
+    """Remove operator tiles the measurements no longer support.
+
+    Aggregation only ever wrote rows; nothing removed them. That was invisible
+    until an operator's name changed — when the same company was recognised
+    under a new name, the row under the old one stayed on the map forever, and
+    the network filter offered both.
+
+    Only on a full rebuild. An incremental run has deliberately looked at a
+    slice of the measurements, so anything outside that slice is missing, not
+    stale, and deleting it would erase the rest of the map.
+    """
+    existing = (await session.scalars(select(H3TileOperator))).all()
+    dropped = 0
+    for tile in existing:
+        if (tile.h3_index, tile.operator_name) not in current:
+            await session.delete(tile)
+            dropped += 1
+    return dropped

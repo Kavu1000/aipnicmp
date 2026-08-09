@@ -177,6 +177,36 @@ at national zoom. The map therefore draws provinces shaded by their coverage at
 country level and districts at province level, dropping to hexagons at district
 and village. This is also the view a ministry actually reads.
 
+## 20. An operator is identified by its MCC/MNC, never by its reported name
+
+`TelephonyManager.getNetworkOperatorName()` returns a display string chosen by
+the SIM, the network or the firmware, and the three disagree. The pilot database
+showed the cost directly: 124 tiles filed under `LTC` and 1 under `LAO TELECOM`
+— one company, appearing twice in the network filter with its coverage split
+between the two entries.
+
+Identity therefore comes from the MCC/MNC pair the device already sends, and the
+display name from a table in `app/core/operators.py`. An unrecognised PLMN is
+shown as its code (`457-05`), which is honest and obviously not a company name;
+a reading with no PLMN falls back to whatever it called itself; a reading with
+no network at all still has no operator.
+
+The grouping happens in SQL rather than in Python because the aggregate counts
+*distinct devices*, and distinct counts cannot be summed back together
+afterwards — one collector seen under two spellings is one collector.
+
+## 21. A full rebuild removes operator tiles the measurements no longer support
+
+Aggregation only ever wrote rows. Nothing removed them, which was invisible
+until an operator's name changed: the row under the old name stayed on the map
+permanently and the network filter kept offering it.
+
+Only on a full rebuild. An incremental run has deliberately looked at a slice of
+the measurements, so anything outside that slice is missing rather than stale,
+and deleting it would erase the rest of the map. `h3_tiles` is deliberately not
+cleaned the same way — it also carries model predictions, which are not derived
+from the measurement table.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified

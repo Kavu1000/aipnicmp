@@ -149,6 +149,11 @@ at all are absent from the response — the client renders "not measured" itself
 
 The viewport may not span more than 6 degrees per side.
 
+`operator` takes a canonical network name, not the string a handset reported.
+Networks are identified by MCC/MNC (`457-01` is `Lao Telecom`, whether the
+device called it `LTC` or `LAO TELECOM`); `GET /dashboard/operator-names` lists
+exactly the values this parameter accepts.
+
 `area` replaces the bounding box entirely — an area bounds its own query:
 
 ```

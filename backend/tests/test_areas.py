@@ -464,12 +464,16 @@ async def test_area_and_operator_filters_combine(
     await rebuild_tiles(session)
 
     body = (
-        await client.get("/api/v1/tiles", params={"area": DISTRICT_SOUTH, "operator": "LTC"})
+        await client.get(
+            "/api/v1/tiles", params={"area": DISTRICT_SOUTH, "operator": "Lao Telecom"}
+        )
     ).json()
 
-    assert body["operator"] == "LTC"
+    assert body["operator"] == "Lao Telecom"
     assert body["features"]
-    assert all(feature["properties"]["operator"] == "LTC" for feature in body["features"])
+    assert all(
+        feature["properties"]["operator"] == "Lao Telecom" for feature in body["features"]
+    )
 
 
 async def test_the_country_needs_no_bounding_box(

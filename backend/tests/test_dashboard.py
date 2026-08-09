@@ -166,12 +166,14 @@ async def test_operator_breakdown_and_filtered_tiles(
     await _seed(client, device_key, public_key_b64)
     await rebuild_tiles(session)
 
+    # The handset reported "LTC"; the network is identified by its PLMN, and
+    # 457-01 is Lao Telecom. See app/core/operators.py.
     names = (await client.get("/api/v1/dashboard/operator-names")).json()["operators"]
-    assert "LTC" in names
+    assert names == ["Lao Telecom"]
 
     breakdown = (await client.get("/api/v1/dashboard/operators")).json()["operators"]
     assert breakdown
-    ltc = next(row for row in breakdown if row["operator"] == "LTC")
+    ltc = next(row for row in breakdown if row["operator"] == "Lao Telecom")
     assert ltc["tiles"] > 0
     assert ltc["area_km2"] > 0
     assert 0 <= ltc["good_pct"] <= 100
@@ -183,14 +185,14 @@ async def test_operator_breakdown_and_filtered_tiles(
             "min_lon": 101.5,
             "max_lat": BASE_LAT + 1,
             "max_lon": 102.8,
-            "operator": "LTC",
+            "operator": "Lao Telecom",
         },
     )
     assert filtered.status_code == 200
     body = filtered.json()
-    assert body["operator"] == "LTC"
+    assert body["operator"] == "Lao Telecom"
     assert body["features"]
-    assert all(f["properties"]["operator"] == "LTC" for f in body["features"])
+    assert all(f["properties"]["operator"] == "Lao Telecom" for f in body["features"])
 
 
 async def test_a_dead_zone_is_not_attributed_to_any_operator(
