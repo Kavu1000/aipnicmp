@@ -23,6 +23,7 @@ import com.google.android.gms.location.Priority
 import la.aipnicmp.collector.CollectorPrefs
 import la.aipnicmp.collector.R
 import la.aipnicmp.collector.data.MeasurementStore
+import la.aipnicmp.collector.data.NetworkStatus
 import la.aipnicmp.collector.ui.MainActivity
 import la.aipnicmp.collector.upload.UploadScheduler
 
@@ -193,7 +194,12 @@ class CollectionService : Service() {
         }
 
         val payload = measurement.toJson(la.aipnicmp.collector.crypto.CanonicalMessage.formatTimestamp(now))
-        if (store.enqueue(measurement, payload)) {
+        // Recorded now, not at upload: by the time a record is sent the phone
+        // is online by definition, and the fact worth keeping is whether this
+        // reading came from a place with no internet at all.
+        val offline = !NetworkStatus.isOnline(this)
+
+        if (store.enqueue(measurement, payload, offline)) {
             sampler.markSampled(fix.latitude, fix.longitude, now)
             recordedThisSession++
             updateNotification()

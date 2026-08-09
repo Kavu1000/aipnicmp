@@ -28,7 +28,7 @@ class MeasurementStore(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "collector.db"
-        private const val VERSION = 2
+        private const val VERSION = 3
         private const val TABLE = "queued_measurements"
         private const val SENT_TABLE = "sent_measurements"
 
@@ -55,7 +55,8 @@ class MeasurementStore(context: Context) :
                 client_record_id TEXT NOT NULL UNIQUE,
                 captured_at_millis INTEGER NOT NULL,
                 payload TEXT NOT NULL,
-                attempts INTEGER NOT NULL DEFAULT 0
+                attempts INTEGER NOT NULL DEFAULT 0,
+                was_offline INTEGER NOT NULL DEFAULT 0
             )
             """.trimIndent()
         )
@@ -80,7 +81,8 @@ class MeasurementStore(context: Context) :
                 captured_at_millis INTEGER NOT NULL,
                 sent_at_millis INTEGER NOT NULL,
                 outcome TEXT NOT NULL,
-                payload TEXT NOT NULL
+                payload TEXT NOT NULL,
+                was_offline INTEGER NOT NULL DEFAULT 0
             )
             """.trimIndent()
         )
@@ -91,13 +93,27 @@ class MeasurementStore(context: Context) :
         // Migrate, never drop: queued records may be the only evidence that a
         // place has no coverage, and they cannot be collected again.
         if (oldVersion < 2) createSentTable(db)
+        if (oldVersion < 3) {
+            // Records captured before this column existed are marked as taken
+            // online, which is the safe assumption: the app could only have
+            // uploaded them at all if it had a network at some point.
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN was_offline INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE $SENT_TABLE ADD COLUMN was_offline INTEGER NOT NULL DEFAULT 0")
+        }
     }
 
-    fun enqueue(record: Measurement, payload: JSONObject): Boolean {
+    /**
+     * @param wasOffline whether the phone had no usable internet at capture.
+     *   Stored beside the record rather than inside the payload: the payload is
+     *   the signed wire format and the server rejects unknown fields outright.
+     *   This is local context for the collector, not evidence about the place.
+     */
+    fun enqueue(record: Measurement, payload: JSONObject, wasOffline: Boolean): Boolean {
         val values = ContentValues().apply {
             put("client_record_id", record.clientRecordId)
             put("captured_at_millis", record.capturedAtMillis)
             put("payload", payload.toString())
+            put("was_offline", if (wasOffline) 1 else 0)
         }
         // CONFLICT_IGNORE keeps a duplicate id from throwing; the record is
         // already queued, which is exactly the desired end state.
@@ -116,7 +132,7 @@ class MeasurementStore(context: Context) :
         val out = mutableListOf<QueuedRecord>()
         readableDatabase.query(
             TABLE,
-            arrayOf("id", "client_record_id", "payload", "captured_at_millis"),
+            arrayOf("id", "client_record_id", "payload", "captured_at_millis", "was_offline"),
             null, null, null, null,
             "captured_at_millis ASC",
             limit.toString(),
@@ -128,6 +144,7 @@ class MeasurementStore(context: Context) :
                         clientRecordId = cursor.getString(1),
                         payload = cursor.getString(2),
                         capturedAtMillis = cursor.getLong(3),
+                        wasOffline = cursor.getInt(4) == 1,
                     )
                 )
             }
@@ -162,13 +179,17 @@ class MeasurementStore(context: Context) :
         val out = mutableListOf<RecordSummary>()
         readableDatabase.query(
             TABLE,
-            arrayOf("captured_at_millis", "payload"),
+            arrayOf("captured_at_millis", "payload", "was_offline"),
             null, null, null, null,
             "captured_at_millis ASC",
             limit.toString(),
         ).use { cursor ->
             while (cursor.moveToNext()) {
-                RecordSummary.fromPayload(cursor.getString(1), cursor.getLong(0))?.let(out::add)
+                RecordSummary.fromPayload(
+                    payload = cursor.getString(1),
+                    capturedAtMillis = cursor.getLong(0),
+                    wasOffline = cursor.getInt(2) == 1,
+                )?.let(out::add)
             }
         }
         return out
@@ -179,7 +200,7 @@ class MeasurementStore(context: Context) :
         val out = mutableListOf<RecordSummary>()
         readableDatabase.query(
             SENT_TABLE,
-            arrayOf("captured_at_millis", "payload", "outcome", "sent_at_millis"),
+            arrayOf("captured_at_millis", "payload", "outcome", "sent_at_millis", "was_offline"),
             null, null, null, null,
             "sent_at_millis DESC, id DESC",
             limit.toString(),
@@ -190,6 +211,7 @@ class MeasurementStore(context: Context) :
                     capturedAtMillis = cursor.getLong(0),
                     outcome = cursor.getString(2),
                     sentAtMillis = cursor.getLong(3),
+                    wasOffline = cursor.getInt(4) == 1,
                 )?.let(out::add)
             }
         }
@@ -219,6 +241,7 @@ class MeasurementStore(context: Context) :
                     put("sent_at_millis", now)
                     put("outcome", outcomes[record.clientRecordId] ?: "sent")
                     put("payload", record.payload)
+                    put("was_offline", if (record.wasOffline) 1 else 0)
                 }
                 db.insert(SENT_TABLE, null, values)
             }
@@ -268,4 +291,5 @@ data class QueuedRecord(
     val clientRecordId: String,
     val payload: String,
     val capturedAtMillis: Long,
+    val wasOffline: Boolean,
 )

@@ -60,6 +60,12 @@ class RecordsActivity : AppCompatActivity() {
         if (pending.isEmpty()) {
             rows += Row.Note(getString(R.string.records_none_waiting))
         } else {
+            // The offline count is the interesting number: those are the
+            // readings no other method could have produced.
+            val offline = pending.count { it.wasOffline }
+            if (offline > 0) {
+                rows += Row.Note(getString(R.string.records_waiting_summary, offline))
+            }
             pending.forEach { rows += Row.Record(it) }
         }
 
@@ -137,6 +143,11 @@ class RecordsActivity : AppCompatActivity() {
                 record.lon,
                 record.accuracyM?.let { String.format(Locale.ROOT, " · ±%.0f m", it) } ?: "",
             )
+
+            view.findViewById<TextView>(R.id.recordOffline).apply {
+                visibility = if (record.wasOffline) View.VISIBLE else View.GONE
+                setTextColor(getColor(R.color.calls_only))
+            }
 
             val outcome = view.findViewById<TextView>(R.id.recordOutcome)
             if (record.outcome == null) {

@@ -55,6 +55,12 @@
     <string name="error_server_invalid">ກະລຸນາໃສ່ທີ່ຢູ່ເຕັມທີ່ເລີ່ມດ້ວຍ http:// ຫຼື https:// ຕົວຢ່າງ https://api.example.com</string>
     <string name="error_server_while_running">ກະລຸນາຢຸດການບັນທຶກກ່ອນປ່ຽນເຊີບເວີ. ຂໍ້ມູນທີ່ລໍຖ້າຢູ່ໄດ້ຖືກເຊັນສຳລັບເຊີບເວີເກົ່າແລ້ວ.</string>
 
+    <string name="label_mode">ໂໝດ</string>
+    <string name="mode_online">ອອນລາຍ — ຂໍ້ມູນຖືກສົ່ງທັນທີທີ່ບັນທຶກ</string>
+    <string name="mode_offline">ອອບລາຍ — ຂໍ້ມູນຖືກເກັບໄວ້ໃນໂທລະສັບ</string>
+    <string name="records_offline_badge">ບັນທຶກຕອນບໍ່ມີອິນເຕີເນັດ</string>
+    <string name="records_waiting_summary">ໃນນີ້ມີ %1$d ລາຍການທີ່ບັນທຶກຕອນບໍ່ມີອິນເຕີເນັດ</string>
+
     <string name="action_view_records">ເບິ່ງຂໍ້ມູນທັງໝົດ</string>
     <string name="records_title">ຂໍ້ມູນທີ່ບັນທຶກ</string>
     <string name="records_waiting">ລໍຖ້າສົ່ງ (%1$d)</string>

@@ -25,6 +25,8 @@ data class RecordSummary(
     /** null while queued; otherwise what the server said. */
     val outcome: String? = null,
     val sentAtMillis: Long? = null,
+    /** True when the phone had no usable internet at the moment of capture. */
+    val wasOffline: Boolean = false,
 ) {
     companion object {
         fun fromPayload(
@@ -32,6 +34,7 @@ data class RecordSummary(
             capturedAtMillis: Long,
             outcome: String? = null,
             sentAtMillis: Long? = null,
+            wasOffline: Boolean = false,
         ): RecordSummary? = try {
             val json = JSONObject(payload)
             val signal = json.optJSONObject("signal")
@@ -62,6 +65,7 @@ data class RecordSummary(
                 state = RadioStates.classify(registered, network, cells, rsrp, sinr),
                 outcome = outcome,
                 sentAtMillis = sentAtMillis,
+                wasOffline = wasOffline,
             )
         } catch (_: Exception) {
             // A record that cannot be parsed is still uploadable — the payload

@@ -40,6 +40,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="@string/label_mode"
+            android:textSize="12sp"
+            android:textAllCaps="true" />
+
+        <TextView
+            android:id="@+id/modeValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mode_offline"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:text="@string/label_status"
             android:textSize="12sp"
             android:textAllCaps="true" />

@@ -21,7 +21,9 @@ import la.aipnicmp.collector.CollectorPrefs
 import la.aipnicmp.collector.R
 import la.aipnicmp.collector.collect.CollectionService
 import la.aipnicmp.collector.crypto.DeviceKeystore
+import android.net.ConnectivityManager
 import la.aipnicmp.collector.data.MeasurementStore
+import la.aipnicmp.collector.data.NetworkStatus
 import la.aipnicmp.collector.databinding.ActivityMainBinding
 import la.aipnicmp.collector.upload.ApiClient
 import la.aipnicmp.collector.upload.UploadScheduler
@@ -41,6 +43,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: CollectorPrefs
     private lateinit var store: MeasurementStore
+
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) = refresh()
@@ -97,12 +101,17 @@ class MainActivity : AppCompatActivity() {
             IntentFilter(CollectionService.ACTION_STATE_CHANGED),
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+        // Watched rather than read once: a collector leaving town wants the
+        // screen to say so as it happens, not when they next reopen the app.
+        networkCallback = NetworkStatus.observe(this) { runOnUiThread { refresh() } }
         refresh()
     }
 
     override fun onPause() {
         super.onPause()
         runCatching { unregisterReceiver(stateReceiver) }
+        NetworkStatus.stopObserving(this, networkCallback)
+        networkCallback = null
     }
 
     private fun onToggle() {
@@ -303,6 +312,10 @@ class MainActivity : AppCompatActivity() {
     private fun refresh() {
         val running = CollectionService.isRunning
         val queued = store.count()
+
+        val online = NetworkStatus.isOnline(this)
+        binding.modeValue.setText(if (online) R.string.mode_online else R.string.mode_offline)
+        binding.modeValue.setTextColor(getColor(if (online) R.color.good else R.color.calls_only))
 
         binding.statusValue.text = when {
             running -> getString(R.string.status_collecting)
