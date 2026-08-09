@@ -280,9 +280,28 @@ export async function fetchSummary(signal?: AbortSignal): Promise<Summary> {
   return getJson<Summary>("/dashboard/summary", signal);
 }
 
+export interface Network {
+  operator: string;
+  mcc: string | null;
+  mnc: string | null;
+  tiles: number;
+  /**
+   * False for a network that exists but nobody has measured. A phone can only
+   * measure the network its own SIM is attached to, so an unmeasured operator
+   * means no collector carries that SIM — not that it has no coverage.
+   */
+  measured: boolean;
+}
+
 export async function fetchOperatorNames(signal?: AbortSignal): Promise<string[]> {
   const body = await getJson<{ operators: string[] }>("/dashboard/operator-names", signal);
   return body.operators;
+}
+
+/** Every Lao network, including the ones with no measurements yet. */
+export async function fetchNetworks(signal?: AbortSignal): Promise<Network[]> {
+  const body = await getJson<{ networks: Network[] }>("/dashboard/operator-names", signal);
+  return body.networks ?? [];
 }
 
 export async function fetchOperatorCoverage(signal?: AbortSignal): Promise<OperatorCoverage[]> {

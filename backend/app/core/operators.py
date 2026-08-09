@@ -31,7 +31,7 @@ NETWORK_NAMES: dict[tuple[str, str], str] = {
     (LAO_MCC, "01"): "Lao Telecom",  # Lao Telecommunications Company (LTC)
     (LAO_MCC, "02"): "ETL",  # Enterprise of Telecommunications Lao
     (LAO_MCC, "03"): "Unitel",  # Star Telecom
-    (LAO_MCC, "08"): "Beeline",  # VimpelCom Lao, formerly Tigo
+    (LAO_MCC, "08"): "Tplus",  # formerly Beeline, and Tigo before that
 }
 
 

@@ -113,8 +113,13 @@ Optional; the admin endpoint covers it for now.
 1. **Which province for the pilot?** Sets the map's default viewport, the
    terrain tiles to download, and which routes matter. The simulator currently
    uses Route 13 North, Luang Prabang → Nong Khiaw, as a placeholder.
-2. **Which operators** to seed (LTC, Unitel, ETL, Beeline) with their MCC/MNC
-   pairs, so the dashboard can filter by network.
+2. **Confirm the network table.** `app/core/operators.py` maps MCC/MNC to the
+   name shown on the public map — 457-01 Lao Telecom, 457-02 ETL, 457-03
+   Unitel, 457-08 Tplus. A wrong entry mislabels a company rather than failing
+   visibly, and Lao PDR has seen both rebrands and mergers, so check it before
+   launch. Networks with no measurements are listed as unmeasured rather than
+   omitted; filling them in needs collectors carrying those SIMs, which is a
+   recruitment task, not a software one.
 3. **Play Store or sideload for phase 1?** Sideloading to partner collectors
    avoids Google's background-location review entirely — weeks of delay, and the
    single largest schedule risk in the Android track.

@@ -29,7 +29,7 @@ def test_the_lao_networks_are_identified_by_plmn():
     assert NETWORK_NAMES[("457", "01")] == "Lao Telecom"
     assert NETWORK_NAMES[("457", "02")] == "ETL"
     assert NETWORK_NAMES[("457", "03")] == "Unitel"
-    assert NETWORK_NAMES[("457", "08")] == "Beeline"
+    assert NETWORK_NAMES[("457", "08")] == "Tplus"
 
 
 def test_every_spelling_of_one_network_resolves_to_one_name():
@@ -130,6 +130,55 @@ async def test_a_renamed_operator_does_not_linger_on_the_map(
 
     names = (await client.get("/api/v1/dashboard/operator-names")).json()["operators"]
     assert names == ["Lao Telecom"]
+
+
+async def test_unmeasured_networks_are_listed_as_unmeasured_not_omitted(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """A filter listing only the networks with data implies the others have no
+    coverage. What it actually means is that no collector carries their SIM."""
+    await _seed_two_spellings(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+
+    body = (await client.get("/api/v1/dashboard/operator-names")).json()
+
+    # Only the values the operator filter will actually accept.
+    assert body["operators"] == ["Lao Telecom"]
+
+    catalogue = {row["operator"]: row for row in body["networks"]}
+    assert set(catalogue) == {"Lao Telecom", "ETL", "Unitel", "Tplus"}
+
+    assert catalogue["Lao Telecom"]["measured"] is True
+    assert catalogue["Lao Telecom"]["tiles"] > 0
+
+    for name in ("ETL", "Unitel", "Tplus"):
+        assert catalogue[name]["measured"] is False
+        # Zero tiles, not zero coverage — the distinction the UI has to keep.
+        assert catalogue[name]["tiles"] == 0
+        assert catalogue[name]["mcc"] == "457"
+
+
+async def test_an_unrecognised_network_still_appears_in_the_catalogue(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    await enroll(client, public_key_b64)
+    record = sign_record(
+        make_record(
+            record_id="rec-unknown0001",
+            operator={"mcc": "457", "mnc": "05", "name": "Something New"},
+        ),
+        device_key,
+    )
+    assert (
+        await client.post("/api/v1/measurements/batch", json=batch([record]))
+    ).json()["accepted"] == 1
+
+    await rebuild_tiles(session)
+    body = (await client.get("/api/v1/dashboard/operator-names")).json()
+
+    assert "457-05" in body["operators"]
+    unknown = next(row for row in body["networks"] if row["operator"] == "457-05")
+    assert unknown["measured"] is True
 
 
 async def test_an_incremental_rebuild_does_not_delete_the_rest_of_the_map(

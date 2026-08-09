@@ -24,6 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.operators import NETWORK_NAMES
 from app.core.radio import STATE_COLOUR, RadioState
 from app.models.device import Device
 from app.models.measurement import Measurement
@@ -246,6 +247,47 @@ async def known_operators(session: AsyncSession) -> list[str]:
         .order_by(H3TileOperator.operator_name.asc())
     )
     return list(rows.all())
+
+
+async def network_catalogue(session: AsyncSession) -> list[dict[str, Any]]:
+    """Every Lao network, measured or not.
+
+    A filter that lists only the networks with data implies the others do not
+    exist. They do — nobody has measured them, because a phone can only measure
+    the network its own SIM is attached to, and every collector in the pilot
+    carries the same one.
+
+    That is a recruitment problem, not a coverage finding, and the difference
+    matters: "Unitel has no coverage here" and "nobody has checked Unitel here"
+    are opposite claims. Listing the unmeasured networks and saying plainly that
+    they are unmeasured is the same discipline the map already applies to
+    unmeasured ground.
+    """
+    rows = (
+        await session.execute(
+            select(H3TileOperator.operator_name, func.count()).group_by(
+                H3TileOperator.operator_name
+            )
+        )
+    ).all()
+    measured = {name: count for name, count in rows if name}
+
+    catalogue: list[dict[str, Any]] = []
+    for (mcc, mnc), name in NETWORK_NAMES.items():
+        tiles = measured.pop(name, 0)
+        catalogue.append(
+            {"operator": name, "mcc": mcc, "mnc": mnc, "tiles": tiles, "measured": tiles > 0}
+        )
+
+    # Anything measured that the table does not know about — an unrecognised
+    # PLMN, or a reading that carried a name but no PLMN at all.
+    catalogue.extend(
+        {"operator": name, "mcc": None, "mnc": None, "tiles": count, "measured": True}
+        for name, count in sorted(measured.items())
+    )
+
+    catalogue.sort(key=lambda row: (-row["tiles"], row["operator"]))
+    return catalogue
 
 
 def isoformat(value: datetime | None) -> str | None:

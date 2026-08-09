@@ -12,6 +12,7 @@ from app.services.coverage import (
     collectors,
     coverage_summary,
     known_operators,
+    network_catalogue,
     operator_breakdown,
     priority_areas,
 )
@@ -63,7 +64,18 @@ async def priority(
 
 @router.get("/operator-names")
 async def operator_names(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
-    return {"operators": await known_operators(session)}
+    """Which networks can be filtered on, and which exist but are unmeasured.
+
+    ``operators`` is the list of values the ``operator`` query parameter
+    accepts — networks with data. ``networks`` is every Lao network including
+    the ones nobody has measured, so a filter can show them as unmeasured
+    rather than imply they do not exist. "Unitel has no coverage here" and
+    "nobody has checked Unitel here" are opposite claims.
+    """
+    return {
+        "operators": await known_operators(session),
+        "networks": await network_catalogue(session),
+    }
 
 
 @router.get("/collectors")

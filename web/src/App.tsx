@@ -3,13 +3,14 @@ import {
   ApiError,
   fetchArea,
   fetchAreaChildren,
-  fetchOperatorNames,
+  fetchNetworks,
   fetchPriorityAreas,
   fetchSummary,
   fetchTiles,
   type AreaChildren,
   type AreaDetail,
   type Bounds,
+  type Network,
   type Summary,
   type TileCollection,
   type TileProperties,
@@ -50,7 +51,7 @@ export function App() {
   const [basemap, setBasemap] = useState<Basemap>("streets");
   const [tiles, setTiles] = useState<TileCollection>(EMPTY);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [operatorNames, setOperatorNames] = useState<string[]>([]);
+  const [networks, setNetworks] = useState<Network[]>([]);
   const [operator, setOperator] = useState<string | null>(null);
   const [selected, setSelected] = useState<TileProperties | null>(null);
   const [flyTo, setFlyTo] = useState<FlyTarget | null>(null);
@@ -186,7 +187,7 @@ export function App() {
   useEffect(() => {
     const controller = new AbortController();
     fetchSummary(controller.signal).then(setSummary).catch(() => undefined);
-    fetchOperatorNames(controller.signal).then(setOperatorNames).catch(() => undefined);
+    fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
     return () => controller.abort();
   }, []);
 
@@ -284,7 +285,7 @@ export function App() {
               />
             )}
 
-            {view === "map" && operatorNames.length > 0 && (
+            {view === "map" && networks.length > 0 && (
               <select
                 className="select"
                 value={operator ?? ""}
@@ -292,9 +293,19 @@ export function App() {
                 aria-label={t.operator}
               >
                 <option value="">{t.allOperators}</option>
-                {operatorNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
+                {/* Networks nobody has measured are listed and disabled rather
+                    than omitted. Leaving them out implies they have no
+                    coverage; saying "not measured yet" says the true thing,
+                    which is that no collector carries that SIM. */}
+                {networks.map((network) => (
+                  <option
+                    key={network.operator}
+                    value={network.operator}
+                    disabled={!network.measured}
+                  >
+                    {network.measured
+                      ? network.operator
+                      : `${network.operator} — ${t.networkUnmeasured}`}
                   </option>
                 ))}
               </select>

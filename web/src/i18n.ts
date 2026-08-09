@@ -85,6 +85,9 @@ export interface Strings {
   areaTooLarge: string;
   areaDrillHint: string;
 
+  networkUnmeasured: string;
+  networksUnmeasuredNote: string;
+
   legendPredicted: string;
   legendUnmeasured: string;
   legendShow: string;
@@ -225,6 +228,10 @@ const en: Strings = {
   areaTooLarge:
     "This area holds too many hexagons to draw at once. The shaded areas show coverage by district; choose one to see the detail.",
   areaDrillHint: "Select a shaded area to go deeper.",
+
+  networkUnmeasured: "not measured yet",
+  networksUnmeasuredNote:
+    "No measurements exist for %N%. A phone can only measure the network its own SIM is attached to, so this means no collector carries that SIM — not that these networks have no coverage. Recruiting collectors on each network is what would fill this in.",
 
   legendPredicted: "Dashed and faded hexagons are predicted, not measured.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
@@ -370,6 +377,10 @@ const lo: Strings = {
   areaTooLarge:
     "ພື້ນທີ່ນີ້ມີຮູບຫົກແຈຫຼາຍເກີນໄປທີ່ຈະສະແດງພ້ອມກັນ. ພື້ນທີ່ທີ່ແຕ້ມສີສະແດງການຄອບຄຸມຕາມເມືອງ; ເລືອກເມືອງໜຶ່ງເພື່ອເບິ່ງລາຍລະອຽດ.",
   areaDrillHint: "ເລືອກພື້ນທີ່ທີ່ແຕ້ມສີເພື່ອເບິ່ງລະອຽດຂຶ້ນ.",
+
+  networkUnmeasured: "ຍັງບໍ່ໄດ້ວັດແທກ",
+  networksUnmeasuredNote:
+    "ຍັງບໍ່ມີການວັດແທກສຳລັບ %N%. ໂທລະສັບວັດແທກໄດ້ສະເພາະເຄືອຂ່າຍທີ່ຊິມຂອງຕົນເອງເຊື່ອມຕໍ່ຢູ່ ດັ່ງນັ້ນນີ້ໝາຍຄວາມວ່າຍັງບໍ່ມີຜູ້ເກັບຂໍ້ມູນຄົນໃດໃຊ້ຊິມນັ້ນ — ບໍ່ແມ່ນວ່າເຄືອຂ່າຍເຫຼົ່ານີ້ບໍ່ມີສັນຍານ. ການຊອກຫາຜູ້ເກັບຂໍ້ມູນໃນແຕ່ລະເຄືອຂ່າຍຈະຊ່ວຍຕື່ມຂໍ້ມູນສ່ວນນີ້.",
 
   legendPredicted: "ຮູບຫົກແຈທີ່ເປັນເສັ້ນຂີດ ແລະ ຈາງ ແມ່ນການຄາດຄະເນ ບໍ່ແມ່ນການວັດແທກ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",

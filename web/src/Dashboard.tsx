@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  fetchNetworks,
   fetchOperatorCoverage,
   fetchPriorityAreas,
   type InvestmentAction,
+  type Network,
   type OperatorCoverage,
   type PriorityArea,
   type Summary,
@@ -128,14 +130,23 @@ function StateBar({ summary, t }: { summary: Summary; t: Strings }) {
 
 export function Networks({ t }: { t: Strings }) {
   const [operators, setOperators] = useState<OperatorCoverage[]>([]);
+  const [networks, setNetworks] = useState<Network[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchOperatorCoverage(controller.signal).then(setOperators).catch(() => undefined);
+    fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
     return () => controller.abort();
   }, []);
 
-  if (operators.length === 0) return <p className="empty">{t.dashNoData}</p>;
+  // Networks that exist but have no measurements. Shown as rows of their own
+  // rather than left out: a table listing one operator reads as "one operator
+  // has coverage", when what it means is "one operator has been measured".
+  const unmeasured = networks.filter((network) => !network.measured);
+
+  if (operators.length === 0 && unmeasured.length === 0) {
+    return <p className="empty">{t.dashNoData}</p>;
+  }
 
   return (
     <section className="panel">
@@ -145,6 +156,15 @@ export function Networks({ t }: { t: Strings }) {
           <p>{t.navNetworksHint}</p>
         </div>
       </header>
+
+      {unmeasured.length > 0 && (
+        <p className="caveat">
+          {t.networksUnmeasuredNote.replace(
+            "%N%",
+            unmeasured.map((network) => network.operator).join(", "),
+          )}
+        </p>
+      )}
 
       <div className="table-scroll">
         <table className="data-table">
@@ -167,6 +187,16 @@ export function Networks({ t }: { t: Strings }) {
                 <td className="num good">{row.good_pct}%</td>
                 <td className="num bad">{row.unusable_pct}%</td>
                 <td className="num">{formatSignal(row.avg_rsrp_dbm)}</td>
+              </tr>
+            ))}
+            {/* Deliberately not zeroes: 0% good would be a finding about the
+                network. These cells are empty because there is no finding. */}
+            {unmeasured.map((network) => (
+              <tr key={network.operator} className="muted-row">
+                <td>{network.operator}</td>
+                <td className="num" colSpan={5}>
+                  {t.networkUnmeasured}
+                </td>
               </tr>
             ))}
           </tbody>
