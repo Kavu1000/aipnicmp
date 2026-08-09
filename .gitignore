@@ -58,3 +58,6 @@ android/.idea/
 
 # Vite incremental typecheck cache
 web/tsconfig.tsbuildinfo
+
+# The APK is bundled into the site by CI, never committed
+web/public/download/

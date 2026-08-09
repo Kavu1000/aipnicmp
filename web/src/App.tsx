@@ -187,6 +187,12 @@ export function App() {
             </select>
           )}
 
+          {/* Sideloading is how the pilot distributes the collector, so the
+              download has to be findable from a phone browser. */}
+          <a className="get-app" href="/download/coverage-collector.apk" download>
+            {t.getApp}
+          </a>
+
           <select
             className="lang-select"
             value={language}

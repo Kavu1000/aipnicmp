@@ -18,6 +18,7 @@ export interface Strings {
 
   navMap: string;
   navDashboard: string;
+  getApp: string;
 
   statMeasurements: string;
   statAreaMapped: string;
@@ -102,6 +103,7 @@ const en: Strings = {
 
   navMap: "Map",
   navDashboard: "Dashboard",
+  getApp: "Get the app",
 
   statMeasurements: "Measurements",
   statAreaMapped: "Area measured",
@@ -190,6 +192,7 @@ const lo: Strings = {
 
   navMap: "ແຜນທີ່",
   navDashboard: "ລາຍງານ",
+  getApp: "ດາວໂຫຼດແອັບ",
 
   statMeasurements: "ຈຳນວນການວັດແທກ",
   statAreaMapped: "ພື້ນທີ່ວັດແທກແລ້ວ",

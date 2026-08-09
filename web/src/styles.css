@@ -407,8 +407,19 @@ main {
   color: var(--ink);
 }
 
-.lang-select {
+.get-app {
   margin-left: auto;
+  padding: 0.35rem 0.85rem;
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--panel);
+  font-size: 0.82rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.get-app:hover {
+  opacity: 0.85;
 }
 
 /* ---------- panes ---------- */

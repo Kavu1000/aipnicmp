@@ -158,6 +158,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Vite copies web/public verbatim into the built site, so the APK needs
+      # no Dockerfile change and a local build without it still works.
+      - name: Bundle the collector APK into the site
+        if: matrix.name == 'web'
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-collector-debug
+          path: web/public/download
+
+      - name: Name the APK for download
+        if: matrix.name == 'web'
+        run: |
+          mv web/public/download/app-debug.apk web/public/download/coverage-collector.apk
+          ls -lh web/public/download/
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
