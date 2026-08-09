@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages this app ships. Android 13 and later reads this to show a
+  per-app language entry in system settings; AppCompat reads it on older
+  versions, which is most phones in the field.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="lo" />
+</locale-config>

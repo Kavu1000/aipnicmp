@@ -12,6 +12,8 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -91,6 +93,8 @@ class MainActivity : AppCompatActivity() {
         binding.saveServerButton.setOnClickListener { onSaveServer() }
         binding.checkConnectionButton.setOnClickListener { onCheckConnection() }
         binding.resetServerButton.setOnClickListener { onResetServer() }
+        binding.languageEnglish.setOnClickListener { setLanguage("en") }
+        binding.languageLao.setOnClickListener { setLanguage("lo") }
         binding.toggleButton.setOnClickListener { onToggle() }
         binding.recordsButton.setOnClickListener {
             startActivity(Intent(this, RecordsActivity::class.java))
@@ -294,6 +298,31 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    /**
+     * Switch the app's language without touching the phone's.
+     *
+     * A collector is often handed a device configured by someone else, and
+     * changing the whole phone to read one app is not a reasonable thing to ask.
+     * AppCompat persists the choice and recreates the activity, so the running
+     * collection service is untouched — the language changes, the recording does
+     * not stop.
+     */
+    private fun setLanguage(tag: String) {
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+    }
+
+    /** Marks the language currently in use, so the choice is visible. */
+    private fun showLanguage() {
+        val current = AppCompatDelegate.getApplicationLocales()
+            .takeIf { !it.isEmpty }?.get(0)?.language
+            ?: resources.configuration.locales[0].language
+        val lao = current == "lo"
+        binding.languageLao.setTypeface(null, if (lao) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        binding.languageEnglish.setTypeface(null, if (lao) android.graphics.Typeface.NORMAL else android.graphics.Typeface.BOLD)
+        binding.languageLao.setTextColor(getColor(if (lao) R.color.primary else R.color.muted))
+        binding.languageEnglish.setTextColor(getColor(if (lao) R.color.muted else R.color.primary))
+    }
+
     private fun hasForegroundLocation(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
@@ -384,6 +413,8 @@ class MainActivity : AppCompatActivity() {
 
         // Shown rather than editable. A collector who has to phone for help
         // should be able to read out where the app is pointing.
+        showLanguage()
+
         binding.serverDisplay.text = prefs.apiBaseUrl
         binding.serverDisplay.setTextColor(
             getColor(if (prefs.apiBaseUrlIsCustom) R.color.calls_only else R.color.muted)

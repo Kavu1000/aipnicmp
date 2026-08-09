@@ -3,6 +3,8 @@
     <string name="app_name">Coverage Collector</string>
     <string name="app_tagline">Measures mobile signal where you travel, including places with no service at all.</string>
 
+    <string name="language_english">English</string>
+    <string name="language_lao">ລາວ</string>
     <string name="label_status">Status</string>
     <string name="status_not_enrolled">Not set up yet</string>
     <string name="status_enrolling">Setting up…</string>

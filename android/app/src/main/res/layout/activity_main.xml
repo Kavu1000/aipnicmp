@@ -24,6 +24,34 @@
             android:text="@string/app_tagline"
             android:textSize="14sp" />
 
+        <!--
+          In-app, not only in system settings. A collector handed a phone set up
+          by somebody else should be able to read the screen without changing
+          the language of the whole device.
+        -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/languageEnglish"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/language_english" />
+
+            <Button
+                android:id="@+id/languageLao"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/language_lao" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/permissionWarning"
             android:layout_width="match_parent"

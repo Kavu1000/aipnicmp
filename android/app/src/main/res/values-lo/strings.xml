@@ -14,6 +14,8 @@
     <string name="app_name">ເກັບຂໍ້ມູນສັນຍານ</string>
     <string name="app_tagline">ວັດແທກສັນຍານມືຖືຕາມເສັ້ນທາງທີ່ທ່ານເດີນທາງ ລວມທັງບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ.</string>
 
+    <string name="language_english">English</string>
+    <string name="language_lao">ລາວ</string>
     <string name="label_status">ສະຖານະ</string>
     <string name="status_not_enrolled">ຍັງບໍ່ທັນຕັ້ງຄ່າ</string>
     <string name="status_enrolling">ກຳລັງຕັ້ງຄ່າ…</string>
