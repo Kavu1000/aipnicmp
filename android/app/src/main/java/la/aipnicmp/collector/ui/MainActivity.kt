@@ -25,7 +25,9 @@ import android.net.ConnectivityManager
 import la.aipnicmp.collector.data.MeasurementStore
 import la.aipnicmp.collector.data.NetworkStatus
 import la.aipnicmp.collector.databinding.ActivityMainBinding
+import android.content.res.ColorStateList
 import la.aipnicmp.collector.upload.ApiClient
+import la.aipnicmp.collector.upload.ApiClient.ConnectionCode
 import la.aipnicmp.collector.upload.UploadScheduler
 import java.text.DateFormat
 import java.util.Date
@@ -226,6 +228,8 @@ class MainActivity : AppCompatActivity() {
     private fun onCheckConnection() {
         binding.checkConnectionButton.isEnabled = false
         binding.connectionValue.setText(R.string.connection_checking)
+        binding.connectionValue.setTextColor(getColor(R.color.muted))
+        binding.connectionDot.backgroundTintList = ColorStateList.valueOf(getColor(R.color.muted))
         binding.connectionDetail.text = ""
 
         lifecycleScope.launch {
@@ -243,20 +247,43 @@ class MainActivity : AppCompatActivity() {
             if (status.enrolled) prefs.enrolled = true
 
             binding.checkConnectionButton.isEnabled = true
-            binding.connectionValue.setText(
-                when {
-                    status.enrolled -> R.string.connection_ok
-                    status.reachable -> R.string.connection_reachable_not_enrolled
-                    else -> R.string.connection_failed
-                }
-            )
-            binding.connectionDetail.text = getString(
-                R.string.connection_checked_at,
-                DateFormat.getTimeInstance(DateFormat.SHORT).format(Date()),
-            ) + " · " + status.detail
-
+            showConnection(status)
             refresh()
         }
+    }
+
+    /**
+     * Say the outcome in the reader's language, and colour it.
+     *
+     * Green, amber and red carry the meaning faster than any sentence, and they
+     * are the same three colours the map uses for working, degraded and absent
+     * — someone who has read the map already knows what they mean.
+     */
+    private fun showConnection(status: ApiClient.ConnectionStatus) {
+        val (message, colour) = when (status.code) {
+            ConnectionCode.CONNECTED -> R.string.connection_ok to R.color.good
+            ConnectionCode.NOT_REGISTERED ->
+                R.string.connection_reachable_not_enrolled to R.color.calls_only
+            ConnectionCode.KEY_CONFLICT -> R.string.connection_key_conflict to R.color.calls_only
+            ConnectionCode.UNREACHABLE -> R.string.connection_failed to R.color.primary
+        }
+
+        binding.connectionValue.setText(message)
+        binding.connectionValue.setTextColor(getColor(colour))
+        binding.connectionDot.backgroundTintList = ColorStateList.valueOf(getColor(colour))
+
+        val checked = getString(
+            R.string.connection_checked_at,
+            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date()),
+        )
+        // The technical detail is only shown when something went wrong. On
+        // success it would repeat the headline in the wrong language.
+        binding.connectionDetail.text =
+            if (status.code == ConnectionCode.CONNECTED || status.detail.isNullOrBlank()) {
+                checked
+            } else {
+                "$checked · ${status.detail}"
+            }
     }
 
     private fun hasForegroundLocation(): Boolean =

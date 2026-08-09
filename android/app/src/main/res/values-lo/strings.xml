@@ -46,6 +46,7 @@
     <string name="connection_checking">ກຳລັງກວດ…</string>
     <string name="connection_ok">ເຊື່ອມຕໍ່ໄດ້ — ເຊີບເວີຮັບອຸປະກອນນີ້</string>
     <string name="connection_reachable_not_enrolled">ຕິດຕໍ່ເຊີບເວີໄດ້ ແຕ່ອຸປະກອນນີ້ຍັງບໍ່ໄດ້ລົງທະບຽນ</string>
+    <string name="connection_key_conflict">ເຊີບເວີຮູ້ຈັກອຸປະກອນນີ້ດ້ວຍກະແຈອື່ນ. ກະລຸນາຕິດຕັ້ງແອັບໃໝ່ ເພື່ອລົງທະບຽນອີກຄັ້ງ.</string>
     <string name="connection_failed">ຕິດຕໍ່ເຊີບເວີບໍ່ໄດ້</string>
     <string name="connection_checked_at">ກວດເມື່ອ %1$s</string>
     <string name="action_reset_server">ໃຊ້ຄ່າເລີ່ມຕົ້ນ</string>

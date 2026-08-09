@@ -40,10 +40,30 @@ class ApiClient(private val baseUrl: String = BuildConfig.API_BASE_URL) {
      * outside if the only signal is a counter that never moves.
      */
     data class ConnectionStatus(
-        val reachable: Boolean,
-        val enrolled: Boolean,
-        val detail: String,
-    )
+        val code: ConnectionCode,
+        /**
+         * Technical detail for the failure cases only — an HTTP status, or
+         * whatever the network stack said. Left in English on purpose: it comes
+         * from the platform, not from us, and a half-translated error is harder
+         * to act on than an untranslated one. Never shown on success, where it
+         * would only repeat the headline.
+         */
+        val detail: String? = null,
+    ) {
+        val reachable: Boolean get() = code != ConnectionCode.UNREACHABLE
+        val enrolled: Boolean get() = code == ConnectionCode.CONNECTED
+    }
+
+    /**
+     * The outcomes worth telling apart, because each needs a different remedy:
+     * a wrong address, an unregistered device, and a key the server already
+     * knows under this id are three different problems.
+     *
+     * A code rather than a message so the screen can say it in the reader's
+     * language. The previous version returned English sentences, which appeared
+     * verbatim in the middle of the Lao interface.
+     */
+    enum class ConnectionCode { CONNECTED, NOT_REGISTERED, KEY_CONFLICT, UNREACHABLE }
 
     /**
      * Ask the server two questions: are you there, and will you take my data.
@@ -57,34 +77,27 @@ class ApiClient(private val baseUrl: String = BuildConfig.API_BASE_URL) {
     fun checkConnection(installId: String?, appVersion: String, hardwareBacked: Boolean): ConnectionStatus {
         val request = Request.Builder().url("$baseUrl/api/v1/health").get().build()
 
-        val reachable = try {
+        try {
             http.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    return ConnectionStatus(false, false, "Server answered HTTP ${response.code}")
+                    return ConnectionStatus(
+                        ConnectionCode.UNREACHABLE,
+                        "HTTP ${response.code}",
+                    )
                 }
-                true
             }
         } catch (error: Exception) {
-            return ConnectionStatus(
-                reachable = false,
-                enrolled = false,
-                detail = error.message ?: "Could not reach the server",
-            )
+            return ConnectionStatus(ConnectionCode.UNREACHABLE, error.message)
         }
 
-        if (!reachable || installId == null) {
-            return ConnectionStatus(true, false, "Server reachable, device not set up yet")
-        }
+        if (installId == null) return ConnectionStatus(ConnectionCode.NOT_REGISTERED)
 
         val enrolment = enroll(installId, appVersion, hardwareBacked)
         return when {
-            enrolment.ok -> ConnectionStatus(true, true, "Connected and registered")
-            enrolment.error?.contains("409") == true -> ConnectionStatus(
-                true,
-                false,
-                "This server knows this device under a different key. Reinstall the app to register again.",
-            )
-            else -> ConnectionStatus(true, false, enrolment.error ?: "Server refused registration")
+            enrolment.ok -> ConnectionStatus(ConnectionCode.CONNECTED)
+            enrolment.error?.contains("409") == true ->
+                ConnectionStatus(ConnectionCode.KEY_CONFLICT, enrolment.error)
+            else -> ConnectionStatus(ConnectionCode.NOT_REGISTERED, enrolment.error)
         }
     }
 

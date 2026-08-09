@@ -35,6 +35,7 @@
     <string name="connection_checking">Checking…</string>
     <string name="connection_ok">Connected — the server accepts this device</string>
     <string name="connection_reachable_not_enrolled">Server reachable, but this device is not registered</string>
+    <string name="connection_key_conflict">This server knows this device under a different key. Reinstall the app to register again.</string>
     <string name="connection_failed">Cannot reach the server</string>
     <string name="connection_checked_at">Checked %1$s</string>
     <string name="action_reset_server">Use default</string>
