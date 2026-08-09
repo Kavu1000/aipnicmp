@@ -1,0 +1,11 @@
+# Feature building for the Layer 4 coverage model.
+#
+# Deliberately separate from requirements.txt. These pull GDAL and a numeric
+# stack behind them — well over 100 MB — and the API container has no use for
+# any of it: features are built offline, in batch, and land in the database as
+# numbers. Installing them into the serving image would multiply its size to
+# support a job that never runs there.
+#
+#   pip install -r requirements-geo.txt
+numpy==2.2.1
+rasterio==1.4.3
