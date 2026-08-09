@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.models.tile import CandidateSite
 from app.services.coverage import (
+    collectors,
     coverage_summary,
     known_operators,
     operator_breakdown,
@@ -63,3 +64,18 @@ async def priority(
 @router.get("/operator-names")
 async def operator_names(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
     return {"operators": await known_operators(session)}
+
+
+@router.get("/collectors")
+async def collector_fleet(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Which phones are contributing, and whether their records are landing.
+
+    Carries no position: this is equipment telemetry, not a record of where
+    anyone went.
+    """
+    fleet = await collectors(session)
+    return {
+        "count": len(fleet),
+        "real": sum(1 for d in fleet if not d["is_simulated"]),
+        "collectors": fleet,
+    }

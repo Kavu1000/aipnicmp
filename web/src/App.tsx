@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchOperatorNames,
+  fetchPriorityAreas,
   fetchSummary,
   fetchTiles,
   type Bounds,
@@ -11,17 +12,18 @@ import {
 import { MapView, type FlyTarget } from "./MapView";
 import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
-import { Dashboard } from "./Dashboard";
+import { Networks, Overview, Priority } from "./Dashboard";
+import { Collectors } from "./Collectors";
+import { Sidebar, type View } from "./Sidebar";
 import { formatAge, formatArea, formatShare } from "./coverage";
 import { LANGUAGE_NAMES, TRANSLATIONS, loadLanguage, saveLanguage, type Language } from "./i18n";
 
 const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
 
-type View = "map" | "dashboard";
-
 export function App() {
   const [language, setLanguage] = useState<Language>(loadLanguage);
   const [view, setView] = useState<View>("map");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [tiles, setTiles] = useState<TileCollection>(EMPTY);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [operatorNames, setOperatorNames] = useState<string[]>([]);
@@ -95,7 +97,6 @@ export function App() {
    */
   const goToWorstArea = useCallback(async () => {
     try {
-      const { fetchPriorityAreas } = await import("./api");
       const body = await fetchPriorityAreas(1);
       const first = body.areas[0];
       if (first) showOnMap(first.lat, first.lon);
@@ -115,16 +116,70 @@ export function App() {
     [summary, t.never],
   );
 
+  const titles: Record<View, string> = {
+    map: t.title,
+    overview: t.overviewTitle,
+    priority: t.priorityTitle,
+    networks: t.networksTitle,
+    collectors: t.collectorsTitle,
+  };
+
   return (
-    <div className="app">
-      <header>
-        <div className="title">
-          <h1>{t.title}</h1>
-          <p>{t.tagline}</p>
-        </div>
+    <div className="shell">
+      <Sidebar
+        view={view}
+        strings={t}
+        open={menuOpen}
+        onSelect={setView}
+        onClose={() => setMenuOpen(false)}
+      />
+
+      <div className="content">
+        <header className="topbar">
+          <button className="menu-button" onClick={() => setMenuOpen(true)} aria-label={t.menu}>
+            ☰
+          </button>
+
+          <div className="topbar-title">
+            <h1>{titles[view]}</h1>
+            {view === "map" && <p>{t.tagline}</p>}
+            {view === "overview" && <p>{t.overviewSubtitle}</p>}
+          </div>
+
+          <div className="topbar-actions">
+            {view === "map" && operatorNames.length > 0 && (
+              <select
+                className="select"
+                value={operator ?? ""}
+                onChange={(event) => setOperator(event.target.value || null)}
+                aria-label={t.operator}
+              >
+                <option value="">{t.allOperators}</option>
+                {operatorNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <select
+              className="select"
+              value={language}
+              onChange={(event) => changeLanguage(event.target.value as Language)}
+              aria-label="Language"
+            >
+              {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </header>
 
         {summary && (
-          <dl className="stats">
+          <dl className="metrics">
             <div>
               <dt>{t.statMeasurements}</dt>
               <dd>{summary.measurements.toLocaleString()}</dd>
@@ -158,90 +213,46 @@ export function App() {
           </dl>
         )}
 
-        <nav className="toolbar">
-          <div className="tabs">
-            <button className={view === "map" ? "on" : ""} onClick={() => setView("map")}>
-              {t.navMap}
-            </button>
-            <button
-              className={view === "dashboard" ? "on" : ""}
-              onClick={() => setView("dashboard")}
-            >
-              {t.navDashboard}
-            </button>
+        <main>
+          {/* The map stays mounted behind the other views so switching back
+              never rebuilds it or loses the user's position. */}
+          <div className={view === "map" ? "pane" : "pane hidden"}>
+            <MapView
+              tiles={tiles}
+              summary={summary}
+              flyTo={flyTo}
+              onBoundsChange={loadTiles}
+              onSelect={setSelected}
+            />
+            <Legend t={t} />
+            <TileInspector tile={selected} t={t} onClose={() => setSelected(null)} />
+
+            {loading && <div className="toast">{t.loading}</div>}
+            {error && <div className="toast error">{error}</div>}
+            {!loading && !error && tiles.features.length === 0 && (
+              <div className="toast">
+                {t.noTilesInView}
+                {summary?.bounds && (
+                  <button className="link" onClick={jumpToData}>
+                    {t.jumpToData}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {view === "map" && operatorNames.length > 0 && (
-            <select
-              className="operator-select"
-              value={operator ?? ""}
-              onChange={(event) => setOperator(event.target.value || null)}
-              aria-label={t.operator}
-            >
-              <option value="">{t.allOperators}</option>
-              {operatorNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Sideloading is how the pilot distributes the collector, so the
-              download has to be findable from a phone browser. */}
-          <a className="get-app" href="/download/coverage-collector.apk" download>
-            {t.getApp}
-          </a>
-
-          <select
-            className="lang-select"
-            value={language}
-            onChange={(event) => changeLanguage(event.target.value as Language)}
-            aria-label="Language"
-          >
-            {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-              <option key={code} value={code}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </nav>
-      </header>
-
-      <main>
-        {/* The map stays mounted while the dashboard is shown, so switching
-            back does not rebuild it or lose the user's position. */}
-        <div className={view === "map" ? "pane" : "pane hidden"}>
-          <MapView
-            tiles={tiles}
-            summary={summary}
-            flyTo={flyTo}
-            onBoundsChange={loadTiles}
-            onSelect={setSelected}
-          />
-          <Legend t={t} />
-          <TileInspector tile={selected} t={t} onClose={() => setSelected(null)} />
-
-          {loading && <div className="toast">{t.loading}</div>}
-          {error && <div className="toast error">{error}</div>}
-          {!loading && !error && tiles.features.length === 0 && (
-            <div className="toast">
-              {t.noTilesInView}
-              {summary?.bounds && (
-                <button className="link" onClick={jumpToData}>
-                  {t.jumpToData}
-                </button>
-              )}
+          {view !== "map" && (
+            <div className="pane scrollable">
+              <div className="page">
+                {view === "overview" && <Overview summary={summary} t={t} />}
+                {view === "priority" && <Priority t={t} onShowOnMap={showOnMap} />}
+                {view === "networks" && <Networks t={t} />}
+                {view === "collectors" && <Collectors t={t} />}
+              </div>
             </div>
           )}
-        </div>
-
-        {view === "dashboard" && (
-          <div className="pane scrollable">
-            <Dashboard summary={summary} t={t} onShowOnMap={showOnMap} />
-          </div>
-        )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

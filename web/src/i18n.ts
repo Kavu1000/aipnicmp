@@ -20,6 +20,35 @@ export interface Strings {
   navDashboard: string;
   getApp: string;
 
+  brandSubtitle: string;
+  sidebarNote: string;
+  navMapHint: string;
+  navOverview: string;
+  navOverviewHint: string;
+  navPriority: string;
+  navPriorityHint: string;
+  navNetworks: string;
+  navNetworksHint: string;
+  navCollectors: string;
+  navCollectorsHint: string;
+  menu: string;
+
+  collectorsTitle: string;
+  collectorsSubtitle: string;
+  collectorsDevice: string;
+  collectorsLastSeen: string;
+  collectorsAccepted: string;
+  collectorsRejected: string;
+  collectorsRejectRate: string;
+  collectorsSimulated: string;
+  collectorsNone: string;
+  collectorsRealCount: string;
+
+  overviewTitle: string;
+  overviewSubtitle: string;
+  priorityTitle: string;
+  networksTitle: string;
+
   statMeasurements: string;
   statAreaMapped: string;
   statNoService: string;
@@ -104,6 +133,36 @@ const en: Strings = {
   navMap: "Map",
   navDashboard: "Dashboard",
   getApp: "Get the app",
+
+  brandSubtitle: "Coverage mapping · Lao PDR",
+  sidebarNote: "Measured on ordinary phones, including where there is no signal at all.",
+  navMapHint: "Where the internet works",
+  navOverview: "Overview",
+  navOverviewHint: "What it would cost to fix",
+  navPriority: "Priority areas",
+  navPriorityHint: "Measured dead zones, ranked",
+  navNetworks: "Networks",
+  navNetworksHint: "Coverage by operator",
+  navCollectors: "Collectors",
+  navCollectorsHint: "Phones reporting data",
+  menu: "Menu",
+
+  collectorsTitle: "Collectors",
+  collectorsSubtitle:
+    "The phones contributing measurements. No positions are shown here — where a collector travelled is exactly what the map's hexagons exist to hide.",
+  collectorsDevice: "Device",
+  collectorsLastSeen: "Last seen",
+  collectorsAccepted: "Accepted",
+  collectorsRejected: "Rejected",
+  collectorsRejectRate: "Refused",
+  collectorsSimulated: "simulated",
+  collectorsNone: "No collectors have enrolled yet.",
+  collectorsRealCount: "%REAL% real, %SIM% simulated",
+
+  overviewTitle: "Coverage overview",
+  overviewSubtitle: "For operators and the Ministry of Technology and Communications",
+  priorityTitle: "Priority areas",
+  networksTitle: "Coverage by network",
 
   statMeasurements: "Measurements",
   statAreaMapped: "Area measured",
@@ -193,6 +252,36 @@ const lo: Strings = {
   navMap: "ແຜນທີ່",
   navDashboard: "ລາຍງານ",
   getApp: "ດາວໂຫຼດແອັບ",
+
+  brandSubtitle: "ແຜນທີ່ການຄອບຄຸມສັນຍານ · ສປປ ລາວ",
+  sidebarNote: "ວັດແທກດ້ວຍໂທລະສັບທົ່ວໄປ ລວມທັງບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ.",
+  navMapHint: "ອິນເຕີເນັດໃຊ້ໄດ້ຢູ່ໃສ",
+  navOverview: "ພາບລວມ",
+  navOverviewHint: "ຕ້ອງໃຊ້ຫຍັງເພື່ອແກ້ໄຂ",
+  navPriority: "ພື້ນທີ່ບຸລິມະສິດ",
+  navPriorityHint: "ບ່ອນບໍ່ມີສັນຍານ ຈັດລຳດັບແລ້ວ",
+  navNetworks: "ເຄືອຂ່າຍ",
+  navNetworksHint: "ການຄອບຄຸມຕາມຜູ້ໃຫ້ບໍລິການ",
+  navCollectors: "ອຸປະກອນເກັບຂໍ້ມູນ",
+  navCollectorsHint: "ໂທລະສັບທີ່ສົ່ງຂໍ້ມູນ",
+  menu: "ເມນູ",
+
+  collectorsTitle: "ອຸປະກອນເກັບຂໍ້ມູນ",
+  collectorsSubtitle:
+    "ໂທລະສັບທີ່ສົ່ງຂໍ້ມູນການວັດແທກ. ບໍ່ສະແດງຕຳແໜ່ງໃນໜ້ານີ້ — ເສັ້ນທາງທີ່ຜູ້ເກັບຂໍ້ມູນເດີນທາງ ແມ່ນສິ່ງທີ່ຮູບຫົກແຈໃນແຜນທີ່ມີໄວ້ເພື່ອປົກປິດ.",
+  collectorsDevice: "ອຸປະກອນ",
+  collectorsLastSeen: "ເຫັນຄັ້ງລ່າສຸດ",
+  collectorsAccepted: "ຮັບແລ້ວ",
+  collectorsRejected: "ຖືກປະຕິເສດ",
+  collectorsRejectRate: "ອັດຕາປະຕິເສດ",
+  collectorsSimulated: "ຈຳລອງ",
+  collectorsNone: "ຍັງບໍ່ມີອຸປະກອນລົງທະບຽນ.",
+  collectorsRealCount: "ຈິງ %REAL% · ຈຳລອງ %SIM%",
+
+  overviewTitle: "ພາບລວມການຄອບຄຸມ",
+  overviewSubtitle: "ສຳລັບຜູ້ໃຫ້ບໍລິການ ແລະ ກະຊວງເຕັກໂນໂລຊີ ແລະ ການສື່ສານ",
+  priorityTitle: "ພື້ນທີ່ບຸລິມະສິດ",
+  networksTitle: "ການຄອບຄຸມຕາມເຄືອຂ່າຍ",
 
   statMeasurements: "ຈຳນວນການວັດແທກ",
   statAreaMapped: "ພື້ນທີ່ວັດແທກແລ້ວ",

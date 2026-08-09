@@ -20,68 +20,39 @@ import type { Strings } from "./i18n";
 
 const ACTION_ORDER: InvestmentAction[] = ["new_tower", "upgrade", "optimisation", "none"];
 
-interface Props {
-  summary: Summary | null;
-  t: Strings;
-  /** Sends the map to a priority area, so a finding can be inspected in place. */
-  onShowOnMap: (lat: number, lon: number) => void;
-}
-
 /**
- * The operator and ministry view — proposal Channel 1.
+ * Coverage grouped by what it would cost to fix.
  *
- * Organised around one question: what would it cost to fix this, and where
- * should the money go first. That is why coverage is grouped by remedy rather
- * than by signal strength, and why the priority list is ranked by weight of
- * evidence rather than by severity alone.
+ * Not by signal strength, which is how a radio engineer would order it. A dead
+ * area needs a tower and a weak one needs an upgrade — two very different
+ * budget lines — and reporting them as one "bad coverage" number throws away
+ * the distinction the whole platform exists to make.
  */
-export function Dashboard({ summary, t, onShowOnMap }: Props) {
-  const [operators, setOperators] = useState<OperatorCoverage[]>([]);
-  const [areas, setAreas] = useState<PriorityArea[]>([]);
-  const [modelled, setModelled] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchOperatorCoverage(controller.signal).then(setOperators).catch(() => undefined);
-    fetchPriorityAreas(25, controller.signal)
-      .then((body) => {
-        setAreas(body.areas);
-        setModelled(body.modelled_sites_available);
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, []);
-
-  const info = stateInfo(t);
-
+export function Overview({ summary, t }: { summary: Summary | null; t: Strings }) {
   if (!summary || summary.tiles === 0) {
-    return (
-      <div className="dashboard">
-        <p className="empty">{t.dashNoData}</p>
-      </div>
-    );
+    return <p className="empty">{t.dashNoData}</p>;
   }
 
   return (
-    <div className="dashboard">
-      <header className="dash-head">
-        <div>
-          <h1>{t.dashTitle}</h1>
-          <p>{t.dashSubtitle}</p>
-        </div>
-        <p className="scope">
-          <strong>{formatArea(summary.measured_area_km2)}</strong> {t.dashCoverageScope} ·{" "}
-          {formatShare(summary.measured_share_pct)} {t.ofCountry}
-        </p>
-      </header>
+    <>
+      <section className="panel">
+        <header className="panel-head">
+          <div>
+            <h2>{t.dashWhatItWouldTake}</h2>
+            <p>
+              {formatArea(summary.measured_area_km2)} {t.dashCoverageScope} ·{" "}
+              {formatShare(summary.measured_share_pct)} {t.ofCountry}
+            </p>
+          </div>
+        </header>
 
-      {/* Grouped by remedy, because a dead area and a weak one are different
-          budget lines — the distinction the whole platform exists to make. */}
-      <section>
-        <h2>{t.dashWhatItWouldTake}</h2>
         <div className="action-grid">
           {ACTION_ORDER.map((action) => (
-            <div key={action} className="action-card" style={{ borderTopColor: ACTION_COLOUR[action] }}>
+            <div
+              key={action}
+              className="action-card"
+              style={{ borderTopColor: ACTION_COLOUR[action] }}
+            >
               <span className="action-label">{actionLabel(action, t)}</span>
               <span className="action-count">{summary.by_action[action] ?? 0}</span>
               <span className="action-area">
@@ -92,48 +63,160 @@ export function Dashboard({ summary, t, onShowOnMap }: Props) {
         </div>
       </section>
 
-      {operators.length > 0 && (
-        <section>
-          <h2>{t.dashByOperator}</h2>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t.operator}</th>
-                <th className="num">{t.dashOperatorTiles}</th>
-                <th className="num">{t.dashOperatorArea}</th>
-                <th className="num">{t.dashOperatorGood}</th>
-                <th className="num">{t.dashOperatorUnusable}</th>
-                <th className="num">{t.dashOperatorSignal}</th>
+      <section className="panel">
+        <header className="panel-head">
+          <div>
+            <h2>{t.coverage}</h2>
+          </div>
+        </header>
+        <StateBar summary={summary} t={t} />
+      </section>
+    </>
+  );
+}
+
+/**
+ * The five states as one proportional bar.
+ *
+ * A table of counts makes the reader do the arithmetic. The point of this
+ * figure is the shape — how much of what has been measured is unusable — and a
+ * bar shows that at a glance.
+ */
+function StateBar({ summary, t }: { summary: Summary; t: Strings }) {
+  const info = stateInfo(t);
+  const order = ["LTE_GOOD", "LTE_WEAK", "REGISTERED_2G_3G", "CELLS_VISIBLE_UNREGISTERED", "NO_CELL"] as const;
+  const total = order.reduce((sum, state) => sum + (summary.by_state[state] ?? 0), 0);
+  if (total === 0) return null;
+
+  return (
+    <>
+      <div className="state-bar">
+        {order.map((state) => {
+          const count = summary.by_state[state] ?? 0;
+          if (count === 0) return null;
+          return (
+            <span
+              key={state}
+              style={{
+                width: `${(count / total) * 100}%`,
+                background: COLOUR_HEX[info[state].colour],
+              }}
+              title={`${info[state].label}: ${count}`}
+            />
+          );
+        })}
+      </div>
+
+      <ul className="state-legend">
+        {order.map((state) => {
+          const count = summary.by_state[state] ?? 0;
+          if (count === 0) return null;
+          return (
+            <li key={state}>
+              <span className="dot" style={{ background: COLOUR_HEX[info[state].colour] }} />
+              <span className="state-name">{info[state].label}</span>
+              <span className="state-count">
+                {count} · {((count / total) * 100).toFixed(0)}%
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
+export function Networks({ t }: { t: Strings }) {
+  const [operators, setOperators] = useState<OperatorCoverage[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchOperatorCoverage(controller.signal).then(setOperators).catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  if (operators.length === 0) return <p className="empty">{t.dashNoData}</p>;
+
+  return (
+    <section className="panel">
+      <header className="panel-head">
+        <div>
+          <h2>{t.networksTitle}</h2>
+          <p>{t.navNetworksHint}</p>
+        </div>
+      </header>
+
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t.operator}</th>
+              <th className="num">{t.dashOperatorTiles}</th>
+              <th className="num">{t.dashOperatorArea}</th>
+              <th className="num">{t.dashOperatorGood}</th>
+              <th className="num">{t.dashOperatorUnusable}</th>
+              <th className="num">{t.dashOperatorSignal}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {operators.map((row) => (
+              <tr key={row.operator}>
+                <td>{row.operator}</td>
+                <td className="num">{row.tiles}</td>
+                <td className="num">{formatArea(row.area_km2)}</td>
+                <td className="num good">{row.good_pct}%</td>
+                <td className="num bad">{row.unusable_pct}%</td>
+                <td className="num">{formatSignal(row.avg_rsrp_dbm)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {operators.map((row) => (
-                <tr key={row.operator}>
-                  <td>{row.operator}</td>
-                  <td className="num">{row.tiles}</td>
-                  <td className="num">{formatArea(row.area_km2)}</td>
-                  <td className="num good">{row.good_pct}%</td>
-                  <td className="num bad">{row.unusable_pct}%</td>
-                  <td className="num">{formatSignal(row.avg_rsrp_dbm)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
-      <section>
-        <h2>{t.dashPriority}</h2>
-        <p className="section-note">{t.dashPrioritySubtitle}</p>
+export function Priority({
+  t,
+  onShowOnMap,
+}: {
+  t: Strings;
+  onShowOnMap: (lat: number, lon: number) => void;
+}) {
+  const [areas, setAreas] = useState<PriorityArea[]>([]);
+  const [modelled, setModelled] = useState(false);
 
-        {/* Saying which kind of list this is matters: measured dead zones and
-            modelled site rankings are different claims with different
-            authority, and a dashboard must not blur them. */}
-        {!modelled && <p className="caveat">{t.dashMeasuredNotModelled}</p>}
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPriorityAreas(50, controller.signal)
+      .then((body) => {
+        setAreas(body.areas);
+        setModelled(body.modelled_sites_available);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
-        {areas.length === 0 ? (
-          <p className="empty">{t.dashNoData}</p>
-        ) : (
+  const info = stateInfo(t);
+
+  return (
+    <section className="panel">
+      <header className="panel-head">
+        <div>
+          <h2>{t.priorityTitle}</h2>
+          <p>{t.dashPrioritySubtitle}</p>
+        </div>
+      </header>
+
+      {/* Saying which kind of list this is matters: measured dead zones and
+          modelled site rankings are different claims with different authority,
+          and a dashboard must not blur them. */}
+      {!modelled && <p className="caveat">{t.dashMeasuredNotModelled}</p>}
+
+      {areas.length === 0 ? (
+        <p className="empty">{t.dashNoData}</p>
+      ) : (
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -169,8 +252,8 @@ export function Dashboard({ summary, t, onShowOnMap }: Props) {
               ))}
             </tbody>
           </table>
-        )}
-      </section>
-    </div>
+        </div>
+      )}
+    </section>
   );
 }

@@ -250,3 +250,47 @@ async def known_operators(session: AsyncSession) -> list[str]:
 
 def isoformat(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
+
+
+async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
+    """The devices contributing measurements, most recently active first.
+
+    Deliberately carries no position of any kind. This view answers "is the
+    fleet working" — which phones are reporting, which are being refused — and
+    that is a question about equipment, not about people. A collector's own
+    movements are exactly what the H3 aggregation exists to hide, so they must
+    not reappear here under an operational heading.
+
+    Install ids are shortened for the same reason they are random in the first
+    place: enough to tell two devices apart, not enough to be worth correlating.
+    """
+    rows = (
+        await session.scalars(
+            select(Device).order_by(Device.last_seen_at.desc().nullslast()).limit(200)
+        )
+    ).all()
+
+    out: list[dict[str, Any]] = []
+    for device in rows:
+        total = device.records_accepted + device.records_rejected
+        out.append(
+            {
+                "id": device.install_id[:16],
+                "model": device.model,
+                "manufacturer": device.manufacturer,
+                "app_version": device.app_version,
+                "key_algorithm": device.key_algorithm,
+                "trust_level": device.trust_level,
+                "is_blocked": device.is_blocked,
+                "is_simulated": device.install_id.startswith("sim-"),
+                "enrolled_at": device.enrolled_at.isoformat() if device.enrolled_at else None,
+                "last_seen_at": device.last_seen_at.isoformat() if device.last_seen_at else None,
+                "records_accepted": device.records_accepted,
+                "records_rejected": device.records_rejected,
+                # The number worth watching: a collector whose records are all
+                # being refused looks identical to a healthy one by any other
+                # measure, right up until the map stays empty.
+                "rejection_rate_pct": round(device.records_rejected / total * 100, 1) if total else 0.0,
+            }
+        )
+    return out

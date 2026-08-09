@@ -97,6 +97,22 @@ export interface PriorityArea {
   last_measured_at: string | null;
 }
 
+export interface Collector {
+  id: string;
+  model: string | null;
+  manufacturer: string | null;
+  app_version: string | null;
+  key_algorithm: string;
+  trust_level: string;
+  is_blocked: boolean;
+  is_simulated: boolean;
+  enrolled_at: string | null;
+  last_seen_at: string | null;
+  records_accepted: number;
+  records_rejected: number;
+  rejection_rate_pct: number;
+}
+
 const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 
 /** The server refuses a viewport wider than this; see backend tiles.py. */
@@ -152,4 +168,13 @@ export async function fetchPriorityAreas(
   signal?: AbortSignal,
 ): Promise<PriorityResponse> {
   return getJson<PriorityResponse>(`/dashboard/priority-areas?limit=${limit}`, signal);
+}
+
+export async function fetchCollectors(
+  signal?: AbortSignal,
+): Promise<{ count: number; real: number; collectors: Collector[] }> {
+  return getJson<{ count: number; real: number; collectors: Collector[] }>(
+    "/dashboard/collectors",
+    signal,
+  );
 }
