@@ -181,6 +181,36 @@ async def test_an_unrecognised_network_still_appears_in_the_catalogue(
     assert unknown["measured"] is True
 
 
+async def test_the_collector_list_names_each_phones_network(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """Three of the four Lao networks have no coverage data because no
+    collector carries their SIM. Naming what the fleet is actually on turns
+    that from a gap in the map into a recruitment list."""
+    await _seed_two_spellings(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+
+    fleet = (await client.get("/api/v1/dashboard/collectors")).json()["collectors"]
+    assert fleet
+
+    # Both reported spellings were one SIM, so one network — not two.
+    assert fleet[0]["networks"] == ["Lao Telecom"]
+
+    # Still no position of any kind: that is what the hexagons exist to hide.
+    assert not {"lat", "lon", "h3"} & set(fleet[0])
+
+
+async def test_a_phone_that_has_not_reported_yet_lists_no_network(
+    client: AsyncClient, session: AsyncSession, public_key_b64: str
+):
+    """Empty means "has not sent a reading with a network attached", which is
+    not the same as "has no network"."""
+    await enroll(client, public_key_b64)
+
+    fleet = (await client.get("/api/v1/dashboard/collectors")).json()["collectors"]
+    assert fleet[0]["networks"] == []
+
+
 async def test_an_incremental_rebuild_does_not_delete_the_rest_of_the_map(
     client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
 ):

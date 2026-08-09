@@ -15,76 +15,20 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import String, and_, case, func, literal, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.operators import NETWORK_NAMES
 from app.core.radio import STATE_COLOUR, STATE_SCORE, RadioState, TileColour
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
 from app.services.areas import AreaAssignment, AreaResolver, load_resolver
 from app.services.geo import h3_centroid
+from app.services.network import canonical_operator_column, has_operator_identity
 
 SCORE_STATE = {score: state for state, score in STATE_SCORE.items()}
 
 NO_AREAS = AreaAssignment()
-
-
-def _padded_mnc():
-    """MNC as two digits. One handset reports "1" where another reports "01".
-
-    Concatenation is written with ``+`` on a String column, which SQLAlchemy
-    renders as the ``||`` operator. ``concat()`` is a Postgres function and
-    does not exist in the SQLite the tests run on.
-    """
-    return case(
-        (func.length(Measurement.mnc) == 1, literal("0", String) + Measurement.mnc),
-        else_=Measurement.mnc,
-    )
-
-
-def canonical_operator_column():
-    """The operator's identity, as SQL, so grouping happens in the database.
-
-    Resolved from MCC/MNC rather than from the name the handset reported —
-    see app/core/operators.py for why one company otherwise appears as several.
-
-    It has to be an expression rather than a Python pass because the aggregate
-    it feeds counts *distinct devices*, and distinct counts cannot be summed
-    back together after the fact: a collector seen under two spellings of one
-    network is one collector, and folding the groups in Python would report two.
-    """
-    mnc = _padded_mnc()
-    known = [
-        (and_(Measurement.mcc == mcc, mnc == network_mnc), name)
-        for (mcc, network_mnc), name in NETWORK_NAMES.items()
-    ]
-    return case(
-        *known,
-        # A network not in the table keeps its stable identity as a code, which
-        # is honest and obviously not a company name.
-        (
-            and_(Measurement.mcc.is_not(None), mnc.is_not(None)),
-            Measurement.mcc + literal("-", String) + mnc,
-        ),
-        else_=func.trim(Measurement.operator_name),
-    )
-
-
-def _has_operator_identity():
-    """Something to attribute the reading to — a PLMN, or failing that a name.
-
-    A reading with no network at all has neither, and is excluded: bucketing
-    those into "unknown" would put dead zones on some carrier's ledger.
-    """
-    return or_(
-        and_(Measurement.mcc.is_not(None), Measurement.mnc.is_not(None)),
-        and_(
-            Measurement.operator_name.is_not(None),
-            func.trim(Measurement.operator_name) != "",
-        ),
-    )
 
 
 def median_state(counts: dict[str, int]) -> RadioState | None:
@@ -267,7 +211,7 @@ async def _rebuild_operator_tiles(
     disagree — see app/core/operators.py.
     """
     operator = canonical_operator_column().label("operator_name")
-    identified = (Measurement.h3_index.is_not(None), _has_operator_identity())
+    identified = (Measurement.h3_index.is_not(None), has_operator_identity())
 
     state_query = (
         select(

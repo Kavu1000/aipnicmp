@@ -29,6 +29,7 @@ from app.core.radio import STATE_COLOUR, RadioState
 from app.models.device import Device
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
+from app.services.network import canonical_operator_column, has_operator_identity
 
 # CIA World Factbook / UN figure for Lao PDR.
 LAO_AREA_KM2 = 236_800
@@ -303,6 +304,13 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
     movements are exactly what the H3 aggregation exists to hide, so they must
     not reappear here under an operational heading.
 
+    The network each phone reports on *is* included, and is equipment
+    information in the same sense as the handset model. It also answers the
+    question the network list raises and cannot itself resolve: three of the
+    four Lao operators have no coverage data, and the reason is that no
+    collector carries their SIM. Naming the networks the fleet is actually on
+    turns that from a gap in the map into a recruitment list.
+
     Install ids are shortened for the same reason they are random in the first
     place: enough to tell two devices apart, not enough to be worth correlating.
     """
@@ -312,6 +320,24 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
         )
     ).all()
 
+    operator = canonical_operator_column()
+    seen = (
+        await session.execute(
+            select(Measurement.device_id, operator, func.count())
+            .where(has_operator_identity())
+            .group_by(Measurement.device_id, operator)
+            .order_by(func.count().desc())
+        )
+    ).all()
+
+    # A phone can report more than one network — a dual-SIM handset, or one that
+    # roamed. All of them are listed, busiest first, rather than picking a
+    # winner and hiding the rest.
+    networks: dict[str, list[str]] = {}
+    for device_id, name, _count in seen:
+        if name:
+            networks.setdefault(device_id, []).append(name)
+
     out: list[dict[str, Any]] = []
     for device in rows:
         total = device.records_accepted + device.records_rejected
@@ -320,6 +346,9 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
                 "id": device.install_id[:16],
                 "model": device.model,
                 "manufacturer": device.manufacturer,
+                # Empty for a phone that has enrolled but not yet uploaded a
+                # reading with a network attached.
+                "networks": networks.get(device.install_id, []),
                 "app_version": device.app_version,
                 "key_algorithm": device.key_algorithm,
                 "trust_level": device.trust_level,

@@ -56,6 +56,7 @@ export function Collectors({ t }: { t: Strings }) {
             <thead>
               <tr>
                 <th>{t.collectorsDevice}</th>
+                <th>{t.operator}</th>
                 <th>{t.collectorsLastSeen}</th>
                 <th className="num">{t.collectorsAccepted}</th>
                 <th className="num">{t.collectorsRejected}</th>
@@ -72,6 +73,10 @@ export function Collectors({ t }: { t: Strings }) {
                       {row.is_simulated && ` · ${t.collectorsSimulated}`}
                     </span>
                   </td>
+                  {/* Which network the phone is on. Empty means it has
+                      enrolled but not yet sent a reading with one attached —
+                      not that it has no network. */}
+                  <td>{row.networks.length > 0 ? row.networks.join(", ") : "—"}</td>
                   <td>{formatAge(row.last_seen_at, "—")}</td>
                   <td className="num good">{row.records_accepted.toLocaleString()}</td>
                   <td className="num">{row.records_rejected.toLocaleString()}</td>

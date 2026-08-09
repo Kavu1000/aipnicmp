@@ -178,6 +178,12 @@ export interface Collector {
   id: string;
   model: string | null;
   manufacturer: string | null;
+  /**
+   * Networks this phone has reported on, busiest first. Usually one; a
+   * dual-SIM handset or one that roamed can report several. Empty until it
+   * uploads a reading with a network attached.
+   */
+  networks: string[];
   app_version: string | null;
   key_algorithm: string;
   trust_level: string;
