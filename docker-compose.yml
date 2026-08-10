@@ -103,7 +103,7 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       ENV: ${ENV:-production}
       H3_RESOLUTION: ${H3_RESOLUTION:-8}
-    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=2"]
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
     # The backend image carries a healthcheck that curls the API on port 8000.
     # This container runs Celery and never listens on that port, so the inherited
     # check could only ever fail — reporting "unhealthy" for a worker that is
@@ -117,6 +117,50 @@ services:
       # would flap between healthy and not on every restart.
       start_period: 60s
       retries: 3
+    networks: [aipnicmp]
+
+  # The scheduler, in its own container rather than embedded in the worker.
+  #
+  # It used to run as `worker --beat`, sharing the worker's process and the
+  # worker's health check — and that check only pings the worker. So beat could
+  # fail to start and the container would go on reporting healthy, which is
+  # exactly what happened: eight real measurements sat unaggregated for over
+  # two hours, and a one-minute schedule did not fire once in eleven minutes of
+  # watching. A health check that cannot fail for the thing that is broken is
+  # not a health check.
+  #
+  # Splitting it out also gives beat its own logs, which is where the reason
+  # would have been visible on day one.
+  beat:
+    image: ${BACKEND_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-backend:latest}
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      RUN_MIGRATIONS: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ENV: ${ENV:-production}
+      H3_RESOLUTION: ${H3_RESOLUTION:-8}
+    # The schedule path is explicit and writable. Beat keeps its last-run state
+    # in a file beside the working directory by default; where that is not
+    # writable it exits at startup, and nothing periodic ever runs again.
+    command:
+      ["celery", "-A", "app.workers.celery_app.celery_app", "beat",
+       "--loglevel=info", "--schedule=/tmp/celerybeat-schedule"]
+    # Beat answers no pings, so ask the one artefact it must keep touching. A
+    # schedule file that has stopped advancing means a scheduler that has
+    # stopped scheduling, which is the failure this whole service exists to
+    # make visible.
+    healthcheck:
+      test:
+        ["CMD-SHELL",
+         "find /tmp/celerybeat-schedule -newermt '-10 minutes' | grep -q ."]
+      interval: 120s
+      timeout: 10s
+      start_period: 90s
+      retries: 2
     networks: [aipnicmp]
 
 networks:
