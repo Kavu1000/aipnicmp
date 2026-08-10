@@ -1,0 +1,27 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Internet coverage map of Lao PDR">
+  <!--
+    A single H3 hexagon, which is the unit the whole map is drawn in, banded in
+    the platform's own coverage colours.
+
+    Three flat bands rather than anything finer: at 16 pixels a favicon has
+    room for one silhouette and about three areas of colour, and green over
+    yellow over red is read as a quality scale without a caption anywhere in
+    the world. The colours are the map's exact values, so the tab and the map
+    cannot drift apart.
+  -->
+  <defs>
+    <clipPath id="hex">
+      <polygon points="16,1 28.99,8.5 28.99,23.5 16,31 3.01,23.5 3.01,8.5" />
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#hex)">
+    <rect width="32" height="11" fill="#1f9d55" />
+    <rect y="11" width="32" height="10" fill="#e3b505" />
+    <rect y="21" width="32" height="11" fill="#c1121f" />
+  </g>
+
+  <!-- Holds the shape against both a white tab strip and a dark one. -->
+  <polygon points="16,1 28.99,8.5 28.99,23.5 16,31 3.01,23.5 3.01,8.5"
+           fill="none" stroke="#16202c" stroke-width="1.6" stroke-linejoin="round" />
+</svg>

@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      SVG first, so the mark stays sharp on any display and in any tab size.
+      The 32px PNG is there for browsers that still ignore SVG favicons, and
+      the 180px one is what iOS uses when the map is saved to a home screen —
+      which is a realistic way for a collector to open it.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Tints the browser chrome on Android to the map's own green. -->
+    <meta name="theme-color" content="#1f9d55" />
     <title>Internet Coverage Map — Lao PDR</title>
     <meta
       name="description"
