@@ -1,27 +1,20 @@
 <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Internet coverage map of Lao PDR">
   <!--
-    A single H3 hexagon, which is the unit the whole map is drawn in, banded in
-    the platform's own coverage colours.
+    The platform's mark, identical to the one the collector app carries on its
+    launcher icon and to the chip in the sidebar: signal arcs over a location
+    pin, white on the accent red. One drawing, everywhere, so a phone in a
+    village and a tab on a ministry desk plainly belong to the same system.
 
-    Three flat bands rather than anything finer: at 16 pixels a favicon has
-    room for one silhouette and about three areas of colour, and green over
-    yellow over red is read as a quality scale without a caption anywhere in
-    the world. The colours are the map's exact values, so the tab and the map
-    cannot drift apart.
+    A tile rather than a bare glyph, because a favicon is shown against tab
+    strips of any colour and white artwork alone would vanish on a light one.
   -->
-  <defs>
-    <clipPath id="hex">
-      <polygon points="16,1 28.99,8.5 28.99,23.5 16,31 3.01,23.5 3.01,8.5" />
-    </clipPath>
-  </defs>
+  <rect width="32" height="32" rx="7" fill="#C1121F" />
 
-  <g clip-path="url(#hex)">
-    <rect width="32" height="11" fill="#1f9d55" />
-    <rect y="11" width="32" height="10" fill="#e3b505" />
-    <rect y="21" width="32" height="11" fill="#c1121f" />
+  <g transform="translate(-11,-5) scale(0.5)" fill="#FFFFFF">
+    <path d="M54,36c-5.5,0 -10,4.5 -10,10c0,7.5 10,20 10,20s10,-12.5 10,-20C64,40.5 59.5,36 54,36zM54,49.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5s3.5,1.6 3.5,3.5S55.9,49.5 54,49.5z" />
   </g>
 
-  <!-- Holds the shape against both a white tab strip and a dark one. -->
-  <polygon points="16,1 28.99,8.5 28.99,23.5 16,31 3.01,23.5 3.01,8.5"
-           fill="none" stroke="#16202c" stroke-width="1.6" stroke-linejoin="round" />
+  <!-- Full scale, so the strokes survive being drawn at sixteen pixels. -->
+  <path d="M9,11 A9.5,9.5 0 0 1 23,11" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" fill="none" />
+  <path d="M5.5,7.5 A14.5,14.5 0 0 1 26.5,7.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" fill="none" />
 </svg>

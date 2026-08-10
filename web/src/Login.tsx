@@ -1,3 +1,4 @@
+import { BrandMark } from "./BrandMark";
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "./api";
 import { LoginBackdrop } from "./LoginBackdrop";
@@ -211,7 +212,7 @@ export function Login({
       <div className="login-card">
         <header className="login-head">
           <span className="brand-mark" aria-hidden="true">
-            ◆
+            <BrandMark />
           </span>
           <div>
             <h1>{t.title}</h1>

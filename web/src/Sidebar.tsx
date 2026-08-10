@@ -1,3 +1,4 @@
+import { BrandMark } from "./BrandMark";
 import type { AccountUser } from "./api";
 import type { Strings } from "./i18n";
 
@@ -45,7 +46,9 @@ export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOu
 
       <aside className={open ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">◆</span>
+          <span className="brand-mark" aria-hidden="true">
+            <BrandMark />
+          </span>
           <span className="brand-text">
             <strong>AI-PNICMP</strong>
             <em>{strings.brandSubtitle}</em>
