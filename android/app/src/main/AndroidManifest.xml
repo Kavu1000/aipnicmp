@@ -27,6 +27,30 @@
     <!-- Collection should resume after a reboot on a partner's dedicated phone. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!--
+      A partial wake lock, held for the length of one sample.
+
+      The foreground service keeps the process alive; it does not keep the
+      processor awake once the screen is off. Without this the work handed to
+      the sampling thread can be suspended before it runs.
+    -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!--
+      Lets the app ask to be left out of battery optimisation.
+
+      Doze and App Standby defer exactly what this app does, and several vendor
+      ROMs stop foreground services outright regardless of what Android says.
+      A collector who has been asked to carry a phone for a week cannot be
+      expected to know that.
+
+      Only ever *asked* — the system dialog is the user's decision, and the app
+      works without it, just less reliably while the screen is off. Note that
+      Play restricts this permission to apps whose core function needs it; this
+      one is distributed to partner collectors directly (docs/setup.md).
+    -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- Telephony is essential; a tablet with no modem cannot collect anything. -->
     <uses-feature android:name="android.hardware.telephony" android:required="true" />
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />

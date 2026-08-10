@@ -124,6 +124,27 @@
             android:textColor="@color/warning_text"
             android:textSize="13sp" />
 
+        <!--
+            Separate from the permission warning because it is a separate
+            problem with a separate remedy, and either can be outstanding
+            without the other.
+        -->
+        <TextView
+            android:id="@+id/batteryWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_warning"
+            android:clickable="true"
+            android:focusable="true"
+            android:lineSpacingExtra="3dp"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="12dp"
+            android:text="@string/warning_battery"
+            android:textColor="@color/warning_text"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <!-- 1. Is it recording? -->
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.Material3.CardView.Filled"

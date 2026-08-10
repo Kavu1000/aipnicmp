@@ -83,6 +83,7 @@
     -->
     <string name="warning_permissions">Location permission has not been granted. Without it the phone cannot read signal strength. Tap here to grant it.</string>
     <string name="warning_background_location">Location is allowed only while the app is open, so recording will stop when the screen turns off. Tap here, then choose Permissions → Location → \"Allow all the time\".</string>
+    <string name="warning_battery">Battery saving may stop recording while the screen is off. Tap here and choose \"Allow\" so this phone keeps collecting all day.</string>
 
     <string name="background_title">Allow location all the time</string>
     <string name="background_message">Recording continues while the phone is in your pocket or bag, so the app needs location access all the time. Without it, measurements stop the moment the screen turns off — and most of a journey would go unrecorded.\n\nOn the next screen, please choose “Allow all the time”.</string>

@@ -513,6 +513,56 @@ class MainActivity : AppCompatActivity() {
         )
 
         showPermissionWarning()
+        showBatteryWarning()
+    }
+
+    /**
+     * Battery optimisation is what actually stops overnight collection.
+     *
+     * Doze and App Standby defer precisely what this app does, and several
+     * vendor ROMs stop foreground services outright whatever Android's own
+     * rules say. A collector handed a phone for a week has no way to know any
+     * of that; they only see a map with a day missing from it.
+     *
+     * Asked, never forced: the system dialog is the user's decision, and
+     * collection still works without it — just less reliably once the screen is
+     * off. The warning disappears the moment it is granted.
+     */
+    private fun showBatteryWarning() {
+        if (isIgnoringBatteryOptimisation()) {
+            binding.batteryWarning.visibility = android.view.View.GONE
+            return
+        }
+
+        binding.batteryWarning.visibility = android.view.View.VISIBLE
+        binding.batteryWarning.setOnClickListener { requestBatteryExemption() }
+    }
+
+    private fun isIgnoringBatteryOptimisation(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        return getSystemService(android.os.PowerManager::class.java)
+            ?.isIgnoringBatteryOptimizations(packageName) ?: true
+    }
+
+    @android.annotation.SuppressLint("BatteryLife")
+    private fun requestBatteryExemption() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+
+        val ask = Intent(
+            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            android.net.Uri.fromParts("package", packageName, null),
+        )
+        try {
+            startActivity(ask)
+        } catch (_: android.content.ActivityNotFoundException) {
+            // Some ROMs remove the direct dialog. The battery settings list is
+            // a longer road to the same switch, and better than a dead tap.
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (_: android.content.ActivityNotFoundException) {
+                openAppSettings()
+            }
+        }
     }
 
     /**

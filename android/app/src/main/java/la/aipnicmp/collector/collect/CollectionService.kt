@@ -67,6 +67,13 @@ class CollectionService : Service() {
         /** Older than this and the phone may have moved since the fix was taken. */
         private const val MAX_FIX_AGE_MILLIS = 90_000L
 
+        /**
+         * Ceiling on how long one sample may hold the processor awake. Long
+         * enough for a throughput test on a bad link, short enough that a stuck
+         * sample cannot flatten a collector's battery unnoticed.
+         */
+        private const val WAKE_LOCK_TIMEOUT_MILLIS = 60_000L
+
         @Volatile
         var isRunning: Boolean = false
             private set
@@ -107,9 +114,52 @@ class CollectionService : Service() {
     /** Samples since the last throughput test, counting the sparse schedule. */
     private var samplesSinceSpeedTest = SAMPLES_BETWEEN_SPEED_TESTS
 
+    /**
+     * Keeps the CPU awake for the length of one sample.
+     *
+     * A foreground service stops the process being killed. It does not stop the
+     * processor suspending once the screen is off, and that is a different
+     * problem. The location callback arrives on the main looper while the
+     * system briefly holds its own wake lock, hands the work to a background
+     * thread and returns — at which point nothing is holding the device awake
+     * and the sample may not have started, let alone finished. Radio scan,
+     * signing and database write are quick; a throughput test is a quarter of a
+     * megabyte over a slow link and can take twenty seconds.
+     *
+     * So the lock is taken on the callback thread, before the system releases
+     * its own, and released when the sample is done. Per sample rather than for
+     * the whole session: between fixes there is nothing to keep awake, and a
+     * collector's phone has to last a working day.
+     */
+    private val wakeLock: android.os.PowerManager.WakeLock by lazy {
+        getSystemService(android.os.PowerManager::class.java)
+            .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "aipnicmp:sample")
+            .apply { setReferenceCounted(false) }
+    }
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
-            result.lastLocation?.let { fix -> work.execute { onLocation(fix) } }
+            val fix = result.lastLocation ?: return
+
+            // Timed out as a safety net, not as a schedule: if a sample ever
+            // hangs, the lock expires instead of holding the processor awake
+            // until the battery is flat. Comfortably longer than the slowest
+            // throughput test.
+            wakeLock.acquire(WAKE_LOCK_TIMEOUT_MILLIS)
+            try {
+                work.execute {
+                    try {
+                        onLocation(fix)
+                    } finally {
+                        if (wakeLock.isHeld) wakeLock.release()
+                    }
+                }
+            } catch (error: java.util.concurrent.RejectedExecutionException) {
+                // The executor is shutting down with the service; nothing will
+                // run the task, so nothing will release the lock.
+                if (wakeLock.isHeld) wakeLock.release()
+                Log.w(TAG, "sample dropped, collection is stopping", error)
+            }
         }
     }
 
@@ -319,6 +369,11 @@ class CollectionService : Service() {
         // spent the collector's data, so letting it finish and be charged is
         // cheaper than killing it and paying for the same bytes again.
         work.shutdown()
+        // The in-flight sample releases its own lock when it finishes. This is
+        // for the case where the service is destroyed between acquiring and
+        // running — a held lock outliving the service that took it is how an
+        // app ends up blamed for overnight battery drain.
+        if (wakeLock.isHeld) wakeLock.release()
         isRunning = false
         super.onDestroy()
     }
