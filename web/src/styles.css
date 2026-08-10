@@ -1924,3 +1924,85 @@ main {
     transform: translateX(-50%) rotate(90deg);
   }
 }
+
+/* ---------- language picker ---------- */
+
+/*
+  Not a <select>: that element holds text only, so a flag cannot go inside one,
+  and the emoji alternative renders as the letters "LA" on Windows — which is
+  what the whole pilot runs on. Styled to sit level with the real selects
+  beside it, so replacing the element does not show.
+*/
+.language-picker {
+  position: relative;
+}
+
+.language-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  /* Room for the caret drawn below, matching a native select's arrow gutter. */
+  padding-inline-end: 1.6rem;
+}
+
+.language-button svg,
+.language-option svg {
+  /* A hairline keeps a white-edged flag from dissolving into a light panel. */
+  border: 0.5px solid rgb(0 0 0 / 0.25);
+  border-radius: 1px;
+  flex: none;
+}
+
+.language-caret {
+  position: absolute;
+  inset-inline-end: 0.6rem;
+  inline-size: 0;
+  block-size: 0;
+  border-inline-start: 4px solid transparent;
+  border-inline-end: 4px solid transparent;
+  border-block-start: 5px solid currentColor;
+  opacity: 0.55;
+}
+
+.language-menu {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: 0;
+  min-inline-size: 100%;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /* Above the map and its controls, which draw their own stacking context. */
+  z-index: 40;
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  inline-size: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: none;
+  font: inherit;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.language-option:hover,
+.language-option:focus-visible {
+  background: var(--hover, rgb(127 127 127 / 0.14));
+}
+
+/* Weight rather than a tick: the row is already short, and a tick column would
+   indent every label to make room for a mark on one of them. */
+.language-option.chosen {
+  font-weight: 600;
+}

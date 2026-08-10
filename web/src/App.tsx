@@ -35,6 +35,7 @@ import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
+import { LanguagePicker } from "./LanguagePicker";
 import { Sidebar, type View } from "./Sidebar";
 import { formatAge, formatArea, formatShare } from "./coverage";
 
@@ -460,18 +461,7 @@ export function App() {
               </select>
             )}
 
-            <select
-              className="select"
-              value={language}
-              onChange={(event) => changeLanguage(event.target.value as Language)}
-              aria-label="Language"
-            >
-              {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-                <option key={code} value={code}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            <LanguagePicker language={language} onChange={changeLanguage} label="Language" />
           </div>
         </header>
 
