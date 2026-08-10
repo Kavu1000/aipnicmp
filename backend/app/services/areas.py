@@ -330,7 +330,7 @@ async def coverage_by_area(
         out[key] = {
             "tiles": tiles,
             "devices": device_count,
-            "measured_area_km2": round(tiles * area_km2, 1),
+            "measured_area_km2": round(tiles * area_km2, 4),
             "by_state": by_state,
             "by_action": by_action,
             "good_pct": round(good / tiles * 100, 1),

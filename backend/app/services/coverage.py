@@ -77,7 +77,17 @@ def tile_area_km2(resolution: int | None = None) -> float:
 async def coverage_summary(session: AsyncSession) -> dict[str, Any]:
     """Everything the header and the dashboard need, in one query set."""
     measurements = await session.scalar(select(func.count()).select_from(Measurement)) or 0
-    devices = await session.scalar(select(func.count()).select_from(Device)) or 0
+    # Devices that have actually contributed a reading, not devices that have
+    # enrolled. Six phones were enrolled and two had ever sent anything — the
+    # other four were the same two handsets after a reinstall, since a
+    # reinstalled app cannot resume its old identity. Counting enrolments under
+    # the heading "contributing devices" turned that into a fleet three times
+    # its real size, on the figure a reader uses to judge how much evidence is
+    # behind the map.
+    devices = (
+        await session.scalar(select(func.count(func.distinct(Measurement.device_id))))
+    ) or 0
+    enrolled = await session.scalar(select(func.count()).select_from(Device)) or 0
     latest = await session.scalar(select(func.max(Measurement.captured_at)))
     generated_at = await session.scalar(select(func.max(H3Tile.updated_at)))
 
@@ -124,9 +134,16 @@ async def coverage_summary(session: AsyncSession) -> dict[str, Any]:
     return {
         "measurements": measurements,
         "devices": devices,
+        "devices_enrolled": enrolled,
         "tiles": tiles,
         "no_service_measurements": no_service,
-        "measured_area_km2": round(measured_km2, 1),
+        # Four decimals, not one.
+        #
+        # A pilot measures well under a square kilometre, and rounding to 0.1
+        # km2 there is a 6% error: 0.848 km2 became 0.8, which the dashboard
+        # then showed as 80 ha instead of 85. The client decides how to display
+        # this; the server's job is not to have thrown the answer away first.
+        "measured_area_km2": round(measured_km2, 4),
         "country_area_km2": LAO_AREA_KM2,
         # Deliberately not rounded to a whole percent: at pilot scale that
         # would read as "0%", which is both wrong and discouraging.
@@ -138,7 +155,7 @@ async def coverage_summary(session: AsyncSession) -> dict[str, Any]:
         "by_state": by_state,
         "by_action": by_action,
         "area_by_action_km2": {
-            action: round(count * area, 1) for action, count in by_action.items()
+            action: round(count * area, 4) for action, count in by_action.items()
         },
         "bounds": (
             {

@@ -66,7 +66,10 @@ async def test_summary_reports_area_not_just_tile_counts(
     assert summary["tiles"] > 0
     # A tile count alone invites the reader to assume national coverage.
     assert summary["measured_area_km2"] > 0
-    expected = round(summary["tiles"] * tile_area_km2(), 1)
+    # Four decimals, not one: at pilot scale a tenth of a square kilometre is
+    # a sixth of the whole measured area, and this assertion used to pin that
+    # loss in place rather than catch it.
+    expected = round(summary["tiles"] * tile_area_km2(), 4)
     assert summary["measured_area_km2"] == expected
 
 
@@ -252,3 +255,45 @@ def test_a_hexagon_is_sized_for_laos_not_for_the_globe():
     # Within 3% of the true national mean, against 11.8% for the global figure.
     assert abs(area - 0.8355) / 0.8355 < 0.03
     assert area > h3.average_hexagon_area(8, unit="km^2")
+
+
+async def test_contributing_devices_counts_contributors_not_enrolments(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """The headline said six devices when two had ever sent a reading.
+
+    The other four were the same two handsets after a reinstall — a reinstalled
+    app cannot resume its old identity, because the signing key cannot leave the
+    Keystore. Counting enrolments under "contributing devices" inflated the
+    evidence behind the map threefold.
+    """
+    await enroll(client, public_key_b64)
+    record = sign_record(make_record(record_id="rec-contrib0001"), device_key)
+    assert (
+        await client.post("/api/v1/measurements/batch", json=batch([record]))
+    ).json()["accepted"] == 1
+
+    # A second enrolment that never uploads: the reinstall case.
+    await enroll(client, public_key_b64, install_id="install-abandoned0000")
+
+    summary = await coverage_summary(session)
+    assert summary["devices"] == 1
+    assert summary["devices_enrolled"] == 2
+
+
+async def test_a_pilot_sized_area_survives_rounding(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """One hexagon is about 0.84 km2. Rounded to 0.1 km2 that became 0.8, and
+    the dashboard showed 80 ha instead of 85 — a 6% understatement of the only
+    number saying how much has been measured."""
+    await enroll(client, public_key_b64)
+    record = sign_record(make_record(record_id="rec-area00000001"), device_key)
+    await client.post("/api/v1/measurements/batch", json=batch([record]))
+    await rebuild_tiles(session)
+
+    summary = await coverage_summary(session)
+    assert summary["tiles"] == 1
+    # Within a hectare of the true cell area, rather than within ten.
+    assert abs(summary["measured_area_km2"] - tile_area_km2()) < 0.01
+    assert summary["measured_area_km2"] > 0.8

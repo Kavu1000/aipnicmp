@@ -15,12 +15,14 @@ pytestmark = pytest.mark.asyncio
 INSTALL_ID = "install-0123456789abcdef"
 
 
-async def enroll(client: AsyncClient, public_key_b64: str) -> None:
+async def enroll(
+    client: AsyncClient, public_key_b64: str, install_id: str = INSTALL_ID
+) -> None:
     response = await client.post(
         "/api/v1/devices/enroll",
         json={
             "device": {
-                "install_id": INSTALL_ID,
+                "install_id": install_id,
                 "model": "SM-A125F",
                 "manufacturer": "samsung",
                 "android_api": 34,
