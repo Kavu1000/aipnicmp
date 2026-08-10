@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import math
 import struct
 import zipfile
 from collections import defaultdict
@@ -31,7 +30,7 @@ from sqlalchemy import select, update
 
 from app.db.session import SessionLocal
 from app.models.features import HexFeature
-from scripts.geodata import CACHE, fetch
+from scripts.geodata import fetch
 
 log = logging.getLogger("roads")
 
