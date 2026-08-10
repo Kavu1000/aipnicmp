@@ -56,6 +56,12 @@ export function Legend({ t }: { t: Strings }) {
       </ul>
 
       <div className="legend-note">
+        {/* The dot that prompted "why has a grey core inside?" — it sits at the
+            centre of the hexagon a phone last reported from, so without a line
+            here it reads as part of the tile rather than something over it. */}
+        <p>
+          <span className="swatch swatch-collector" /> {t.legendCollector}
+        </p>
         <p>
           <span className="swatch swatch-predicted" /> {t.legendPredicted}
         </p>

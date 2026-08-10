@@ -534,15 +534,27 @@ export function MapView({
         type: "circle",
         source: COLLECTORS_SOURCE,
         paint: {
-          // Deliberately soft-edged and wide: this marks a hexagon a phone
-          // reported from, not a pin on a person. A crisp small dot would
-          // claim a precision the data does not have.
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 4, 12, 11],
-          "circle-color": ["case", ["get", "reporting"], "#1f7a3d", "#8a94a6"],
-          "circle-opacity": 0.55,
+          // Indigo, which means nothing on the coverage scale.
+          //
+          // This was grey for a silent collector, at 55% opacity. Grey is the
+          // platform's colour for "no measurement", so a silent phone drew a
+          // pale grey disc in the middle of the hexagon it had just measured —
+          // unmeasured ground inside measured ground, which is a contradiction,
+          // and the transparency made it read as a hole punched through the
+          // tile. The marker was also placed at the hexagon's exact centroid,
+          // so it landed dead centre and looked like part of the tile rather
+          // than something drawn over it.
+          //
+          // Every coverage colour is spoken for — green, yellow, orange, red —
+          // so the fleet gets a hue from outside that scale entirely, and
+          // whether a phone is reporting is carried by fill rather than by hue:
+          // solid when it has uploaded recently, hollow when it has gone quiet.
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 3.5, 12, 7],
+          "circle-color": ["case", ["get", "reporting"], "#4f46e5", "#ffffff"],
+          "circle-opacity": 1,
           "circle-stroke-width": 2,
-          "circle-stroke-color": ["case", ["get", "reporting"], "#2fbf6b", "#c2c9d4"],
-          "circle-stroke-opacity": 0.9,
+          "circle-stroke-color": ["case", ["get", "reporting"], "#ffffff", "#4f46e5"],
+          "circle-stroke-opacity": 1,
         },
       });
 

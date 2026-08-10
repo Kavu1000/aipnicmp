@@ -2033,3 +2033,11 @@ main {
 .language-option.chosen {
   font-weight: 600;
 }
+
+/* Matches the map marker exactly, so the legend and the map cannot drift. */
+.swatch-collector {
+  background: #4f46e5;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(79 70 229 / 45%);
+}

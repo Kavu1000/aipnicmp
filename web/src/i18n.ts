@@ -139,6 +139,7 @@ export interface Strings {
   usersStatusRejected: string;
 
   legendPredicted: string;
+  legendCollector: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -342,6 +343,8 @@ const en: Strings = {
   usersStatusRejected: "Rejected",
 
   legendPredicted: "Dashed and faded hexagons are predicted, not measured.",
+  legendCollector:
+    "A collector's last reported hexagon — hollow once the phone has gone quiet. Not a live position.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -546,6 +549,8 @@ const lo: Strings = {
   usersStatusRejected: "ປະຕິເສດ",
 
   legendPredicted: "ຮູບຫົກແຈທີ່ເປັນເສັ້ນຂີດ ແລະ ຈາງ ແມ່ນການຄາດຄະເນ ບໍ່ແມ່ນການວັດແທກ.",
+  legendCollector:
+    "ຮວງເຜິ້ງຫຼ້າສຸດທີ່ຜູ້ເກັບຂໍ້ມູນລາຍງານ — ເປັນວົງເປົ່າເມື່ອໂທລະສັບງຽບໄປ. ບໍ່ແມ່ນຕຳແໜ່ງສົດ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",
