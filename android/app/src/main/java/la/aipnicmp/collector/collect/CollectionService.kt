@@ -53,16 +53,16 @@ class CollectionService : Service() {
         /** Broadcast so the UI can show progress without binding to the service. */
         const val ACTION_STATE_CHANGED = "la.aipnicmp.collector.STATE_CHANGED"
 
-        /** Above this, the fix came from wifi or cell towers rather than GPS. */
         /**
-     * Samples between throughput tests. At 30s sampling this is roughly one
-     * test every twelve minutes of active collecting — sparse enough to be
-     * affordable, frequent enough to gather paired readings across a day's
-     * drive.
-     */
-    private const val SAMPLES_BETWEEN_SPEED_TESTS = 25
+         * Samples between throughput tests. At 30s sampling this is roughly one
+         * test every twelve minutes of active collecting — sparse enough to be
+         * affordable, frequent enough to gather paired readings across a day's
+         * drive.
+         */
+        private const val SAMPLES_BETWEEN_SPEED_TESTS = 25
 
-    private const val MAX_ACCURACY_METRES = 50f
+        /** Above this, the fix came from wifi or cell towers rather than GPS. */
+        private const val MAX_ACCURACY_METRES = 50f
 
         /** Older than this and the phone may have moved since the fix was taken. */
         private const val MAX_FIX_AGE_MILLIS = 90_000L

@@ -120,11 +120,16 @@ class RadioSampler(private val context: Context) {
             else -> null
         }
 
+        // Falls back to the PLMN the modem reports when no registered cell
+        // carried one — which is the normal case for a reading where towers are
+        // visible but cannot be attached to.
+        val (fallbackMcc, fallbackMnc) = plmnOf(manager.networkOperator)
+
         return RadioSnapshot(
             registered = registered,
             networkType = networkType,
-            mcc = serving?.mcc ?: manager.networkOperator.takeIf { it.length >= 5 }?.substring(0, 3),
-            mnc = serving?.mnc ?: manager.networkOperator.takeIf { it.length >= 5 }?.substring(3),
+            mcc = serving?.mcc ?: fallbackMcc,
+            mnc = serving?.mnc ?: fallbackMnc,
             operatorName = manager.networkOperatorName?.takeIf { it.isNotBlank() },
             rsrpDbm = rsrp,
             rsrqDb = rsrq,
@@ -215,10 +220,38 @@ class RadioSampler(private val context: Context) {
         }
     }
 
-    // The server validates these against ^\d{3}$ and ^\d{2,3}$, so anything
-    // malformed is dropped here rather than costing the record its upload.
-    private fun mccOf(value: String?): String? = value?.takeIf { it.length == 3 && it.all(Char::isDigit) }
+    private fun mccOf(value: String?): String? = Companion.mccOf(value)
 
-    private fun mncOf(value: String?): String? =
-        value?.takeIf { it.length in 2..3 && it.all(Char::isDigit) }
+    private fun mncOf(value: String?): String? = Companion.mncOf(value)
+
+    companion object {
+        // The server validates these against ^\d{3}$ and ^\d{2,3}$, so anything
+        // malformed is dropped here rather than costing the record its upload.
+        // A rejected record is discarded by the device and never resent, so a
+        // malformed operator code does not cost the attribution — it costs the
+        // whole measurement.
+        internal fun mccOf(value: String?): String? =
+            value?.takeIf { it.length == 3 && it.all(Char::isDigit) }
+
+        internal fun mncOf(value: String?): String? =
+            value?.takeIf { it.length in 2..3 && it.all(Char::isDigit) }
+
+        /**
+         * Splits the modem's PLMN string — "45701" or "457001" — into MCC and
+         * MNC, or a pair of nulls if it is not one.
+         *
+         * This used to be done inline with `substring(0, 3)` and `substring(3)`
+         * on anything at least five characters long, which skipped the two
+         * validators directly above. A seven-character value therefore produced
+         * a four-digit MNC, and the server rejects the *record* for that, not
+         * just the operator field. `getNetworkOperator()` is documented to
+         * return an empty string when unavailable, and handsets have been seen
+         * returning other things besides.
+         */
+        internal fun plmnOf(value: String?): Pair<String?, String?> {
+            val plmn = value?.takeIf { it.length in 5..6 && it.all(Char::isDigit) }
+                ?: return null to null
+            return mccOf(plmn.substring(0, 3)) to mncOf(plmn.substring(3))
+        }
+    }
 }
