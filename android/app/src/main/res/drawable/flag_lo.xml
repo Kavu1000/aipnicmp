@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lao PDR, to the official construction and the same geometry the dashboard
+  draws: red bands a quarter of the height each, blue half, and a white disc
+  four fifths the height of the blue band.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="21dp"
+    android:height="14dp"
+    android:viewportWidth="60"
+    android:viewportHeight="40">
+    <path android:fillColor="#CE1126" android:pathData="M0,0 H60 V40 H0 Z" />
+    <path android:fillColor="#002868" android:pathData="M0,10 H60 V30 H0 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M30,20 m-8,0 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0" />
+</vector>

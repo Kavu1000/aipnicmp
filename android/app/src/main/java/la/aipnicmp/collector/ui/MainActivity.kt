@@ -11,6 +11,12 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import android.graphics.Typeface
+import android.view.ViewGroup
+import android.widget.BaseAdapter
+import android.widget.ImageView
+import android.widget.ListPopupWindow
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -82,6 +88,15 @@ class MainActivity : AppCompatActivity() {
         prefs = CollectorPrefs(this)
         store = MeasurementStore(this)
 
+        wireUp()
+        refresh()
+    }
+
+    /**
+     * Everything the freshly inflated views need. Called again after a language
+     * change, because that reinflates them.
+     */
+    private fun wireUp() {
         binding.serverValue.setText(prefs.apiBaseUrl)
         // Long press, not a visible control: the people carrying this phone
         // should never need it, and whoever is running the pilot will be told.
@@ -93,8 +108,7 @@ class MainActivity : AppCompatActivity() {
         binding.saveServerButton.setOnClickListener { onSaveServer() }
         binding.checkConnectionButton.setOnClickListener { onCheckConnection() }
         binding.resetServerButton.setOnClickListener { onResetServer() }
-        binding.languageEnglish.setOnClickListener { setLanguage("en") }
-        binding.languageLao.setOnClickListener { setLanguage("lo") }
+        binding.languageChip.setOnClickListener { showLanguageMenu() }
         binding.toggleButton.setOnClickListener { onToggle() }
         binding.recordsButton.setOnClickListener {
             startActivity(Intent(this, RecordsActivity::class.java))
@@ -104,7 +118,7 @@ class MainActivity : AppCompatActivity() {
             showMessage(getString(R.string.upload_requested))
         }
 
-        refresh()
+        showLanguage()
     }
 
     override fun onResume() {
@@ -299,28 +313,106 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Switch the app's language without touching the phone's.
+     * The languages this app ships, in the order the menu lists them.
+     *
+     * Each name is written in its own script rather than translated, because
+     * the person who needs this control is by definition looking at a language
+     * they may not read.
+     */
+    private val languages = listOf(
+        Triple("en", R.string.language_english, R.drawable.flag_en),
+        Triple("lo", R.string.language_lao, R.drawable.flag_lo),
+    )
+
+    /** The tag in force, whether chosen here or inherited from the phone. */
+    private fun currentLanguage(): String =
+        AppCompatDelegate.getApplicationLocales().takeIf { !it.isEmpty }?.get(0)?.language
+            ?: resources.configuration.locales[0].language
+
+    /**
+     * The language menu, in the shape the dashboard uses: a flag and the
+     * language's own name, one row each.
+     */
+    private fun showLanguageMenu() {
+        val popup = ListPopupWindow(this)
+        popup.anchorView = binding.languageChip
+        popup.isModal = true
+        popup.width = resources.getDimensionPixelSize(R.dimen.language_menu_width)
+        popup.setAdapter(object : BaseAdapter() {
+            override fun getCount() = languages.size
+            override fun getItem(position: Int) = languages[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val row = convertView ?: layoutInflater.inflate(R.layout.item_language, parent, false)
+                val (tag, label, flag) = languages[position]
+                row.findViewById<ImageView>(R.id.itemFlag).setImageResource(flag)
+                row.findViewById<TextView>(R.id.itemName).apply {
+                    setText(label)
+                    // Weight, not a tick: a tick column would indent every row
+                    // to make room for a mark on one of them.
+                    setTypeface(null, if (tag == currentLanguage()) Typeface.BOLD else Typeface.NORMAL)
+                }
+                return row
+            }
+        })
+        popup.setOnItemClickListener { _, _, position, _ ->
+            popup.dismiss()
+            setLanguage(languages[position].first)
+        }
+        popup.show()
+    }
+
+    /**
+     * Switch the app's language without touching the phone's, and without
+     * rebuilding the screen.
      *
      * A collector is often handed a device configured by someone else, and
-     * changing the whole phone to read one app is not a reasonable thing to ask.
-     * AppCompat persists the choice and recreates the activity, so the running
-     * collection service is untouched — the language changes, the recording does
-     * not stop.
+     * changing the whole phone to read one app is not a reasonable thing to
+     * ask. The choice is persisted by AppCompat, so it survives a restart and
+     * applies to the records screen too.
+     *
+     * The activity declares locale in its configChanges, so AppCompat delivers
+     * onConfigurationChanged instead of destroying and rebuilding it. Nothing
+     * blanks, the scroll position holds, and a live count keeps counting — the
+     * language changes and nothing else moves.
      */
     private fun setLanguage(tag: String) {
+        if (tag == currentLanguage()) return
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
     }
 
-    /** Marks the language currently in use, so the choice is visible. */
+    /**
+     * Re-read the layout in the new language, without rebuilding the activity.
+     *
+     * The layout is inflated again rather than each label being set by hand.
+     * Twelve of the fixed labels on this screen carry no id, and a list of
+     * setText calls is a list that silently stops covering anything added to
+     * the layout later — the new label would just stay in the old language.
+     * Reinflating cannot drift.
+     *
+     * The activity itself survives, which is the point: the collection service
+     * is never touched, the window is never torn down, and the scroll position
+     * is carried across so the screen does not jump back to the top.
+     */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val scrolled = binding.root.scrollY
+        val advancedShown = binding.serverAdvanced.visibility
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        wireUp()
+        binding.serverAdvanced.visibility = advancedShown
+        refresh()
+        binding.root.post { binding.root.scrollTo(0, scrolled) }
+    }
+
+    /** Shows which language is in force, on the chip itself. */
     private fun showLanguage() {
-        val current = AppCompatDelegate.getApplicationLocales()
-            .takeIf { !it.isEmpty }?.get(0)?.language
-            ?: resources.configuration.locales[0].language
-        val lao = current == "lo"
-        binding.languageLao.setTypeface(null, if (lao) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
-        binding.languageEnglish.setTypeface(null, if (lao) android.graphics.Typeface.NORMAL else android.graphics.Typeface.BOLD)
-        binding.languageLao.setTextColor(getColor(if (lao) R.color.primary else R.color.muted))
-        binding.languageEnglish.setTextColor(getColor(if (lao) R.color.muted else R.color.primary))
+        val current = currentLanguage()
+        val (_, label, flag) = languages.firstOrNull { it.first == current } ?: languages[0]
+        binding.languageFlag.setImageResource(flag)
+        binding.languageName.setText(label)
     }
 
     private fun hasForegroundLocation(): Boolean =

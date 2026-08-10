@@ -10,46 +10,79 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/app_tagline"
-            android:textSize="14sp" />
-
         <!--
-          In-app, not only in system settings. A collector handed a phone set up
-          by somebody else should be able to read the screen without changing
-          the language of the whole device.
+          Title on the left, language on the right, matching the dashboard.
+
+          The switcher is in-app rather than only in system settings: a
+          collector handed a phone configured by somebody else should be able
+          to read the screen without changing the language of the whole device.
         -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/languageEnglish"
-                style="?attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/language_english" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/languageLao"
-                style="?attr/borderlessButtonStyle"
+                <TextView
+                    android:id="@+id/appTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/appTagline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/app_tagline"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- One control showing the language in use, like the web picker. -->
+            <LinearLayout
+                android:id="@+id/languageChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/language_lao" />
+                android:layout_marginStart="12dp"
+                android:background="@drawable/bg_language_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="40dp"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingEnd="8dp">
+
+                <ImageView
+                    android:id="@+id/languageFlag"
+                    android:layout_width="21dp"
+                    android:layout_height="14dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/flag_en" />
+
+                <TextView
+                    android:id="@+id/languageName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="7dp"
+                    android:text="@string/language_english"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginStart="6dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_caret_down" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView

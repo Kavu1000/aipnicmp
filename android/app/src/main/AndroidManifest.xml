@@ -41,8 +41,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Collector">
 
+        <!--
+          locale and layoutDirection are handled here rather than by the system.
+
+          Without this, changing the language destroys and rebuilds the whole
+          activity: the screen blanks, scroll position is lost and a collector
+          watching a live count sees it flicker. AppCompat checks this
+          declaration and, when the activity claims the change, delivers
+          onConfigurationChanged instead of recreating — so the labels are
+          re-read in place and nothing else moves.
+        -->
         <activity
             android:name=".ui.MainActivity"
+            android:configChanges="locale|layoutDirection"
             android:exported="true"
             android:launchMode="singleTop">
             <intent-filter>
@@ -53,6 +64,7 @@
 
         <activity
             android:name=".ui.RecordsActivity"
+            android:configChanges="locale|layoutDirection"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 

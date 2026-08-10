@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Wide enough for the longest language name plus its flag, so the menu
+         does not resize as the list is translated. -->
+    <dimen name="language_menu_width">180dp</dimen>
+</resources>
