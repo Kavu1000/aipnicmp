@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "./api";
-import { GoogleMark } from "./Flags";
 import { LoginBackdrop } from "./LoginBackdrop";
 import { ADVISORS, AFFILIATION, TEAM, personName, personRole } from "./team";
 import type { Language, Strings } from "./i18n";
@@ -165,24 +164,37 @@ export function Login({
         // somebody else's is the wrong default.
         window.google.accounts.id.disableAutoSelect();
 
-        // The icon button, not the standard one.
+        // Google's button, at the size it is actually drawn.
         //
-        // Google's standard button is *personalised*: when a Google session
-        // exists it renders "Sign in as <name>" with the address underneath,
-        // and because the button lives in Google's own iframe there is no
-        // setting that turns that off. Two reasons that is wrong here. It puts
-        // somebody's address on a screen that is often a projector or a shared
-        // desk, and it invites a one-click sign-in as whichever account the
-        // browser happens to hold — usually a personal one, when this platform
-        // wants the institutional account.
+        // It renders inside a cross-origin iframe, so the control the browser
+        // dispatches a click to is Google's, not ours, and it is only as big
+        // as Google was asked to make it. An icon button stretched with CSS
+        // stretches the frame and not the button inside it: the visible pill
+        // became entirely dead except for an invisible 40px patch in one
+        // corner. Nothing outside that frame can forward a click into it
+        // either — the sign-in flow starts from Google's element or not at
+        // all.
         //
-        // The icon variant carries no text at all, so the label beside it is
-        // ours and always says the same thing.
+        // So the width is handed to Google rather than imposed afterwards, and
+        // the button is left visible. That gives up the icon variant, whose
+        // appeal was that it never shows an account: the standard button is
+        // personalised where a Google session exists, rendering "Sign in as
+        // <name>" with the address. On a shared desk that is a real cost, and
+        // it is the reason the icon was chosen — but a button nobody can press
+        // is a worse one.
+        const width = Math.round(
+          Math.min(Math.max(buttonHost.current.parentElement?.clientWidth ?? 260, 200), 320),
+        );
         window.google.accounts.id.renderButton(buttonHost.current, {
-          type: "icon",
+          type: "standard",
           theme: "outline",
           size: "large",
-          shape: "circle",
+          text: "signin_with",
+          shape: "pill",
+          width,
+          // Google draws its own label, so it has to speak the same language
+          // as the page around it.
+          locale: language,
         });
       })
       .catch(() => setError(t.loginScriptFailed));
@@ -190,7 +202,7 @@ export function Login({
     return () => {
       cancelled = true;
     };
-  }, [session.google_client_id, awaitingApproval, serverReachable, t, onSignedIn]);
+  }, [session.google_client_id, awaitingApproval, serverReachable, language, t, onSignedIn]);
 
   return (
     <div className="login">
@@ -254,14 +266,11 @@ export function Login({
                     error explaining there is no button would be a puzzle. */}
                 {session.google_client_id && (
                   <div className="login-google">
-                    <GoogleMark />
-                    {/* Hidden from assistive technology, not from sight:
-                        Google's button underneath carries the accessible
-                        name, and announcing both would say it twice. */}
-                    <span className="login-google-label" aria-hidden="true">
-                      <strong>{t.loginWithGoogle}</strong>
-                      <em>{t.loginChooseAccount}</em>
-                    </span>
+                    {/* Google's own button, visible and full size. Our wording
+                        goes underneath rather than inside it: text laid over a
+                        cross-origin frame cannot be clicked through, and a
+                        label that looks like part of a button but is not is
+                        exactly what made this unpressable. */}
                     {/* Google's own button, stretched over the whole card and
                         made invisible. It stays the thing that is actually
                         clicked — the sign-in flow only starts from Google's
@@ -270,6 +279,7 @@ export function Login({
                         238px card, so seven eighths of the button did
                         nothing when pressed. */}
                     <div className="login-button" ref={buttonHost} />
+                    <span className="login-google-label">{t.loginChooseAccount}</span>
                   </div>
                 )}
 
