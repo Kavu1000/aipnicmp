@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "./api";
+import { GoogleMark } from "./Flags";
 import { LoginBackdrop } from "./LoginBackdrop";
 import { ADVISORS, AFFILIATION, TEAM, personName, personRole } from "./team";
 import type { Language, Strings } from "./i18n";
@@ -253,11 +254,22 @@ export function Login({
                     error explaining there is no button would be a puzzle. */}
                 {session.google_client_id && (
                   <div className="login-google">
-                    <div className="login-button" ref={buttonHost} />
-                    <span className="login-google-label">
+                    <GoogleMark />
+                    {/* Hidden from assistive technology, not from sight:
+                        Google's button underneath carries the accessible
+                        name, and announcing both would say it twice. */}
+                    <span className="login-google-label" aria-hidden="true">
                       <strong>{t.loginWithGoogle}</strong>
                       <em>{t.loginChooseAccount}</em>
                     </span>
+                    {/* Google's own button, stretched over the whole card and
+                        made invisible. It stays the thing that is actually
+                        clicked — the sign-in flow only starts from Google's
+                        element, and a click forwarded to it from ours does
+                        not count. Before this it was a 40px icon inside a
+                        238px card, so seven eighths of the button did
+                        nothing when pressed. */}
+                    <div className="login-button" ref={buttonHost} />
                   </div>
                 )}
 

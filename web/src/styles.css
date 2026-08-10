@@ -1180,6 +1180,8 @@ main {
 /* Google's icon button, with our own label beside it — so the words on this
    screen are always the same words, never somebody's address. */
 .login-google {
+  /* Anchors the invisible Google button that covers this whole card. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -1191,10 +1193,35 @@ main {
   box-shadow: 0 1px 2px rgb(16 32 44 / 6%);
 }
 
+/*
+  Google's rendered button, laid over the entire card and made invisible.
+
+  It has to stay the element that is clicked: the sign-in flow starts only from
+  Google's own element, and a click forwarded to it from ours is ignored. So
+  rather than shrink it to an icon and put our label beside it — which left
+  seven eighths of a 238px button inert — it is stretched across everything and
+  the visible face is drawn underneath by us.
+
+  opacity, not visibility or display: a transparent element is still hit-tested,
+  a hidden one is not. Verified in the browser at five points across the card.
+*/
 .login-button {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+}
+
+/* Google sizes its own wrapper; this is what makes it fill the card. */
+.login-button > div,
+.login-button iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* The pointer belongs to the whole card, not just where the mark happens to be. */
+.login-google:hover {
+  cursor: pointer;
 }
 
 .login-google-label {
