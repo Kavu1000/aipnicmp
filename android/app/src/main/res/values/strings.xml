@@ -50,6 +50,11 @@
     <string name="error_server_while_running">Stop recording before changing the server. Records already waiting were signed for the old one.</string>
 
     <string name="label_mode">Mode</string>
+    <string name="label_network">Network</string>
+    <!-- Shown before the first radio reading, and where the modem reports none. -->
+    <string name="network_unknown">—</string>
+    <string name="network_none">No network — this is what the app is here to record</string>
+    <string name="network_no_permission">Cannot read the network without location permission</string>
     <string name="mode_online">Online — records upload as they are taken</string>
     <string name="mode_offline">Offline — records are being kept on this phone</string>
     <string name="records_offline_badge">Recorded with no internet</string>

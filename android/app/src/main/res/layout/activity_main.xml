@@ -193,6 +193,28 @@
                     android:text="@string/mode_offline"
                     android:textSize="15sp" />
 
+                <!--
+                    The network the phone is actually attached to. Shown so a
+                    collector can see it is the SIM they were asked to carry,
+                    without opening a record — every reading is filed under
+                    this, and a phone on the wrong network collects for the
+                    wrong operator all day before anyone notices.
+                -->
+                <TextView
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/label_network" />
+
+                <TextView
+                    android:id="@+id/networkValue"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/network_unknown"
+                    android:textSize="15sp" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toggleButton"
                     android:layout_width="match_parent"

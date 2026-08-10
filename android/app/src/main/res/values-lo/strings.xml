@@ -61,6 +61,10 @@
     <string name="error_server_while_running">ກະລຸນາຢຸດການບັນທຶກກ່ອນປ່ຽນເຊີບເວີ. ຂໍ້ມູນທີ່ລໍຖ້າຢູ່ໄດ້ຖືກເຊັນສຳລັບເຊີບເວີເກົ່າແລ້ວ.</string>
 
     <string name="label_mode">ໂໝດ</string>
+    <string name="label_network">ເຄືອຂ່າຍ</string>
+    <string name="network_unknown">—</string>
+    <string name="network_none">ບໍ່ມີເຄືອຂ່າຍ — ນີ້ຄືສິ່ງທີ່ແອັບນີ້ມີໄວ້ເພື່ອບັນທຶກ</string>
+    <string name="network_no_permission">ອ່ານເຄືອຂ່າຍບໍ່ໄດ້ ຖ້າບໍ່ໄດ້ອະນຸຍາດການເຂົ້າເຖິງທີ່ຕັ້ງ</string>
     <string name="mode_online">ອອນລາຍ — ຂໍ້ມູນຖືກສົ່ງທັນທີທີ່ບັນທຶກ</string>
     <string name="mode_offline">ອອບລາຍ — ຂໍ້ມູນຖືກເກັບໄວ້ໃນໂທລະສັບ</string>
     <string name="records_offline_badge">ບັນທຶກຕອນບໍ່ມີອິນເຕີເນັດ</string>

@@ -29,6 +29,7 @@ import la.aipnicmp.collector.BuildConfig
 import la.aipnicmp.collector.CollectorPrefs
 import la.aipnicmp.collector.R
 import la.aipnicmp.collector.collect.CollectionService
+import la.aipnicmp.collector.collect.RadioSampler
 import la.aipnicmp.collector.crypto.DeviceKeystore
 import android.net.ConnectivityManager
 import la.aipnicmp.collector.data.MeasurementStore
@@ -54,6 +55,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: CollectorPrefs
     private lateinit var store: MeasurementStore
+
+    /**
+     * Reads the radio for the network shown on screen — the same sampler the
+     * collection service uses, so what a collector sees is what gets recorded
+     * rather than a second opinion.
+     */
+    private val radio: RadioSampler by lazy { RadioSampler(this) }
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
@@ -514,6 +522,42 @@ class MainActivity : AppCompatActivity() {
 
         showPermissionWarning()
         showBatteryWarning()
+        showNetwork()
+    }
+
+    /**
+     * The network this phone is attached to, as the modem reports it.
+     *
+     * Every reading is filed under this, so a phone carrying the wrong SIM
+     * collects for the wrong operator all day before anyone notices. It was
+     * only visible by opening an individual record, which is not where anybody
+     * would think to check.
+     *
+     * Shows the operator's own name with the PLMN beside it. The name comes
+     * from the SIM and varies between handsets — "LTC" on one, "LAO TELECOM"
+     * on another — so the code is what the platform actually identifies the
+     * network by, and seeing both is what makes a mismatch obvious.
+     */
+    private fun showNetwork() {
+        if (!hasForegroundLocation()) {
+            binding.networkValue.setText(R.string.network_no_permission)
+            return
+        }
+
+        val snapshot = radio.sample()
+        val plmn = listOfNotNull(snapshot.mcc, snapshot.mnc)
+            .takeIf { it.size == 2 }
+            ?.joinToString("-")
+        val name = snapshot.operatorName
+
+        binding.networkValue.text = when {
+            name != null && plmn != null -> "$name · $plmn"
+            name != null -> name
+            plmn != null -> plmn
+            // No name and no code: the modem is not attached to anything. Not
+            // an error — it is the finding this whole app exists to collect.
+            else -> getString(R.string.network_none)
+        }
     }
 
     /**
