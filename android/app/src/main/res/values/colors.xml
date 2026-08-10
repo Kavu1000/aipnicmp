@@ -3,10 +3,6 @@
     <!-- Matches the "no network at all" red of the public map, so the collector
          and the map it feeds read as one system. -->
     <color name="primary">#C1121F</color>
-    <!-- Behind the launcher mark only. Not `primary`: that is the
-         no-service red, and the mark's own red band would disappear
-         into it. Dark also keeps all three bands legible at 48dp. -->
-    <color name="launcher_background">#16202C</color>
     <color name="on_primary">#FFFFFF</color>
 
     <!-- The five states, in the same colours the map uses. A collector who has
