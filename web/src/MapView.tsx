@@ -438,7 +438,29 @@ export function MapView({
         type: "fill",
         source: AREAS_SOURCE,
         filter: ["!=", ["geometry-type"], "Point"],
-        paint: { "fill-color": COLOUR_EXPRESSION, "fill-opacity": 0.55 },
+        paint: {
+          "fill-color": COLOUR_EXPRESSION,
+          // Shaded as strongly as the evidence is thick.
+          //
+          // A flat opacity painted a whole district in the colour of whatever
+          // had been measured inside it — one hexagon covering 3% of
+          // Sisattanak made all 26 km² solid green, which reads as "this
+          // district has good coverage" rather than "one place in it was
+          // measured and was good". The dashboard is careful to report how
+          // little of the country is surveyed; the map has to be as careful.
+          //
+          // Never zero: an area that has been visited at all should be
+          // distinguishable from one nobody has been to, which is drawn grey.
+          "fill-opacity": [
+            "interpolate",
+            ["linear"],
+            ["get", "measured_share_pct"],
+            0, 0.1,
+            5, 0.24,
+            25, 0.45,
+            60, 0.6,
+          ],
+        },
       });
       instance.addLayer({
         id: "areas-line",

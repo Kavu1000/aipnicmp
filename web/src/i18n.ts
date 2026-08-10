@@ -142,6 +142,7 @@ export interface Strings {
   usersStatusRejected: string;
 
   legendPredicted: string;
+  legendAreaShading: string;
   legendCollector: string;
   legendUnmeasured: string;
   legendShow: string;
@@ -353,6 +354,8 @@ const en: Strings = {
   usersStatusRejected: "Rejected",
 
   legendPredicted: "Dashed and faded hexagons are predicted, not measured.",
+  legendAreaShading:
+    "A shaded province or district is coloured by what has been measured inside it, and shaded faintly when little of it has been. Pale does not mean poor coverage — it means little evidence.",
   legendCollector:
     "A collector's last reported hexagon — hollow once the phone has gone quiet. Not a live position.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
@@ -563,6 +566,8 @@ const lo: Strings = {
   usersStatusRejected: "ປະຕິເສດ",
 
   legendPredicted: "ຮູບຫົກແຈທີ່ເປັນເສັ້ນຂີດ ແລະ ຈາງ ແມ່ນການຄາດຄະເນ ບໍ່ແມ່ນການວັດແທກ.",
+  legendAreaShading:
+    "ແຂວງ ຫຼື ເມືອງ ທີ່ແຕ້ມສີ ໃຊ້ສີຕາມສິ່ງທີ່ວັດແທກໄດ້ພາຍໃນ ແລະ ຈະຈາງລົງເມື່ອວັດແທກໄດ້ໜ້ອຍ. ສີຈາງບໍ່ໄດ້ໝາຍຄວາມວ່າສັນຍານບໍ່ດີ — ແຕ່ໝາຍຄວາມວ່າມີຂໍ້ມູນໜ້ອຍ.",
   legendCollector:
     "ຮວງເຜິ້ງຫຼ້າສຸດທີ່ຜູ້ເກັບຂໍ້ມູນລາຍງານ — ເປັນວົງເປົ່າເມື່ອໂທລະສັບງຽບໄປ. ບໍ່ແມ່ນຕຳແໜ່ງສົດ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",

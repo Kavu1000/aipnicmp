@@ -130,11 +130,25 @@ async def area_children(
 
     features = []
     for child in children:
+        coverage = stats.get(child.code)
         properties = area_payload(child, include_boundary=False)
-        properties["coverage"] = stats.get(child.code)
+        properties["coverage"] = coverage
         # Grey until measured, so an unvisited district is visibly unvisited
         # rather than quietly shaded like a measured one.
-        properties["colour"] = (stats.get(child.code) or {}).get("colour", "grey")
+        properties["colour"] = (coverage or {}).get("colour", "grey")
+
+        # How much of the area the colour actually rests on.
+        #
+        # Sent flat, and alongside the colour, because the two belong together:
+        # a district with one hexagon in it has a colour, and painting it as
+        # confidently as a district with four hundred says something the
+        # measurements do not. One reading in Sisattanak covers 3% of it. The
+        # client shades by this, so thin evidence looks thin.
+        properties["measured_share_pct"] = (
+            round(coverage["measured_area_km2"] / child.area_km2 * 100, 3)
+            if coverage and child.area_km2
+            else 0.0
+        )
 
         geometry = child.boundary or {
             "type": "Point",

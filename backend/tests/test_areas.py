@@ -473,6 +473,41 @@ async def test_children_endpoint_returns_geometry_and_coverage_together(
         assert feature["properties"]["coverage"]["tiles"] > 0
 
 
+async def test_a_barely_measured_area_says_how_barely(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """A district with one hexagon in it has a colour, and painting it as
+    confidently as a fully surveyed one claims something the measurements do
+    not. The client shades by this, so thin evidence looks thin."""
+    await seed_areas(session)
+    await seed_journey(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+
+    body = (await client.get(f"/api/v1/areas/{PROVINCE}/children")).json()
+    south = next(
+        f for f in body["features"] if f["properties"]["code"] == DISTRICT_SOUTH
+    )
+
+    share = south["properties"]["measured_share_pct"]
+    assert 0 < share < 100
+    # It must agree with the two figures it is derived from, or the map and the
+    # summary panel would tell different stories about the same district.
+    coverage = south["properties"]["coverage"]
+    expected = coverage["measured_area_km2"] / south["properties"]["area_km2"] * 100
+    assert abs(share - expected) < 0.01
+
+
+async def test_an_unmeasured_area_reports_no_share_rather_than_a_missing_one(
+    client: AsyncClient, session: AsyncSession
+):
+    """Always a number, because the map interpolates opacity from it and a null
+    would take the whole layer out."""
+    await seed_areas(session)
+
+    body = (await client.get(f"/api/v1/areas/{PROVINCE}/children")).json()
+    assert all(f["properties"]["measured_share_pct"] == 0.0 for f in body["features"])
+
+
 async def test_an_unmeasured_child_is_grey_not_quietly_shaded(
     client: AsyncClient, session: AsyncSession
 ):

@@ -65,6 +65,10 @@ export function Legend({ t }: { t: Strings }) {
         <p>
           <span className="swatch swatch-predicted" /> {t.legendPredicted}
         </p>
+        {/* Without this the shading looks like a quality scale rather than a
+            confidence one, and a faintly green district reads as slightly worse
+            coverage instead of barely surveyed. */}
+        <p>{t.legendAreaShading}</p>
         <p>{t.legendUnmeasured}</p>
       </div>
     </div>
