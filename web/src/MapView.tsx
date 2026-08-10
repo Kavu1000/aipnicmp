@@ -25,6 +25,7 @@ const AREAS_POINT = "areas-point";
 /** The selected area's own border, and the dimming of everything outside it. */
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
+const COLLECTORS_COUNT_LAYER = "collector-count";
 const OUTLINE_SOURCE = "area-outline";
 const MASK_SOURCE = "area-mask";
 const BORDER_LAYER = "area-border";
@@ -401,21 +402,41 @@ export function MapView({
       // Truthiness, not `!== null`: an older server omits the field entirely,
       // and `undefined !== null` is true — which passed the filter and then
       // threw on the first property read, taking the whole page down with it.
-      features: collectors
-        .flatMap((row) =>
-          row.position
-            ? [
-                {
-                  type: "Feature" as const,
-                  geometry: {
-                    type: "Point" as const,
-                    coordinates: [row.position.lon, row.position.lat],
-                  },
-                  properties: { id: row.id, reporting: row.is_reporting === true },
-                },
-              ]
-            : [],
-        ),
+      // Grouped by position, because the position is a hexagon centroid and
+      // two phones in one hexagon therefore have identical coordinates. Drawn
+      // one feature each, they stack exactly and a fleet of five looks like a
+      // fleet of one — which is what a collector sitting beside a colleague
+      // sees. The count goes on the marker instead.
+      features: Object.values(
+        collectors.reduce<
+          Record<
+            string,
+            {
+              type: "Feature";
+              geometry: { type: "Point"; coordinates: number[] };
+              properties: { count: number; reporting: boolean };
+            }
+          >
+        >((grouped, row) => {
+          if (!row.position) return grouped;
+          const key = `${row.position.lon},${row.position.lat}`;
+          const existing = grouped[key];
+          if (existing) {
+            existing.properties.count += 1;
+            // One phone still uploading is enough for the place to count as
+            // live; a marker going hollow because a second phone went flat
+            // would misreport the first.
+            existing.properties.reporting ||= row.is_reporting === true;
+            return grouped;
+          }
+          grouped[key] = {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [row.position.lon, row.position.lat] },
+            properties: { count: 1, reporting: row.is_reporting === true },
+          };
+          return grouped;
+        }, {}),
+      ),
     }) as unknown as GeoJsonData,
     [collectors],
   );
@@ -689,12 +710,41 @@ export function MapView({
           // so the fleet gets a hue from outside that scale entirely, and
           // whether a phone is reporting is carried by fill rather than by hue:
           // solid when it has uploaded recently, hollow when it has gone quiet.
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 3.5, 12, 7],
+          // Grows a little when it stands for more than one phone, so the
+          // number has somewhere to sit and a shared hexagon is visibly
+          // different from a single collector before the label is read.
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            6, ["case", [">", ["get", "count"], 1], 6, 3.5],
+            12, ["case", [">", ["get", "count"], 1], 11, 7],
+          ],
           "circle-color": ["case", ["get", "reporting"], "#4f46e5", "#ffffff"],
           "circle-opacity": 1,
           "circle-stroke-width": 2,
           "circle-stroke-color": ["case", ["get", "reporting"], "#ffffff", "#4f46e5"],
           "circle-stroke-opacity": 1,
+        },
+      });
+
+      // How many phones that marker stands for. Only where it is more than
+      // one: a "1" on every single collector would be noise.
+      instance.addLayer({
+        id: COLLECTORS_COUNT_LAYER,
+        type: "symbol",
+        source: COLLECTORS_SOURCE,
+        filter: [">", ["get", "count"], 1],
+        layout: {
+          "text-field": ["to-string", ["get", "count"]],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 12, 13],
+          "text-font": ["Noto Sans Bold", "Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          // Reads against both states of the disc it sits on.
+          "text-color": ["case", ["get", "reporting"], "#ffffff", "#4f46e5"],
         },
       });
 
