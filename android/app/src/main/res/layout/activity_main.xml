@@ -103,12 +103,20 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!--
+            Tappable: from Android 11 the "Allow all the time" choice cannot be
+            requested from a dialog at all, so a warning that only states the
+            problem leaves the reader with nowhere to go. This opens the app's
+            own settings page.
+        -->
         <TextView
             android:id="@+id/permissionWarning"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:background="@drawable/bg_warning"
+            android:clickable="true"
+            android:focusable="true"
             android:lineSpacingExtra="3dp"
             android:paddingHorizontal="14dp"
             android:paddingVertical="12dp"

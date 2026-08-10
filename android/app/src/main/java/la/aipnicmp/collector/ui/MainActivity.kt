@@ -512,9 +512,62 @@ class MainActivity : AppCompatActivity() {
             getColor(if (prefs.apiBaseUrlIsCustom) R.color.calls_only else R.color.muted)
         )
 
-        binding.permissionWarning.visibility =
-            if (hasForegroundLocation() && hasBackgroundLocation()) android.view.View.GONE
-            else android.view.View.VISIBLE
+        showPermissionWarning()
+    }
+
+    /**
+     * Say which permission is missing, and give a way to grant it.
+     *
+     * These are two different problems. Without foreground location the phone
+     * cannot see cells at all; with it, but without background location,
+     * everything works until the screen goes off. One warning covering both
+     * told collectors who had granted foreground location that their phone
+     * could not read signal strength — which was untrue, and left them with
+     * nothing to do about it either.
+     *
+     * The remedy differs too. Foreground location can still be asked for in a
+     * dialog. "Allow all the time" cannot, from Android 11 onwards: the system
+     * shows no prompt for it, and the only route is the app's own settings
+     * page. So the warning opens that page.
+     */
+    private fun showPermissionWarning() {
+        val foreground = hasForegroundLocation()
+        val background = hasBackgroundLocation()
+
+        if (foreground && background) {
+            binding.permissionWarning.visibility = android.view.View.GONE
+            return
+        }
+
+        binding.permissionWarning.visibility = android.view.View.VISIBLE
+        binding.permissionWarning.setText(
+            if (foreground) R.string.warning_background_location else R.string.warning_permissions
+        )
+        binding.permissionWarning.setOnClickListener {
+            if (!foreground) requestPermissions() else openAppSettings()
+        }
+    }
+
+    /**
+     * The app's own page in Settings, which is where "Allow all the time"
+     * lives. Falls back to the full settings list on a device whose launcher
+     * does not answer the direct intent — rare, but a dead button in a warning
+     * is worse than one extra tap.
+     */
+    private fun openAppSettings() {
+        val direct = Intent(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            android.net.Uri.fromParts("package", packageName, null),
+        )
+        try {
+            startActivity(direct)
+        } catch (_: android.content.ActivityNotFoundException) {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+            } catch (_: android.content.ActivityNotFoundException) {
+                showMessage(getString(R.string.warning_background_location))
+            }
+        }
     }
 
     private fun showMessage(message: String) {
