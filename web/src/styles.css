@@ -891,14 +891,6 @@ main {
   max-width: 11rem;
 }
 
-.area-root {
-  padding: 0.4rem 0.2rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
 /* ---------- selected area summary ---------- */
 
 .area-summary {
@@ -1612,13 +1604,6 @@ main {
   .select {
     padding: 0.35rem 0.5rem;
     font-size: 0.8rem;
-  }
-
-  /* "Lao People's Democratic Republic" is the official name and it costs a
-     whole row on a phone to state something this map never stops being about.
-     The province select's "All provinces" already means the whole country. */
-  .area-root {
-    display: none;
   }
 
   /* One scrolling row instead of a wrapped block: five stacked statistics cost

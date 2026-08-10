@@ -134,14 +134,12 @@ export function AreaFilter({ strings, language, onChange, selected }: Props) {
       {DEPTHS.map((depth) => {
         const choices = options[depth];
         if (!choices?.length) return null;
-        // The country row is a label, not a choice, when there is only one.
-        if (depth === 0 && choices.length === 1) {
-          return (
-            <span key={depth} className="area-root" title={strings.areaCountry}>
-              {areaName(choices[0], language)}
-            </span>
-          );
-        }
+        // With one country there is nothing to choose, so nothing is shown.
+        // It named itself — at length, since the boundary data carries the
+        // full official form — while never changing and never being
+        // selectable, and "All provinces" already means the whole country.
+        // A control that cannot be operated is not a control.
+        if (depth === 0 && choices.length === 1) return null;
         return (
           <select
             key={depth}
