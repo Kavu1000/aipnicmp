@@ -42,7 +42,15 @@ if [ ! -f local.properties ]; then
     echo "wrote local.properties -> $ANDROID_HOME"
 fi
 
-./gradlew "${@:-test assembleDebug}"
+# Quoting "${@:-test assembleDebug}" passes the default as a *single* argument,
+# so bare ./build.sh asked Gradle for one task literally named
+# "test assembleDebug" and failed. Setting the positional parameters instead
+# keeps them two words, and still quotes anything the caller passed.
+if [ "$#" -eq 0 ]; then
+    set -- test assembleDebug
+fi
+
+./gradlew "$@"
 
 if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
     echo
