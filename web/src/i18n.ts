@@ -34,6 +34,8 @@ export interface Strings {
   menu: string;
   basemapStreets: string;
   basemapSatellite: string;
+  terrain: string;
+  terrainHint: string;
 
   collectorsTitle: string;
   collectorsSubtitle: string;
@@ -229,6 +231,9 @@ const en: Strings = {
   menu: "Menu",
   basemapStreets: "Map",
   basemapSatellite: "Satellite",
+  terrain: "3D",
+  terrainHint:
+    "Tilt the map and show the terrain. Relief is exaggerated slightly so ridges read at this scale. Uses more data.",
 
   collectorsTitle: "Collectors",
   collectorsSubtitle:
@@ -447,6 +452,9 @@ const lo: Strings = {
   menu: "ເມນູ",
   basemapStreets: "ແຜນທີ່",
   basemapSatellite: "ພາບດາວທຽມ",
+  terrain: "3D",
+  terrainHint:
+    "ອຽງແຜນທີ່ ແລະ ສະແດງພູມສັນຖານ. ຄວາມສູງຖືກຂະຫຍາຍເລັກນ້ອຍເພື່ອໃຫ້ເຫັນສັນພູໄດ້ຊັດ. ໃຊ້ຂໍ້ມູນຫຼາຍຂຶ້ນ.",
 
   collectorsTitle: "ອຸປະກອນເກັບຂໍ້ມູນ",
   collectorsSubtitle:

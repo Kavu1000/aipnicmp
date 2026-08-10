@@ -73,6 +73,58 @@ const SATELLITE_TILES: maplibregl.RasterSourceSpecification = {
 };
 
 /**
+ * Elevation, for the 3D view.
+ *
+ * Terrain is not decoration on this map. Lao coverage gaps are largely a
+ * terrain story — a valley with no line of sight to a mast reads as an
+ * inexplicable red patch flat on, and as an obvious one when the ridge between
+ * them is visible. Proposal 2.5 leans on the same fact when it models where a
+ * tower would help.
+ *
+ * AWS's public terrain tiles, for the reason the satellite layer uses EOX:
+ * no API key, so there is one less credential for a pilot to manage or leak.
+ *
+ * Loaded only when the view is switched on. A raster-dem source costs nothing
+ * until something asks it for elevation, which matters on the provincial links
+ * this map is meant to be usable over.
+ */
+const TERRAIN_SOURCE = "terrain-dem";
+
+const TERRAIN_TILES: maplibregl.RasterDEMSourceSpecification = {
+  type: "raster-dem",
+  tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+  encoding: "terrarium",
+  tileSize: 256,
+  maxzoom: 13,
+  attribution:
+    '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a> (AWS Open Data)',
+};
+
+/**
+ * Vertical exaggeration.
+ *
+ * Laos rises about 2 km over roughly 1,000 km, so true-to-scale relief is
+ * nearly invisible at the zoom where a province fits on screen. This is a
+ * cartographic convention rather than a measurement, and the only figure on
+ * this map that is deliberately not literal — hence a modest value, and hence
+ * saying so here.
+ */
+const TERRAIN_EXAGGERATION = 1.4;
+
+/**
+ * Tilted enough to read a ridge line, not so far that the map becomes a wall.
+ *
+ * Must stay within MAX_PITCH below. MapLibre defaults its limit to 60 and
+ * silently ignores a request past it — asking for 62 left the map perfectly
+ * flat with terrain switched on, which looks like broken terrain rather than a
+ * rejected camera move.
+ */
+const TERRAIN_PITCH = 65;
+
+/** Room above TERRAIN_PITCH so the reader can tilt further by hand. */
+const MAX_PITCH = 78;
+
+/**
  * Labels legible over dark imagery.
  *
  * Positron sets dark grey text with a white halo, which is right on a pale
@@ -120,6 +172,46 @@ const EMPTY_GEOJSON = { type: "FeatureCollection", features: [] } as const;
  */
 const MASK_COLOUR = "#f5f7fa";
 const MASK_OPACITY = 0.66;
+
+/**
+ * Raise or flatten the landscape.
+ *
+ * Tilting is what makes terrain legible — relief seen from directly overhead
+ * is just shading — so the camera pitches with it and returns to flat, facing
+ * north, on the way back. Rotation is left wherever the reader put it while
+ * tilted, but a bearing on a flat map is disorienting with nothing to explain
+ * it, so going back to 2D resets that too.
+ */
+function applyTerrain(map: maplibregl.Map, on: boolean): void {
+  if (!map.getSource(TERRAIN_SOURCE)) return;
+
+  map.setTerrain(
+    on ? { source: TERRAIN_SOURCE, exaggeration: TERRAIN_EXAGGERATION } : null,
+  );
+
+  // A tilted map with no sky ends at a hard edge where the ground stops.
+  // Guarded because setSky is not in every MapLibre version this might build
+  // against, and a missing horizon is not worth a broken map.
+  if (typeof map.setSky === "function") {
+    map.setSky(
+      on
+        ? {
+            "sky-color": "#a8c6e8",
+            "horizon-color": "#e8eef6",
+            "fog-color": "#eef1f5",
+            "horizon-fog-blend": 0.7,
+            "sky-horizon-blend": 0.6,
+          }
+        : {},
+    );
+  }
+
+  map.easeTo({
+    pitch: on ? TERRAIN_PITCH : 0,
+    bearing: on ? map.getBearing() : 0,
+    duration: 700,
+  });
+}
 
 /**
  * Show or hide the imagery, and adapt the basemap around it.
@@ -231,6 +323,8 @@ interface Props {
   summary: Summary | null;
   basemap: Basemap;
   flyTo: FlyTarget | null;
+  /** Tilted, with real elevation under the hexagons. */
+  terrain: boolean;
   /** Child areas shaded by coverage, or null when hexagons carry the view. */
   childAreas: AreaChildren | null;
   /** The selected area's border, outlined and used to dim everything else. */
@@ -274,6 +368,7 @@ export function MapView({
   summary,
   basemap,
   flyTo,
+  terrain,
   childAreas,
   areaOutline,
   fitTo,
@@ -341,6 +436,8 @@ export function MapView({
   const basemapLayers = useRef<BasemapLayer[]>([]);
   const currentBasemap = useRef(basemap);
   currentBasemap.current = basemap;
+  const currentTerrain = useRef(terrain);
+  currentTerrain.current = terrain;
 
   /**
    * Whether `style.load` has fired.
@@ -361,6 +458,9 @@ export function MapView({
       style: STREETS_STYLE,
       center: INITIAL_VIEW ? [INITIAL_VIEW.lon, INITIAL_VIEW.lat] : INITIAL_CENTRE,
       zoom: INITIAL_VIEW ? INITIAL_VIEW.zoom : INITIAL_ZOOM,
+      // Past MapLibre's default of 60, which is not enough to look along a
+      // valley — the view terrain is worth switching on for.
+      maxPitch: MAX_PITCH,
       attributionControl: { compact: true },
     });
     map.current = instance;
@@ -369,7 +469,13 @@ export function MapView({
       (window as unknown as { map?: maplibregl.Map }).map = instance;
     }
 
-    instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    // The compass is shown, and is the way back: dragging with two fingers
+    // rotates and tilts the map whether or not anyone meant to, and without it
+    // there is no obvious way to get north pointing up again.
+    instance.addControl(
+      new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }),
+      "top-right",
+    );
     // Bottom right, not the default bottom left, which is where the legend
     // lives — the scale bar was being drawn underneath it. MapLibre stacks
     // controls sharing a corner, so it sits tidily above the attribution.
@@ -407,6 +513,12 @@ export function MapView({
           type: layer.type,
           paint: { ...((layer as { paint?: Record<string, unknown> }).paint ?? {}) },
         }));
+
+      // Declared now, drawn only if the 3D view is switched on: a raster-dem
+      // source fetches nothing until terrain asks it for elevation.
+      if (!instance.getSource(TERRAIN_SOURCE)) {
+        instance.addSource(TERRAIN_SOURCE, TERRAIN_TILES);
+      }
 
       if (!instance.getSource(SATELLITE_SOURCE)) {
         instance.addSource(SATELLITE_SOURCE, SATELLITE_TILES);
@@ -622,6 +734,7 @@ export function MapView({
       adoptStyle();
       addLayers();
       styleReady.current = true;
+      if (currentTerrain.current) applyTerrain(instance, true);
       // The fallback style can arrive after the user has already chosen
       // satellite, so the choice is re-applied rather than assumed.
       applyBasemap(instance, currentBasemap.current, basemapLayers.current);
@@ -689,6 +802,12 @@ export function MapView({
     if (!instance || !styleReady.current) return;
     applyBasemap(instance, basemap, basemapLayers.current);
   }, [basemap]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !styleReady.current) return;
+    applyTerrain(instance, terrain);
+  }, [terrain]);
 
   useEffect(() => {
     const instance = map.current;

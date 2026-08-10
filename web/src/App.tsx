@@ -67,6 +67,9 @@ export function App() {
   const [view, setView] = useState<View>("map");
   const [menuOpen, setMenuOpen] = useState(false);
   const [basemap, setBasemap] = useState<Basemap>("streets");
+  // Off by default. Terrain is a second set of tiles to fetch, and this map is
+  // meant to be usable from a provincial office on a slow link.
+  const [terrain, setTerrain] = useState(false);
   const [tiles, setTiles] = useState<TileCollection>(EMPTY);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -434,6 +437,21 @@ export function App() {
               </div>
             )}
 
+            {/* Separate from the basemap, because it is a different question:
+                what the ground is made of, versus whether you can see its
+                shape. Either combination is useful — relief under imagery, or
+                relief under a plain map. */}
+            {view === "map" && (
+              <button
+                className={terrain ? "toggle-3d on" : "toggle-3d"}
+                onClick={() => setTerrain((on) => !on)}
+                aria-pressed={terrain}
+                title={t.terrainHint}
+              >
+                {t.terrain}
+              </button>
+            )}
+
             {view === "map" && (
               <AreaFilter
                 strings={t}
@@ -547,6 +565,7 @@ export function App() {
               summary={summary}
               basemap={basemap}
               flyTo={flyTo}
+              terrain={terrain}
               childAreas={childAreas}
               areaOutline={areaOutline}
               fitTo={fitTo}

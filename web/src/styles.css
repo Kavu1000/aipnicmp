@@ -266,6 +266,33 @@ body,
   box-shadow: 0 1px 2px rgb(16 32 44 / 12%);
 }
 
+/* Matches the segmented control beside it, but stands alone: it answers a
+   different question from the basemap and either can be on. */
+.toggle-3d {
+  flex: none;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-3d:hover {
+  color: var(--ink);
+}
+
+.toggle-3d.on {
+  background: var(--sidebar);
+  border-color: var(--sidebar);
+  color: #ffffff;
+}
+
 .menu-button {
   display: none;
   border: none;
