@@ -1,22 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Grouped into cards rather than run together as one column.
+
+  Everything used to sit in a single list: mode beside queue depth beside the
+  server address, all weighted the same, so the screen read as a dump of every
+  value the app happened to hold. A collector opens this to answer one of three
+  questions — is it recording, is anything stuck on the phone, can it reach the
+  server — and each of those is now a card they can find without reading the
+  others.
+
+  Order follows how often those questions are asked. Recording first, because
+  it is the reason the app is open. The server last, because a collector should
+  never need it.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="@color/page"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:paddingBottom="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="20dp">
 
-        <!--
-          Title on the left, language on the right, matching the dashboard.
-
-          The switcher is in-app rather than only in system settings: a
-          collector handed a phone configured by somebody else should be able
-          to read the screen without changing the language of the whole device.
-        -->
+        <!-- Header: title on the left, language on the right, like the map. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -26,6 +39,7 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -34,29 +48,32 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/app_name"
-                    android:textSize="22sp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="21sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/appTagline"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="3dp"
+                    android:lineSpacingExtra="2dp"
                     android:text="@string/app_tagline"
-                    android:textSize="14sp" />
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- One control showing the language in use, like the web picker. -->
             <LinearLayout
                 android:id="@+id/languageChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="top"
                 android:layout_marginStart="12dp"
                 android:background="@drawable/bg_language_chip"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
-                android:minHeight="40dp"
+                android:minHeight="38dp"
                 android:orientation="horizontal"
                 android:paddingStart="10dp"
                 android:paddingEnd="8dp">
@@ -74,6 +91,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="7dp"
                     android:text="@string/language_english"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
 
                 <ImageView
@@ -90,297 +108,361 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:background="#FFF7E6"
-            android:padding="12dp"
+            android:background="@drawable/bg_warning"
+            android:lineSpacingExtra="3dp"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="12dp"
             android:text="@string/warning_permissions"
-            android:textColor="#6B4E00"
-            android:textSize="13sp"
-            android:visibility="gone" />
+            android:textColor="@color/warning_text"
+            android:textSize="13sp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/label_mode"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <TextView
-            android:id="@+id/modeValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/mode_offline"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/label_status"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <TextView
-            android:id="@+id/statusValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/status_not_enrolled"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/toggleButton"
+        <!-- 1. Is it recording? -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Material3.CardView.Filled"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/action_start" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="24dp"
-            android:background="#DDDDDD" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/label_queued"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <TextView
-            android:id="@+id/queuedValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textSize="28sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/hint_queued"
-            android:textSize="12sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/label_oldest"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <TextView
-            android:id="@+id/oldestValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/none"
-            android:textSize="16sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal">
+            app:cardBackgroundColor="@color/card"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/hairline"
+            app:strokeWidth="1dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/label_sent"
-                    android:textSize="12sp"
-                    android:textAllCaps="true" />
+                    android:text="@string/label_status" />
 
                 <TextView
-                    android:id="@+id/sentValue"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/statusValue"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="20sp"
+                    android:text="@string/status_not_enrolled"
+                    android:textSize="19sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/label_mode" />
+
+                <TextView
+                    android:id="@+id/modeValue"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/mode_offline"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/toggleButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/action_start"
+                    android:textSize="16sp"
+                    app:cornerRadius="26dp" />
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 2. Is anything stuck on the phone? -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Material3.CardView.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/card"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/hairline"
+            app:strokeWidth="1dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/label_rejected"
-                    android:textSize="12sp"
-                    android:textAllCaps="true" />
+                    android:text="@string/label_queued" />
 
                 <TextView
-                    android:id="@+id/rejectedValue"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/queuedValue"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="20sp"
+                    android:text="@string/none"
+                    android:textSize="30sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    style="@style/FieldHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hint_queued" />
+
+                <!-- Three figures across one row: they are read together, and
+                     stacked they pushed the server card off the screen. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/FieldLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_sent" />
+
+                        <TextView
+                            android:id="@+id/sentValue"
+                            style="@style/FieldValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/none"
+                            android:textColor="@color/good"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/FieldLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_rejected" />
+
+                        <TextView
+                            android:id="@+id/rejectedValue"
+                            style="@style/FieldValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/none"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/FieldLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_oldest" />
+
+                        <TextView
+                            android:id="@+id/oldestValue"
+                            style="@style/FieldValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/none"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/label_last_upload" />
+
+                <TextView
+                    android:id="@+id/lastUploadValue"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/never"
+                    android:textSize="15sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/recordsButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="-8dp"
+                        android:text="@string/action_view_records" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/uploadButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/action_upload_now" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. Can it reach the server? -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Material3.CardView.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/card"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/hairline"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/connection_label" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/connectionDot"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/status_dot" />
+
+                    <TextView
+                        android:id="@+id/connectionValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/connection_unknown"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/connectionDetail"
+                    style="@style/FieldHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/checkConnectionButton"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-8dp"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/action_check_connection" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="14dp"
+                    android:background="@color/hairline" />
+
+                <TextView
+                    style="@style/FieldLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_server" />
+
+                <TextView
+                    android:id="@+id/serverDisplay"
+                    style="@style/FieldValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/serverAdvanced"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/serverValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_server"
+                        android:importantForAutofill="no"
+                        android:inputType="textUri"
+                        android:maxLines="1"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/saveServerButton"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="-8dp"
+                            android:text="@string/action_save_server" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/resetServerButton"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/action_reset_server" />
+                    </LinearLayout>
+
+                    <TextView
+                        style="@style/FieldHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hint_server_help" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            style="@style/FieldHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/label_last_upload"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <TextView
-            android:id="@+id/lastUploadValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/never"
-            android:textSize="16sp" />
-
-        <Button
-            android:id="@+id/recordsButton"
-            style="?attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/action_view_records" />
-
-        <Button
-            android:id="@+id/uploadButton"
-            style="?attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/action_upload_now" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/connection_label"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <View
-                android:id="@+id/connectionDot"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/status_dot" />
-
-            <TextView
-                android:id="@+id/connectionValue"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/connection_unknown"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/connectionDetail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/checkConnectionButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/action_check_connection" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/label_server"
-            android:textSize="12sp"
-            android:textAllCaps="true" />
-
-        <!--
-          Read-only by default. A collector has no reason to retype a server
-          address, and every chance to mistype one — the field is how a handset
-          ended up stranded on a laptop's wifi address, silently collecting
-          nothing, for a day.
-
-          The controls are not deleted, only hidden behind a long press on the
-          address. If the server ever moves, the alternative recovery is
-          reinstalling, and uninstalling wipes the queue and the signing key —
-          the one set of records that cannot be collected again.
-        -->
-        <TextView
-            android:id="@+id/serverDisplay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:textSize="15sp" />
-
-        <LinearLayout
-            android:id="@+id/serverAdvanced"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <EditText
-                android:id="@+id/serverValue"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/hint_server"
-                android:importantForAutofill="no"
-                android:inputType="textUri"
-                android:maxLines="1"
-                android:textSize="14sp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/saveServerButton"
-                    style="?attr/borderlessButtonStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/action_save_server" />
-
-                <Button
-                    android:id="@+id/resetServerButton"
-                    style="?attr/borderlessButtonStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/action_reset_server" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/hint_server_help"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/privacy_note"
-            android:textSize="12sp" />
-
+            android:text="@string/privacy_note" />
     </LinearLayout>
 </ScrollView>

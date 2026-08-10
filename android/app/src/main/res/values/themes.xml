@@ -1,7 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Collector" parent="Theme.Material3.DayNight">
+    <!--
+      No action bar. The screen carries its own header — title, tagline and the
+      language picker — and the system bar above it repeated the app's name
+      verbatim, so the words "Coverage Collector" appeared twice within an inch
+      of each other and cost a line of a short screen.
+    -->
+    <style name="Theme.Collector" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="android:colorBackground">@color/page</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+    </style>
+
+    <!-- The small capitals above each figure. One style, so they cannot drift
+         apart from screen to screen. -->
+    <style name="FieldLabel">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/muted</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+
+    <style name="FieldValue">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:layout_marginTop">2dp</item>
+    </style>
+
+    <style name="FieldHint">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/muted</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
     </style>
 </resources>

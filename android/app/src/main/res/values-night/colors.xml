@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The theme is Material3.DayNight, so a phone in dark mode was already drawing
+  this app dark — against colours only ever chosen for a white background. The
+  warning banner came out cream-on-black and the muted grey was nearly
+  invisible. These are the same roles, valued for a dark surface.
+-->
+<resources>
+    <!-- Lifted off pure black: the state colours need something to sit on. -->
+    <color name="page">#12161C</color>
+    <color name="card">#1A1F27</color>
+    <color name="hairline">#2A313B</color>
+    <color name="text_primary">#ECEFF3</color>
+    <color name="muted">#98A2B0</color>
+
+    <!-- Brightened, because the light values fail against a dark card. -->
+    <color name="good">#3DD07F</color>
+    <color name="weak">#E0B72E</color>
+    <color name="calls_only">#F59331</color>
+    <color name="unusable">#FF7043</color>
+
+    <color name="warning_bg">#33280A</color>
+    <color name="warning_text">#F5D67B</color>
+    <color name="chip_bg">#232A34</color>
+</resources>

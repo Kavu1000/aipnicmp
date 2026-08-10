@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/warning_bg" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <!-- A bar down the leading edge, so the banner reads as a caution at a
+         glance rather than as another block of text. -->
+    <item android:start="0dp" android:end="-10dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/calls_only" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:start="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/warning_bg" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</layer-list>

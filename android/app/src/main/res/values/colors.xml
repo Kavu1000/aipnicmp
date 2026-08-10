@@ -12,4 +12,14 @@
     <color name="calls_only">#E07B00</color>
     <color name="unusable">#D64500</color>
     <color name="muted">#5A6675</color>
+
+    <!-- Surfaces. Overridden wholesale in values-night; every one of these is
+         paired there, so nothing keeps a light value on a dark screen. -->
+    <color name="page">#F5F7FA</color>
+    <color name="card">#FFFFFF</color>
+    <color name="hairline">#E2E7EE</color>
+    <color name="text_primary">#131A24</color>
+    <color name="warning_bg">#FFF8E1</color>
+    <color name="warning_text">#7A5B00</color>
+    <color name="chip_bg">#FFFFFF</color>
 </resources>
