@@ -50,6 +50,37 @@ def normalise_mnc(mnc: str | None) -> str | None:
     return digits.zfill(2) if len(digits) < 2 else digits
 
 
+def lookup_mncs(mnc: str) -> tuple[str, ...]:
+    """The forms of an MNC worth looking up, most literal first.
+
+    An MNC is two or three digits and the length is meaningful in principle,
+    but Android reports whichever the SIM happens to encode: the same Lao
+    Telecom SIM appears as "01" on one handset and "001" on another. Looking up
+    only the literal value files those as two different networks — the same
+    split that "LTC" and "LAO TELECOM" caused, one layer down.
+
+    So a three-digit form with a leading zero also tries its two-digit form.
+    Safe here because no Lao network uses a three-digit MNC; a country that had
+    one would need this reconsidered.
+    """
+    if len(mnc) == 3 and mnc.startswith("0"):
+        return (mnc, mnc[1:])
+    return (mnc,)
+
+
+def reported_mnc_forms(table_mnc: str) -> tuple[str, ...]:
+    """The inverse: every form a handset might report for a table entry.
+
+    :func:`lookup_mncs` goes from what arrived to what to look up, which suits
+    Python. SQL needs the other direction — the table entry is the constant and
+    the column is the unknown — so a network stored as "01" has to match both
+    "01" and "001" in the measurements.
+    """
+    if len(table_mnc) == 2:
+        return (table_mnc, f"0{table_mnc}")
+    return (table_mnc,)
+
+
 def canonical_operator(
     mcc: str | None, mnc: str | None, reported_name: str | None
 ) -> str | None:
@@ -59,14 +90,17 @@ def canonical_operator(
     with no network at all has no operator, and inventing one would put dead
     zones on some carrier's ledger.
     """
-    key = (mcc.strip() if mcc else None, normalise_mnc(mnc))
-    if key[0] and key[1]:
-        known = NETWORK_NAMES.get((key[0], key[1]))
-        if known:
-            return known
+    code = mcc.strip() if mcc else None
+    normalised = normalise_mnc(mnc)
+
+    if code and normalised:
+        for candidate in lookup_mncs(normalised):
+            known = NETWORK_NAMES.get((code, candidate))
+            if known:
+                return known
         # An unrecognised network still has a stable identity; showing it as
         # "457-05" is honest, and obviously a code rather than a company.
-        return f"{key[0]}-{key[1]}"
+        return f"{code}-{normalised}"
 
     name = (reported_name or "").strip()
     return name or None

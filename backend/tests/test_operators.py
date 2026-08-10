@@ -39,6 +39,25 @@ def test_every_spelling_of_one_network_resolves_to_one_name():
         assert canonical_operator("457", "01", reported) == "Lao Telecom"
 
 
+def test_a_three_digit_mnc_is_the_same_network_as_its_two_digit_form():
+    """Android reports whichever form the SIM encodes, so the same Lao Telecom
+    SIM arrives as "01" from one handset and "001" from another. Matching only
+    the literal value splits them into two networks — the LTC / LAO TELECOM bug
+    one layer down."""
+    assert canonical_operator("457", "001", None) == "Lao Telecom"
+    assert canonical_operator("457", "002", None) == "ETL"
+    assert canonical_operator("457", "003", None) == "Unitel"
+    assert canonical_operator("457", "008", None) == "Tplus"
+
+    for reported in ("01", "1", "001"):
+        assert canonical_operator("457", reported, "whatever") == "Lao Telecom"
+
+
+def test_an_unrecognised_three_digit_mnc_is_not_folded_into_a_two_digit_one():
+    """The padding rule must not invent a match. 457-015 is not 457-15."""
+    assert canonical_operator("457", "015", None) == "457-015"
+
+
 def test_a_single_digit_mnc_is_the_same_network_as_its_padded_form():
     assert canonical_operator("457", "1", "LTC") == canonical_operator("457", "01", "LTC")
     assert normalise_mnc("1") == "01"

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from sqlalchemy import String, and_, case, func, literal, or_
 
-from app.core.operators import NETWORK_NAMES
+from app.core.operators import NETWORK_NAMES, reported_mnc_forms
 from app.models.measurement import Measurement
 
 
@@ -40,8 +40,14 @@ def canonical_operator_column():
     name — see app/core/operators.py for why one company otherwise appears as
     several."""
     mnc = padded_mnc()
+    # Matches every form of the MNC the table entry could arrive as — "01" and
+    # "001" are the same Lao Telecom SIM read off two different handsets, and
+    # matching only the literal value files them as two networks. Kept in step
+    # with lookup_mncs() in app/core/operators.py, which does this for the
+    # collector list; the two disagreeing would be worse than either being
+    # wrong on its own.
     known = [
-        (and_(Measurement.mcc == mcc, mnc == network_mnc), name)
+        (and_(Measurement.mcc == mcc, mnc.in_(reported_mnc_forms(network_mnc))), name)
         for (mcc, network_mnc), name in NETWORK_NAMES.items()
     ]
     return case(
