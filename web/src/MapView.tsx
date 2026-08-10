@@ -370,7 +370,13 @@ export function MapView({
     }
 
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    instance.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }));
+    // Bottom right, not the default bottom left, which is where the legend
+    // lives — the scale bar was being drawn underneath it. MapLibre stacks
+    // controls sharing a corner, so it sits tidily above the attribution.
+    instance.addControl(
+      new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
+      "bottom-right",
+    );
 
     const observer = new ResizeObserver(() => instance.resize());
     observer.observe(container.current);

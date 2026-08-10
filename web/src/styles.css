@@ -624,8 +624,16 @@ main {
   gap: 0.5rem;
 }
 
+.legend-head {
+  /* A hairline under the title, so the colour scale reads as a list under a
+     heading rather than as one undifferentiated block of text. */
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+
 .legend-head h2 {
-  margin: 0 0 0.6rem;
+  margin: 0;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -639,7 +647,9 @@ main {
   line-height: 1;
   color: var(--muted);
   cursor: pointer;
-  margin-top: -0.4rem;
+  /* No negative offset: the title no longer carries the gap below it, so the
+     close button can simply sit on the same line. */
+  padding: 0;
 }
 
 .legend ul {
@@ -2039,6 +2049,15 @@ main {
   border: 2px solid #ffffff;
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgb(79 70 229 / 45%);
+}
+
+/* The two swatches that sit inline in a sentence rather than in the list.
+   `.swatch` is laid out for a flex row, where `margin-top` centres it; in a
+   paragraph that margin just pushes it off the line. */
+.legend-note .swatch {
+  display: inline-block;
+  margin-top: 0;
+  vertical-align: -2px;
 }
 
 /* Enrolments with no readings — present, but not counted as a fleet. */
