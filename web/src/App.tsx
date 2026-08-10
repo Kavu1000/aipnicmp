@@ -86,6 +86,7 @@ export function App() {
   const [collectors, setCollectors] = useState<Collector[]>([]);
   const [live, setLive] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
+  const [sessionReachable, setSessionReachable] = useState(true);
 
   const t = TRANSLATIONS[language];
 
@@ -209,15 +210,21 @@ export function App() {
       .then(setSession)
       // A session endpoint that cannot be reached is a server that cannot be
       // reached. Assume closed rather than open.
-      .catch(() =>
+      .catch(() => {
+        // Closed, but honestly closed. Substituting an empty client id made
+        // an unreachable server indistinguishable from an unconfigured one,
+        // and the sign-in screen then told the administrator to go and
+        // configure something that was already correct. The commonest cause
+        // is the API restarting during a redeploy — a wait, not a fix.
+        setSessionReachable(false);
         setSession({
           auth_enabled: true,
           google_client_id: "",
           authenticated: false,
           approved: false,
           user: null,
-        }),
-      );
+        });
+      });
     return () => controller.abort();
   }, []);
 
@@ -377,6 +384,7 @@ export function App() {
         t={t}
         language={language}
         languageNames={LANGUAGE_NAMES}
+        serverReachable={sessionReachable}
         onLanguageChange={changeLanguage}
         onSignedIn={(next) => setSession({ ...session, ...next })}
         onSignOut={handleSignOut}

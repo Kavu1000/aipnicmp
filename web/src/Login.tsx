@@ -104,6 +104,12 @@ interface Props {
   onSignedIn: (session: SessionState) => void;
   onSignOut: () => void;
   languageNames: Record<string, string>;
+  /**
+   * Whether the session request actually reached the server. False means the
+   * API could not be contacted at all, which looks identical to an
+   * unconfigured one from here unless it is said out loud.
+   */
+  serverReachable?: boolean;
 }
 
 export function Login({
@@ -114,6 +120,7 @@ export function Login({
   onSignedIn,
   onSignOut,
   languageNames,
+  serverReachable = true,
 }: Props) {
   const buttonHost = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +133,7 @@ export function Login({
   useEffect(() => {
     if (awaitingApproval) return;
     if (!session.google_client_id) {
-      setError(t.loginNotConfigured);
+      setError(serverReachable ? t.loginNotConfigured : t.loginUnreachable);
       return;
     }
 
@@ -182,7 +189,7 @@ export function Login({
     return () => {
       cancelled = true;
     };
-  }, [session.google_client_id, awaitingApproval, t, onSignedIn]);
+  }, [session.google_client_id, awaitingApproval, serverReachable, t, onSignedIn]);
 
   return (
     <div className="login">

@@ -107,6 +107,7 @@ export interface Strings {
   loginFailed: string;
   loginScriptFailed: string;
   loginNotConfigured: string;
+  loginUnreachable: string;
   loginPendingTitle: string;
   loginPendingBody: string;
   loginRejectedTitle: string;
@@ -305,6 +306,8 @@ const en: Strings = {
     "Could not reach Google to sign in. Check the internet connection and try again.",
   loginNotConfigured:
     "Google sign-in is not configured on this server yet. Contact the administrator.",
+  loginUnreachable:
+    "Cannot reach the server. It may be restarting after an update — reload in a moment. Nothing needs configuring.",
   loginPendingTitle: "Waiting for approval",
   loginPendingBody:
     "Your account has been created and a super administrator has been asked to approve it. You will be able to sign in as soon as they do — there is nothing else you need to do.",
@@ -507,6 +510,8 @@ const lo: Strings = {
   loginFailed: "ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.",
   loginScriptFailed: "ຕິດຕໍ່ Google ບໍ່ໄດ້. ກະລຸນາກວດສອບອິນເຕີເນັດ ແລ້ວລອງໃໝ່.",
   loginNotConfigured: "ເຊີບເວີຍັງບໍ່ໄດ້ຕັ້ງຄ່າການເຂົ້າສູ່ລະບົບດ້ວຍ Google. ກະລຸນາຕິດຕໍ່ຜູ້ດູແລລະບົບ.",
+  loginUnreachable:
+    "ຕິດຕໍ່ເຊີບເວີບໍ່ໄດ້. ອາດກຳລັງເລີ່ມໃໝ່ຫຼັງອັບເດດ — ກະລຸນາໂຫຼດໜ້າໃໝ່ໃນອີກບໍ່ດົນ. ບໍ່ຈຳເປັນຕ້ອງຕັ້ງຄ່າຫຍັງ.",
   loginPendingTitle: "ກຳລັງລໍຖ້າການອະນຸມັດ",
   loginPendingBody:
     "ສ້າງບັນຊີຂອງທ່ານແລ້ວ ແລະ ໄດ້ແຈ້ງໃຫ້ຜູ້ດູແລລະບົບສູງສຸດອະນຸມັດ. ທ່ານຈະເຂົ້າໃຊ້ໄດ້ທັນທີທີ່ໄດ້ຮັບການອະນຸມັດ — ບໍ່ຕ້ອງເຮັດຫຍັງເພີ່ມ.",
