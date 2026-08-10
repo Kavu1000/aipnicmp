@@ -36,6 +36,18 @@ export function Collectors({ t }: { t: Strings }) {
 
   const simulated = rows.length - real;
 
+  /**
+   * Enrolments that have never sent a reading.
+   *
+   * Almost always a phone that was reinstalled. The install id lives in app
+   * data and the signing key lives in the Keystore, where it cannot be backed
+   * up by design — so a reinstall cannot resume the old identity and enrols a
+   * new one. Six identities for two handsets is what that looks like, and
+   * listing them together made a fleet look three times its real size.
+   */
+  const reporting = rows.filter((row) => row.records_accepted + row.records_rejected > 0);
+  const dormant = rows.filter((row) => row.records_accepted + row.records_rejected === 0);
+
   return (
     <section className="panel">
       <header className="panel-head">
@@ -66,7 +78,7 @@ export function Collectors({ t }: { t: Strings }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {reporting.map((row) => (
                 <tr key={row.id} className={row.is_simulated ? "muted-row" : undefined}>
                   <td>
                     <span className="device-name">{row.model ?? row.id}</span>
@@ -89,6 +101,27 @@ export function Collectors({ t }: { t: Strings }) {
               ))}
             </tbody>
           </table>
+
+          {/* Kept, not hidden: each of these holds a signing key that once
+              signed real records, and an administrator looking at the fleet
+              should be able to see that they exist. Separated so they stop
+              being counted as working collectors. */}
+          {dormant.length > 0 && (
+            <div className="dormant">
+              <h3>
+                {t.collectorsDormant.replace("%N%", String(dormant.length))}
+              </h3>
+              <p className="dormant-why">{t.collectorsDormantWhy}</p>
+              <ul>
+                {dormant.map((row) => (
+                  <li key={row.id}>
+                    <span className="device-name">{row.model ?? row.id}</span>
+                    <span className="device-meta">{row.id}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </section>

@@ -44,6 +44,8 @@ export interface Strings {
   collectorsRejectRate: string;
   collectorsSimulated: string;
   collectorsNone: string;
+  collectorsDormant: string;
+  collectorsDormantWhy: string;
   collectorsRealCount: string;
 
   overviewTitle: string;
@@ -236,6 +238,9 @@ const en: Strings = {
   collectorsRejectRate: "Refused",
   collectorsSimulated: "simulated",
   collectorsNone: "No collectors have enrolled yet.",
+  collectorsDormant: "%N% enrolments with no readings",
+  collectorsDormantWhy:
+    "Almost always the same handset after a reinstall. The signing key lives in the phone's secure hardware and cannot be backed up, so a reinstalled app has to enrol as a new device. These are kept rather than deleted, but they are not working collectors.",
   collectorsRealCount: "%REAL% real, %SIM% simulated",
 
   overviewTitle: "Coverage overview",
@@ -445,6 +450,9 @@ const lo: Strings = {
   collectorsRejectRate: "ອັດຕາປະຕິເສດ",
   collectorsSimulated: "ຈຳລອງ",
   collectorsNone: "ຍັງບໍ່ມີອຸປະກອນລົງທະບຽນ.",
+  collectorsDormant: "%N% ການລົງທະບຽນທີ່ຍັງບໍ່ມີການວັດແທກ",
+  collectorsDormantWhy:
+    "ສ່ວນຫຼາຍແມ່ນເຄື່ອງເກົ່າທີ່ຕິດຕັ້ງແອັບໃໝ່. ກະແຈລົງລາຍເຊັນເກັບຢູ່ໃນຮາດແວປອດໄພຂອງໂທລະສັບ ແລະ ສຳຮອງບໍ່ໄດ້ ດັ່ງນັ້ນແອັບທີ່ຕິດຕັ້ງໃໝ່ຈຶ່ງຕ້ອງລົງທະບຽນເປັນເຄື່ອງໃໝ່. ລາຍການເຫຼົ່ານີ້ຖືກເກັບໄວ້ ແຕ່ບໍ່ແມ່ນຜູ້ເກັບຂໍ້ມູນທີ່ໃຊ້ງານຢູ່.",
   collectorsRealCount: "ຈິງ %REAL% · ຈຳລອງ %SIM%",
 
   overviewTitle: "ພາບລວມການຄອບຄຸມ",

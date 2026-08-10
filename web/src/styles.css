@@ -2041,3 +2041,38 @@ main {
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgb(79 70 229 / 45%);
 }
+
+/* Enrolments with no readings — present, but not counted as a fleet. */
+.dormant {
+  margin-block-start: 1.25rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.dormant h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.dormant-why {
+  margin: 0.3rem 0 0.7rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-inline-size: 60ch;
+}
+
+.dormant ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.4rem 1rem;
+}
+
+.dormant li {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.75;
+}
