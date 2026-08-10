@@ -57,6 +57,8 @@ export interface Bounds {
 export interface Summary {
   measurements: number;
   devices: number;
+  /** Everything ever enrolled, including handsets that reinstalled. */
+  devices_enrolled?: number;
   tiles: number;
   no_service_measurements: number;
   measured_area_km2: number;

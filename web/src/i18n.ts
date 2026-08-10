@@ -58,6 +58,7 @@ export interface Strings {
   statNoService: string;
   statDevices: string;
   statUpdated: string;
+  statEnrolled: string;
   live: string;
   railCollapse: string;
   railExpand: string;
@@ -252,7 +253,11 @@ const en: Strings = {
   statAreaMapped: "Area measured",
   statNoService: "Readings with no service",
   statDevices: "Contributing devices",
-  statUpdated: "Updated",
+  // Not "Updated": the map is rebuilt every minute, so that word described
+  // the aggregation while showing the age of the newest reading. With no
+  // collector out today it read "Updated 4 h" over a map rebuilt seconds ago.
+  statUpdated: "Last reading",
+  statEnrolled: "%N% enrolled",
   live: "Live",
   railCollapse: "Hide details",
   railExpand: "Show details",
@@ -464,7 +469,8 @@ const lo: Strings = {
   statAreaMapped: "ພື້ນທີ່ວັດແທກແລ້ວ",
   statNoService: "ຈຸດທີ່ບໍ່ມີສັນຍານ",
   statDevices: "ອຸປະກອນທີ່ຮ່ວມ",
-  statUpdated: "ອັບເດດ",
+  statUpdated: "ການວັດແທກຫຼ້າສຸດ",
+  statEnrolled: "ລົງທະບຽນແລ້ວ %N%",
   live: "ສົດ",
   railCollapse: "ເຊື່ອງລາຍລະອຽດ",
   railExpand: "ສະແດງລາຍລະອຽດ",

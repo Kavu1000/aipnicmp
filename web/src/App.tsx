@@ -500,6 +500,16 @@ export function App() {
             <div>
               <dt>{t.statDevices}</dt>
               <dd>{summary.devices.toLocaleString()}</dd>
+              {/* Enrolments sit underneath rather than in the headline. A
+                  reinstalled phone enrols again and cannot resume its old
+                  identity, so this number climbs without the fleet growing —
+                  true, and not what the headline figure is asked to say. */}
+              {summary.devices_enrolled != null &&
+                summary.devices_enrolled !== summary.devices && (
+                  <span className="sub">
+                    {t.statEnrolled.replace("%N%", String(summary.devices_enrolled))}
+                  </span>
+                )}
             </div>
             <div>
               <dt>{t.statUpdated}</dt>
