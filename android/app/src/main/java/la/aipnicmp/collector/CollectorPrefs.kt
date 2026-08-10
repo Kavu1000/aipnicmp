@@ -121,6 +121,65 @@ class CollectorPrefs(context: Context) {
     val totalAccepted: Int get() = prefs.getInt(KEY_TOTAL_ACCEPTED, 0)
     val totalRejected: Int get() = prefs.getInt(KEY_TOTAL_REJECTED, 0)
 
+    /**
+     * The speed test's daily data allowance, in bytes.
+     *
+     * A hard ceiling, because this is the one thing the app does that spends a
+     * collector's own money. Everything else it sends is a few hundred bytes of
+     * measurement; a throughput run is a quarter of a megabyte deliberately
+     * thrown away. 20 MB is roughly eighty runs — far more than the sparse
+     * sampling needs, and still small enough to disappear inside any bundle.
+     */
+    val speedTestDailyBudgetBytes: Long
+        get() = 20L * 1024 * 1024
+
+    /** Bytes the speed test has spent today, reset when the day changes. */
+    val speedTestBytesToday: Long
+        get() {
+            rollDayIfNeeded()
+            return prefs.getLong(KEY_SPEEDTEST_BYTES, 0L)
+        }
+
+    val speedTestRunsToday: Int
+        get() {
+            rollDayIfNeeded()
+            return prefs.getInt(KEY_SPEEDTEST_RUNS, 0)
+        }
+
+    /**
+     * Whether another run is allowed right now.
+     *
+     * Checked before the run and charged after it, against what actually
+     * crossed the wire rather than what was requested — a run that dies halfway
+     * has still spent the collector's data, and pretending otherwise would let
+     * a failing link bill them repeatedly.
+     */
+    fun speedTestAllowed(): Boolean =
+        speedTestBytesToday + SPEEDTEST_RESERVE_BYTES <= speedTestDailyBudgetBytes
+
+    fun chargeSpeedTest(bytes: Long) {
+        rollDayIfNeeded()
+        prefs.edit()
+            .putLong(KEY_SPEEDTEST_BYTES, prefs.getLong(KEY_SPEEDTEST_BYTES, 0L) + bytes)
+            .putInt(KEY_SPEEDTEST_RUNS, prefs.getInt(KEY_SPEEDTEST_RUNS, 0) + 1)
+            .apply()
+    }
+
+    /**
+     * Local days, not rolling 24-hour windows: a collector reasons about "today",
+     * and a budget that refills at an arbitrary hour is one they cannot plan
+     * around.
+     */
+    private fun rollDayIfNeeded() {
+        val today = java.time.LocalDate.now().toEpochDay()
+        if (prefs.getLong(KEY_SPEEDTEST_DAY, -1L) == today) return
+        prefs.edit()
+            .putLong(KEY_SPEEDTEST_DAY, today)
+            .putLong(KEY_SPEEDTEST_BYTES, 0L)
+            .putInt(KEY_SPEEDTEST_RUNS, 0)
+            .apply()
+    }
+
     fun recordUploadResult(accepted: Int, rejected: Int) {
         prefs.edit()
             .putInt(KEY_TOTAL_ACCEPTED, totalAccepted + accepted)
@@ -146,6 +205,13 @@ class CollectorPrefs(context: Context) {
         }
 
     private companion object {
+        /** Held back so a run can never overshoot the ceiling it was checked against. */
+        const val SPEEDTEST_RESERVE_BYTES = 320L * 1024
+
+        const val KEY_SPEEDTEST_DAY = "speedtest_day"
+        const val KEY_SPEEDTEST_BYTES = "speedtest_bytes"
+        const val KEY_SPEEDTEST_RUNS = "speedtest_runs"
+
         /**
          * Bumped when a stored setting stops meaning what it used to. Currently
          * 1: the server address became read-only, so addresses saved under the

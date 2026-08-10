@@ -29,6 +29,24 @@ object NetworkStatus {
     }
 
     /**
+     * Whether the active connection is the cellular one.
+     *
+     * The speed test exists to say what the *mobile network* delivers at a
+     * place. Run it over wifi and it measures somebody's router, then files the
+     * answer against the hexagon as though a tower had produced it — a village
+     * hall with fibre would teach the model that its radio conditions imply
+     * 40 Mbps. Better to skip the test than to record that.
+     */
+    fun isCellular(context: Context): Boolean {
+        val manager = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
+            ?: return false
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    /**
      * Watch for changes, so the screen reflects reality rather than whatever was
      * true when it opened. Returns a handle the caller must release.
      */

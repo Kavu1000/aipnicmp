@@ -25,6 +25,7 @@ from app.api.v1 import (
     ingest,
     reports,
     sites,
+    speedtest,
     tiles,
     users,
 )
@@ -37,6 +38,9 @@ api_router.include_router(health.router)
 api_router.include_router(devices.router)
 api_router.include_router(ingest.router)
 api_router.include_router(admin.router)
+# The collector measures throughput against this, and it must work from a
+# handset that has not signed in to anything.
+api_router.include_router(speedtest.router)
 
 # Open because signing in is how you stop being anonymous.
 api_router.include_router(auth.router)

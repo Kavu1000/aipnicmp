@@ -51,7 +51,12 @@ class Sampler(
      * sent, so the server's own formatting of what it receives is a no-op and
      * the two sides cannot disagree about a half-way rounding case.
      */
-    fun buildSigned(location: Location, radio: RadioSampler.RadioSnapshot, nowMillis: Long): Measurement {
+    fun buildSigned(
+        location: Location,
+        radio: RadioSampler.RadioSnapshot,
+        nowMillis: Long,
+        speed: SpeedTest.Result? = null,
+    ): Measurement {
         val lat = CanonicalMessage.roundCoordinate(location.latitude)
         val lon = CanonicalMessage.roundCoordinate(location.longitude)
         val rsrp = radio.rsrpDbm?.let { CanonicalMessage.roundRsrp(it) }
@@ -90,6 +95,13 @@ class Sampler(
             level = radio.level,
             servingCell = radio.servingCell,
             neighbourCells = radio.neighbourCells,
+            // Outside the signed message on purpose. The signature covers what
+            // the radio reported; throughput is measured afterwards, by this
+            // app rather than by the modem, and folding it in would mean
+            // changing the canonical string on both sides for a field the
+            // server does not need to trust the same way.
+            downloadKbps = SpeedTest.round(speed?.downloadKbps),
+            latencyMs = SpeedTest.round(speed?.latencyMs),
             signature = DeviceKeystore.sign(message),
         )
     }

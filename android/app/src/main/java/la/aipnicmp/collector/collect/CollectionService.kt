@@ -54,7 +54,15 @@ class CollectionService : Service() {
         const val ACTION_STATE_CHANGED = "la.aipnicmp.collector.STATE_CHANGED"
 
         /** Above this, the fix came from wifi or cell towers rather than GPS. */
-        private const val MAX_ACCURACY_METRES = 50f
+        /**
+     * Samples between throughput tests. At 30s sampling this is roughly one
+     * test every twelve minutes of active collecting — sparse enough to be
+     * affordable, frequent enough to gather paired readings across a day's
+     * drive.
+     */
+    private const val SAMPLES_BETWEEN_SPEED_TESTS = 25
+
+    private const val MAX_ACCURACY_METRES = 50f
 
         /** Older than this and the phone may have moved since the fix was taken. */
         private const val MAX_FIX_AGE_MILLIS = 90_000L
@@ -85,9 +93,23 @@ class CollectionService : Service() {
 
     private var recordedThisSession = 0
 
+    /**
+     * One background thread for the sampling path.
+     *
+     * The location callback arrives on the main looper, and a throughput test
+     * is a network read of a quarter of a megabyte — on the main thread that is
+     * an immediate NetworkOnMainThreadException, and on a slow link it would
+     * freeze the UI for twenty seconds. A single thread rather than a pool so
+     * samples stay in order and two tests can never run at once.
+     */
+    private val work = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    /** Samples since the last throughput test, counting the sparse schedule. */
+    private var samplesSinceSpeedTest = SAMPLES_BETWEEN_SPEED_TESTS
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
-            result.lastLocation?.let { onLocation(it) }
+            result.lastLocation?.let { fix -> work.execute { onLocation(fix) } }
         }
     }
 
@@ -183,8 +205,9 @@ class CollectionService : Service() {
         if (now - fix.time > MAX_FIX_AGE_MILLIS) return
 
         val snapshot = radio.sample()
+        val speed = maybeMeasureSpeed(snapshot)
         val measurement = try {
-            sampler.buildSigned(fix, snapshot, now)
+            sampler.buildSigned(fix, snapshot, now, speed)
         } catch (error: Exception) {
             // Signing failed — a cleared Keystore, most likely. Recording
             // unsigned records would be worse than recording none, since the
@@ -210,6 +233,39 @@ class CollectionService : Service() {
             // nothing — which is the entire store-and-forward design.
             UploadScheduler.requestUpload(this)
         }
+    }
+
+    /**
+     * Run a throughput test, if this is one of the rare moments it is worth it.
+     *
+     * Refuses far more often than it agrees, and every condition below is a
+     * reason a reading would have been misleading rather than merely expensive:
+     *
+     * - not registered, or no usable data path: there is nothing to measure,
+     *   and a failed transfer is not a slow one;
+     * - not on cellular: over wifi this measures somebody's router and files
+     *   the answer against a hexagon as though a tower produced it;
+     * - budget spent: this is the only thing the app does that costs the
+     *   collector money, so the ceiling is hard rather than advisory.
+     *
+     * The sparse schedule is the point. Proposal 2.3 needs enough paired
+     * readings to learn the relationship between radio conditions and real
+     * throughput — a few dozen a day across varied terrain does that. One per
+     * sample would spend a collector's bundle to learn almost nothing extra.
+     */
+    private fun maybeMeasureSpeed(snapshot: RadioSampler.RadioSnapshot): SpeedTest.Result? {
+        samplesSinceSpeedTest++
+        if (samplesSinceSpeedTest < SAMPLES_BETWEEN_SPEED_TESTS) return null
+        if (!snapshot.registered) return null
+        if (!NetworkStatus.isCellular(this)) return null
+        if (!prefs.speedTestAllowed()) return null
+
+        samplesSinceSpeedTest = 0
+        val result = SpeedTest.run(prefs.apiBaseUrl)
+        // Charged with what actually crossed the wire, including a run that
+        // died halfway: the collector paid for those bytes either way.
+        prefs.chargeSpeedTest(result.bytesUsed)
+        return result.takeIf { it.downloadKbps != null || it.latencyMs != null }
     }
 
     private fun createChannel() {
@@ -259,6 +315,10 @@ class CollectionService : Service() {
 
     override fun onDestroy() {
         location.removeLocationUpdates(locationCallback)
+        // Shut down, not shutdownNow: a throughput test in flight has already
+        // spent the collector's data, so letting it finish and be charged is
+        // cheaper than killing it and paying for the same bytes again.
+        work.shutdown()
         isRunning = false
         super.onDestroy()
     }
