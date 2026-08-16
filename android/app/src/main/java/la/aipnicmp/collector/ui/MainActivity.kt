@@ -81,6 +81,12 @@ class MainActivity : AppCompatActivity() {
     ) { granted ->
         if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
             requestBackgroundLocation()
+            // Granting location is the answer to "may this phone survey?", so
+            // the survey starts. Asking someone to grant the permission and
+            // then press a button to use it is asking the same question twice,
+            // and on a phone handed to a partner the second question is the one
+            // that never gets answered.
+            enrolThenStart()
         } else {
             showMessage(getString(R.string.error_location_required))
         }
@@ -147,7 +153,34 @@ class MainActivity : AppCompatActivity() {
         // Watched rather than read once: a collector leaving town wants the
         // screen to say so as it happens, not when they next reopen the app.
         networkCallback = NetworkStatus.observe(this) { runOnUiThread { refresh() } }
+        resumeCollectionIfWanted()
         refresh()
+    }
+
+    /**
+     * Start collecting without anyone pressing anything.
+     *
+     * A phone handed to a bus driver or a health worker should be carrying out
+     * a survey, not waiting to be asked. Once enrolled it collects whenever the
+     * app is opened, exactly as it does after a reboot — BootReceiver has
+     * always worked this way, and opening the app should not be a weaker
+     * trigger than switching the phone on.
+     *
+     * Stop still means stop. The flag this reads is cleared when the button is
+     * pressed and set when collection starts, so a deliberate stop survives
+     * both a reopen and a reboot; otherwise the button would undo itself the
+     * next time the screen was unlocked, which is worse than having no button.
+     *
+     * Permissions are the one thing that cannot be assumed. Android grants them
+     * to a person, not to a configuration file, so a phone that has never been
+     * granted location shows the warning and waits rather than failing to start
+     * a service it is not allowed to run.
+     */
+    private fun resumeCollectionIfWanted() {
+        if (CollectionService.isRunning) return
+        if (!prefs.collectionEnabled || !prefs.enrolled) return
+        if (!hasForegroundLocation()) return
+        CollectionService.start(this)
     }
 
     override fun onPause() {
