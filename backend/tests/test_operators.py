@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.operators import NETWORK_NAMES, canonical_operator, normalise_mnc
+from app.models.measurement import Measurement
 from app.models.tile import H3TileOperator
 from app.services.aggregate import rebuild_tiles
 from app.services.geo import h3_centroid
@@ -281,3 +282,56 @@ async def test_an_incremental_rebuild_does_not_delete_the_rest_of_the_map(
 
     after = len((await session.scalars(select(H3TileOperator))).all())
     assert after == before
+
+
+async def test_a_roaming_sim_is_told_apart_from_a_mislabelled_table(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """The comparison that settles what a display name cannot.
+
+    A handset prints whatever its firmware chose, and the pilot fleet showed
+    ten of them contradicting the published MCC/MNC assignment on almost every
+    reading — leaving no way to tell whether the phones were wrong or the table
+    was. The SIM's own PLMN is encoded on the card: equal to the serving
+    network means ordinary service, different means roaming, and neither
+    depends on a marketing string.
+    """
+    await enroll(client, public_key_b64)
+
+    roaming = sign_record(
+        make_record(
+            record_id="rec-roam00000001",
+            operator={"mcc": "457", "mnc": "01", "name": "TPLUS Digital"},
+            sim_operator={"mcc": "457", "mnc": "08"},
+        ),
+        device_key,
+    )
+    home = sign_record(
+        make_record(
+            record_id="rec-home00000001",
+            # Same place, later — two readings sharing a timestamp two
+            # kilometres apart is a trajectory the server is right to refuse.
+            minutes_ago=20,
+            operator={"mcc": "457", "mnc": "01", "name": "whatever the firmware says"},
+            sim_operator={"mcc": "457", "mnc": "01"},
+        ),
+        device_key,
+    )
+
+    assert (
+        await client.post("/api/v1/measurements/batch", json=batch([roaming, home]))
+    ).json()["accepted"] == 2
+
+    stored = {
+        row.client_record_id: (row.mcc, row.mnc, row.sim_mcc, row.sim_mnc)
+        for row in (await session.scalars(select(Measurement))).all()
+    }
+
+    # A Tplus SIM carried by another network: for that subscriber, coverage
+    # here is the host's coverage, which is a roaming question rather than a
+    # tower question.
+    assert stored["rec-roam00000001"] == ("457", "01", "457", "08")
+
+    # Same misleading name, but the SIM agrees with the serving network, so
+    # nothing is roaming and the name is simply noise.
+    assert stored["rec-home00000001"] == ("457", "01", "457", "01")

@@ -108,6 +108,10 @@ class MeasurementIn(BaseModel):
     serving_cell: CellInfo | None = None
     neighbor_cells: list[CellInfo] = Field(default_factory=list, max_length=32)
     active_test: ActiveTest | None = None
+    # The SIM's own network. Differs from `operator` exactly when the phone
+    # is roaming, which is the only reliable way to tell that apart from a
+    # mislabelled PLMN table — a handset's printed name cannot.
+    sim_operator: OperatorInfo | None = None
 
     # What the device itself concluded. Stored for comparison, never trusted:
     # the server's own classification is authoritative.

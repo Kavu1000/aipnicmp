@@ -94,6 +94,12 @@ class Measurement(Base):
     mcc: Mapped[str | None] = mapped_column(String(3))
     mnc: Mapped[str | None] = mapped_column(String(3))
     operator_name: Mapped[str | None] = mapped_column(String(80))
+    # The SIM's home network, as encoded on the card, beside the network that
+    # actually served the reading. Equal means ordinary service; different
+    # means roaming — the one comparison that does not depend on the display
+    # name a handset chose to print.
+    sim_mcc: Mapped[str | None] = mapped_column(String(3))
+    sim_mnc: Mapped[str | None] = mapped_column(String(3))
 
     rsrp_dbm: Mapped[float | None] = mapped_column(Float)
     rsrq_db: Mapped[float | None] = mapped_column(Float)

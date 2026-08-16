@@ -78,6 +78,8 @@ def _build_measurement(
         mcc=record.operator.mcc if record.operator else None,
         mnc=record.operator.mnc if record.operator else None,
         operator_name=record.operator.name if record.operator else None,
+        sim_mcc=record.sim_operator.mcc if record.sim_operator else None,
+        sim_mnc=record.sim_operator.mnc if record.sim_operator else None,
         rsrp_dbm=record.signal.rsrp_dbm,
         rsrq_db=record.signal.rsrq_db,
         sinr_db=record.signal.sinr_db,

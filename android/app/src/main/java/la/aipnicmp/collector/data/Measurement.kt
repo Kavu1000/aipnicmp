@@ -48,6 +48,9 @@ data class Measurement(
     val mcc: String?,
     val mnc: String?,
     val operatorName: String?,
+    /** The SIM's own network, for telling roaming from a mislabelled table. */
+    val simMcc: String? = null,
+    val simMnc: String? = null,
     val rsrpDbm: Double?,
     val rsrqDb: Double?,
     val sinrDb: Double?,
@@ -100,6 +103,16 @@ data class Measurement(
         // An active test is only ever present when the device was registered;
         // the server rejects the combination outright, because a speed test
         // without a data connection cannot have happened.
+        if (simMcc != null && simMnc != null) {
+            // Outside the signed message, like the throughput fields: the
+            // signature covers what the radio reported about the place, and
+            // this describes the card in the phone.
+            put("sim_operator", JSONObject().apply {
+                put("mcc", simMcc)
+                put("mnc", simMnc)
+            })
+        }
+
         if (downloadKbps != null || latencyMs != null) {
             put("active_test", JSONObject().apply {
                 putOrNull("download_kbps", downloadKbps)

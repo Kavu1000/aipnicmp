@@ -39,6 +39,15 @@ class RadioSampler(private val context: Context) {
 
     data class RadioSnapshot(
         val registered: Boolean,
+        /**
+         * The network the SIM belongs to, which is not always the one serving
+         * it. Read from the SIM rather than from a display string: a handset's
+         * printed name is chosen by firmware and the pilot fleet showed ten of
+         * them disagreeing with the PLMN on almost every reading. This is the
+         * subscription's own MCC/MNC and cannot be a marketing label.
+         */
+        val simMcc: String? = null,
+        val simMnc: String? = null,
         val networkType: String?,
         val mcc: String?,
         val mnc: String?,
@@ -57,7 +66,8 @@ class RadioSampler(private val context: Context) {
         val manager = telephony
         if (manager == null || !hasPermission()) {
             return RadioSnapshot(
-                registered = false, networkType = null, mcc = null, mnc = null,
+                registered = false, simMcc = null, simMnc = null,
+                networkType = null, mcc = null, mnc = null,
                 operatorName = null, rsrpDbm = null, rsrqDb = null, sinrDb = null,
                 rssiDbm = null, level = null, servingCell = null, neighbourCells = emptyList(),
             )
@@ -124,10 +134,17 @@ class RadioSampler(private val context: Context) {
         // carried one — which is the normal case for a reading where towers are
         // visible but cannot be attached to.
         val (fallbackMcc, fallbackMnc) = plmnOf(manager.networkOperator)
+        // simOperator is the home network encoded on the card; networkOperator
+        // is whoever is carrying it now. They differ exactly when the phone is
+        // roaming, which is the one comparison that settles it without
+        // believing anything the handset chose to print.
+        val simPlmn = plmnOf(runCatching { manager.simOperator }.getOrNull())
 
         return RadioSnapshot(
             registered = registered,
             networkType = networkType,
+            simMcc = simPlmn.first,
+            simMnc = simPlmn.second,
             mcc = serving?.mcc ?: fallbackMcc,
             mnc = serving?.mnc ?: fallbackMnc,
             operatorName = manager.networkOperatorName?.takeIf { it.isNotBlank() },

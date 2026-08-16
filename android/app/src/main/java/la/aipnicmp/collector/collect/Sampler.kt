@@ -88,6 +88,8 @@ class Sampler(
             mcc = radio.mcc,
             mnc = radio.mnc,
             operatorName = radio.operatorName,
+            simMcc = radio.simMcc,
+            simMnc = radio.simMnc,
             rsrpDbm = rsrp,
             rsrqDb = radio.rsrqDb,
             sinrDb = radio.sinrDb,
