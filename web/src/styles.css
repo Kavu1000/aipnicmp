@@ -199,15 +199,30 @@ body,
 .topbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  /* Wraps at every width, not only below 900px. The controls have grown —
+     network, state, basemap, 3D, priority, shortfall, language — and with a
+     non-wrapping row the title was squeezed to about a hundred pixels and set
+     one word per line. Wrapping moves the controls to their own row instead of
+     destroying the heading, at whatever width that happens to be. */
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
   padding: 0.95rem 1.5rem;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 
 .topbar-title {
-  flex: 1;
+  /* A basis rather than `flex: 1`, so the heading holds a readable width and
+     is what forces the wrap when the controls stop fitting beside it. */
+  flex: 1 1 20rem;
   min-width: 0;
+}
+
+/* Breaking a heading mid-word to fit is worse than letting it overflow its
+   basis, and `balance` keeps a two-line title from leaving one orphan word. */
+.topbar-title h1 {
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 .topbar-title h1 {
@@ -225,8 +240,13 @@ body,
 
 .topbar-actions {
   display: flex;
+  align-items: center;
+  /* Wrap among themselves before the row overflows, and sit to the right of
+     the heading while they still fit beside it. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
-  flex: none;
+  flex: 1 1 auto;
 }
 
 .select {
@@ -1650,9 +1670,30 @@ main {
     flex: 1 1 100%;
   }
 
+  /* Below this the sidebar is gone and the controls have their own row. Seven
+     of them wrapped there cost 337px of a 768px tablet — a third of the screen
+     taken from the map they control. One scrolling strip instead: every
+     control stays reachable and the bar costs one row. Wrapping is right when
+     there is width to wrap into, and here there is not. */
   .topbar-actions {
     flex: 1 1 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    /* Momentum scrolling on iOS, and no scrollbar gutter stealing height. */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Controls keep their natural width inside the strip rather than being
+     squeezed until their labels truncate. */
+  .topbar-actions > * {
+    flex: 0 0 auto;
   }
 
   .page {

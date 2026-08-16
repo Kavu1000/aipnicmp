@@ -470,8 +470,8 @@ const en: Strings = {
   weakLegend:
     "Numbered outlines are the weak-4G hexagons reaching the most people. The rank is about who lives there, not about the signal.",
   weakBandAll: "Any shortfall",
-  weakBandUnder5: "Under 5 dB — inside vehicle loss",
-  weakBand5to10: "5 to 10 dB",
+  weakBandUnder5: "Under 5 dB",
+  weakBand5to10: "5–10 dB",
   weakBandOver10: "Over 10 dB",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
@@ -745,8 +745,8 @@ const lo: Strings = {
   weakLegend:
     "ເສັ້ນຂອບທີ່ມີໝາຍເລກ ຄືຮວງເຜິ້ງ 4G ອ່ອນ ທີ່ກະທົບຄົນຫຼາຍທີ່ສຸດ. ລຳດັບນີ້ກ່ຽວກັບຈຳນວນຄົນ ບໍ່ແມ່ນກ່ຽວກັບສັນຍານ.",
   weakBandAll: "ທຸກລະດັບ",
-  weakBandUnder5: "ຕ່ຳກວ່າ 5 dB — ຢູ່ໃນຂອບເຂດການສູນເສຍຂອງລົດ",
-  weakBand5to10: "5 ຫາ 10 dB",
+  weakBandUnder5: "ຕ່ຳກວ່າ 5 dB",
+  weakBand5to10: "5–10 dB",
   weakBandOver10: "ເກີນ 10 dB",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
