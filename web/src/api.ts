@@ -506,6 +506,36 @@ export async function fetchCells(operator?: string | null, signal?: AbortSignal)
 }
 
 
+/** One weak-4G hexagon, with the evidence that ranked it. */
+export interface WeakArea {
+  rank: number;
+  h3_index: string;
+  province: string;
+  district: string;
+  avg_rsrp_dbm: number;
+  shortfall_db: number;
+  shortfall_band: "under_5db" | "5_to_10db" | "over_10db";
+  population: number;
+  people_times_shortfall: number;
+  measurements: number;
+  distance_to_nearest_cell_m: number | "";
+  terrain_ruggedness_m: number | "";
+}
+
+export async function fetchWeakAreas(operator?: string | null, signal?: AbortSignal) {
+  const scope = operator ? `&operator=${encodeURIComponent(operator)}` : "";
+  return getJson<{
+    type: "FeatureCollection";
+    /** How many weak hexagons exist, against however many are returned. */
+    total: number;
+    features: {
+      type: "Feature";
+      geometry: { type: "Polygon"; coordinates: number[][][] };
+      properties: WeakArea;
+    }[];
+  }>(`/weak-areas?limit=20${scope}`, signal);
+}
+
 export interface TowerCount {
   operator: string;
   /** Distinct broadcast identities heard. */

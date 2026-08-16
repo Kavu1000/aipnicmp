@@ -91,6 +91,9 @@ export function Legend({ t }: { t: Strings }) {
             <span className="swatch swatch-mast-vague" /> {t.legendMastVagueShort}
           </p>
           <p>
+            <span className="swatch swatch-weak-mark" /> {t.weakLegend}
+          </p>
+          <p>
             <span className="swatch swatch-predicted" /> {t.legendPredicted}
           </p>
 

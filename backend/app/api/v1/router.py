@@ -30,6 +30,7 @@ from app.api.v1 import (
     speedtest,
     tiles,
     users,
+    weak_areas,
 )
 from app.services.auth import require_user
 
@@ -56,6 +57,7 @@ api_router.include_router(cells.router, dependencies=signed_in)
 api_router.include_router(reports.router, dependencies=signed_in)
 api_router.include_router(sites.router, dependencies=signed_in)
 api_router.include_router(exports.router, dependencies=signed_in)
+api_router.include_router(weak_areas.router, dependencies=signed_in)
 
 # Requires a super admin; the router enforces that itself.
 api_router.include_router(users.router)

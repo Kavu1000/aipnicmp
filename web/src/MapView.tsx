@@ -169,6 +169,22 @@ function phaseOf(key: string): number {
   return ((hash >>> 0) % 1000) / 1000;
 }
 
+const WEAK_SOURCE = "weak-areas";
+const WEAK_OUTLINE_LAYER = "weak-area-outline";
+const WEAK_RANK_LAYER = "weak-area-rank";
+
+/**
+ * The mark on a prioritised weak hexagon: an outline and a number, no fill.
+ *
+ * Near-black on purpose. Every other colour on this map already means
+ * something — five for the states, four for the networks, red and blue for
+ * collectors, purple for the link — and a sixth hue would be read as a sixth
+ * kind of measurement. An outline over the hexagon's own colour says "this
+ * one" without saying anything new about the coverage, which is the whole
+ * claim: the ranking is about who lives there, not about the signal.
+ */
+const WEAK_MARK = "#131a24";
+
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
 
@@ -506,6 +522,16 @@ interface Props {
   cells: GeoJsonData;
   /** Wording for the hover popup; kept out of this file so it stays translated. */
   collectorLabels: { collector: string; approximate: string; distanceUnclear: string };
+  /** The prioritised weak hexagons, and whether they are being marked. */
+  weakAreas: GeoJsonData;
+  showWeakAreas: boolean;
+  weakLabels: {
+    rank: string;
+    people: string;
+    shortfall: string;
+    toCell: string;
+    note: string;
+  };
   /** Shown when the view outruns the satellite imagery. */
   imageryLimitLabel: string;
   /** Wording for the mast popup, kept out of this file so it stays translated. */
@@ -555,6 +581,9 @@ export function MapView({
   fitTo,
   collectors,
   cells,
+  weakAreas,
+  showWeakAreas,
+  weakLabels,
   collectorLabels,
   imageryLimitLabel,
   cellLabels,
@@ -572,9 +601,14 @@ export function MapView({
   const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCells = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestWeak = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestLinks = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
-  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels });
-  handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels };
+  const handlers = useRef({
+    onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels, weakLabels,
+  });
+  handlers.current = {
+    onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels, weakLabels,
+  };
 
   /**
    * Positions as GeoJSON.
@@ -718,6 +752,33 @@ export function MapView({
       pulsingCells as never,
     );
   }, [pulsingCells]);
+
+  latestWeak.current = weakAreas;
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance?.getSource(WEAK_SOURCE)) return;
+    (instance.getSource(WEAK_SOURCE) as maplibregl.GeoJSONSource).setData(weakAreas as never);
+  }, [weakAreas]);
+
+  /**
+   * Marking is off until asked for.
+   *
+   * Twenty numbered outlines over a coverage map is a second reading of the
+   * same ground, and the first reading — the colour — is what most people came
+   * for. Toggled rather than always on, and toggled by hiding the layers
+   * rather than by removing them, so the state survives a basemap switch.
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance) return;
+    const visibility = showWeakAreas ? "visible" : "none";
+    for (const layer of [WEAK_OUTLINE_LAYER, WEAK_RANK_LAYER]) {
+      if (instance.getLayer(layer)) {
+        instance.setLayoutProperty(layer, "visibility", visibility);
+      }
+    }
+  }, [showWeakAreas, basemap]);
 
   useEffect(() => {
     const instance = map.current;
@@ -1127,6 +1188,39 @@ export function MapView({
         },
       });
 
+      // The prioritised weak hexagons, marked over the coverage and under
+      // everything that represents a thing in the world.
+      instance.addSource(WEAK_SOURCE, { type: "geojson", data: latestWeak.current });
+      instance.addLayer({
+        id: WEAK_OUTLINE_LAYER,
+        type: "line",
+        source: WEAK_SOURCE,
+        layout: { "line-join": "round", visibility: "none" },
+        paint: {
+          "line-color": WEAK_MARK,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.2, 14, 2.6],
+          "line-opacity": 0.85,
+        },
+      });
+      instance.addLayer({
+        id: WEAK_RANK_LAYER,
+        type: "symbol",
+        source: WEAK_SOURCE,
+        layout: {
+          "text-field": ["to-string", ["get", "rank"]],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 9, 10, 14, 14],
+          "text-allow-overlap": false,
+          visibility: "none",
+        },
+        paint: {
+          "text-color": WEAK_MARK,
+          // A white halo, because the number sits on yellow and orange fills
+          // that a dark glyph alone disappears into at small sizes.
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.8,
+        },
+      });
+
       // Base stations, drawn under the fleet and over the hexagons.
       //
       // Two layers, and the halo is the important one: it is the uncertainty
@@ -1367,6 +1461,43 @@ export function MapView({
           .setLngLat(feature.geometry.coordinates as [number, number])
           .setHTML(lines.join(""))
           .addTo(instance);
+      });
+
+      const weakPopup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 8,
+        className: "collector-popup",
+      });
+
+      instance.on("mousemove", WEAK_OUTLINE_LAYER, (event) => {
+        const feature = event.features?.[0] as MapGeoJSONFeature | undefined;
+        if (!feature) return;
+        instance.getCanvas().style.cursor = "pointer";
+
+        const p = feature.properties ?? {};
+        const labels = handlers.current.weakLabels;
+        const metres = Number(p.distance_to_nearest_cell_m ?? 0);
+        const lines = [
+          `<strong>${labels.rank} ${p.rank}</strong>`,
+          `<span class="collector-popup-coords">${labels.people}: ${Number(
+            p.population ?? 0,
+          ).toLocaleString()}</span>`,
+          `<span class="collector-popup-coords">${labels.shortfall}: ${p.shortfall_db} dB (${p.avg_rsrp_dbm} dBm)</span>`,
+          metres
+            ? `<span class="collector-popup-coords">${labels.toCell}: ${
+                metres >= 1000 ? `${(metres / 1000).toFixed(1)} km` : `${Math.round(metres)} m`
+              }</span>`
+            : "",
+          `<span class="collector-popup-note">${labels.note}</span>`,
+        ].filter(Boolean);
+
+        weakPopup.setLngLat(event.lngLat).setHTML(lines.join("")).addTo(instance);
+      });
+
+      instance.on("mouseleave", WEAK_OUTLINE_LAYER, () => {
+        instance.getCanvas().style.cursor = "";
+        weakPopup.remove();
       });
 
       instance.on("mouseleave", CELLS_LAYER, () => {

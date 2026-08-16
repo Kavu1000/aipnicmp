@@ -2498,3 +2498,11 @@ main {
 .method-table tr:last-child td {
   border-bottom: none;
 }
+
+/* The priority mark: an outline and a number, no fill — the same claim the map
+   makes, which is "this one" rather than a new fact about the signal. */
+.swatch-weak-mark {
+  border: 2px solid #131a24;
+  border-radius: 3px;
+  background: transparent;
+}

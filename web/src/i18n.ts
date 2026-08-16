@@ -181,6 +181,14 @@ export interface Strings {
   legendMastVagueShort: string;
   legendMore: string;
   linkDistanceUnclear: string;
+  weakMark: string;
+  weakMarkHint: string;
+  weakRank: string;
+  weakPeople: string;
+  weakShortfall: string;
+  weakToCell: string;
+  weakNote: string;
+  weakLegend: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -446,6 +454,17 @@ const en: Strings = {
   legendMastVagueShort: "Faded: could be out by more than 2 km.",
   legendMore: "How to read this map",
   linkDistanceUnclear: "distance unclear",
+  weakMark: "Priority",
+  weakMarkHint:
+    "Number the weak-4G hexagons by how many people the shortfall reaches. Measured coverage, not a recommendation.",
+  weakRank: "Priority",
+  weakPeople: "People",
+  weakShortfall: "Below the good line by",
+  weakToCell: "Nearest observed cell",
+  weakNote:
+    "Ranked by people times decibels short. Readings were taken inside vehicles, which costs 6-10 dB — check outside before spending on any of these.",
+  weakLegend:
+    "Numbered outlines are the weak-4G hexagons reaching the most people. The rank is about who lives there, not about the signal.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -706,6 +725,17 @@ const lo: Strings = {
   legendMastVagueShort: "ຈາງ: ອາດຄາດເຄື່ອນເກີນ 2 ກິໂລແມັດ.",
   legendMore: "ວິທີອ່ານແຜນທີ່ນີ້",
   linkDistanceUnclear: "ໄລຍະບໍ່ແນ່ນອນ",
+  weakMark: "ບຸລິມະສິດ",
+  weakMarkHint:
+    "ໃສ່ໝາຍເລກຮວງເຜິ້ງ 4G ອ່ອນ ຕາມຈຳນວນຄົນທີ່ໄດ້ຮັບຜົນກະທົບ. ເປັນການວັດແທກ ບໍ່ແມ່ນຄຳແນະນຳ.",
+  weakRank: "ບຸລິມະສິດ",
+  weakPeople: "ຈຳນວນຄົນ",
+  weakShortfall: "ຕ່ຳກວ່າເສັ້ນດີ",
+  weakToCell: "ເຊວທີ່ໃກ້ທີ່ສຸດ",
+  weakNote:
+    "ຈັດລຳດັບຕາມ ຈຳນວນຄົນ ຄູນ ເດຊິເບລທີ່ຂາດ. ການວັດແທກເຮັດຢູ່ໃນລົດ ຊຶ່ງເສຍ 6-10 dB — ໃຫ້ກວດຢູ່ນອກລົດກ່ອນໃຊ້ງົບປະມານ.",
+  weakLegend:
+    "ເສັ້ນຂອບທີ່ມີໝາຍເລກ ຄືຮວງເຜິ້ງ 4G ອ່ອນ ທີ່ກະທົບຄົນຫຼາຍທີ່ສຸດ. ລຳດັບນີ້ກ່ຽວກັບຈຳນວນຄົນ ບໍ່ແມ່ນກ່ຽວກັບສັນຍານ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",

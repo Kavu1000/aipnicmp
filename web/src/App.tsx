@@ -7,6 +7,7 @@ import {
   signOut,
   type SessionState,
   fetchCells,
+  fetchWeakAreas,
   fetchCollectors,
   fetchNetworks,
   fetchPriorityAreas,
@@ -101,6 +102,11 @@ export function App() {
   // Base stations the fleet has placed. Refreshed with everything else:
   // a new drive can place a mast that could not be placed before.
   const [cells, setCells] = useState<GeoJsonData>(EMPTY_GEOJSON);
+  // The weak-4G hexagons worth arguing about, and whether they are marked.
+  // Off by default: the colour is what most readers came for, and twenty
+  // numbered outlines over it is a second reading of the same ground.
+  const [weakAreas, setWeakAreas] = useState<GeoJsonData>(EMPTY_GEOJSON);
+  const [showWeakAreas, setShowWeakAreas] = useState(false);
   const [live, setLive] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
   const [sessionReachable, setSessionReachable] = useState(true);
@@ -327,6 +333,17 @@ export function App() {
    * minute the map would show one network's coverage under four networks'
    * transmitters.
    */
+  // Follows the network filter like the masts do, and is fetched whether or
+  // not it is being shown: twenty polygons cost nothing, and a toggle that
+  // waits for a request feels broken.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchWeakAreas(operator, controller.signal)
+      .then((body) => setWeakAreas(body as unknown as GeoJsonData))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [operator]);
+
   useEffect(() => {
     const controller = new AbortController();
     fetchCells(operator, controller.signal)
@@ -496,6 +513,20 @@ export function App() {
               </button>
             )}
 
+            {/* Marking the priority hexagons is a second reading of the same
+                ground, so it sits beside 3D as another thing the reader turns
+                on rather than something the map decides for them. */}
+            {view === "map" && (
+              <button
+                className={showWeakAreas ? "toggle-3d on" : "toggle-3d"}
+                onClick={() => setShowWeakAreas((on) => !on)}
+                aria-pressed={showWeakAreas}
+                title={t.weakMarkHint}
+              >
+                {t.weakMark}
+              </button>
+            )}
+
             {view === "map" && (
               <AreaFilter
                 strings={t}
@@ -644,6 +675,15 @@ export function App() {
               fitTo={fitTo}
               collectors={collectors}
               cells={cells}
+              weakAreas={weakAreas}
+              showWeakAreas={showWeakAreas}
+              weakLabels={{
+                rank: t.weakRank,
+                people: t.weakPeople,
+                shortfall: t.weakShortfall,
+                toCell: t.weakToCell,
+                note: t.weakNote,
+              }}
               collectorLabels={{
                 collector: t.collectorHere,
                 approximate: t.approxPosition,
