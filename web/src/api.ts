@@ -514,7 +514,7 @@ export interface WeakArea {
   district: string;
   avg_rsrp_dbm: number;
   shortfall_db: number;
-  shortfall_band: "under_5db" | "5_to_10db" | "over_10db";
+  shortfall_band: WeakBand;
   population: number;
   people_times_shortfall: number;
   measurements: number;
@@ -522,18 +522,28 @@ export interface WeakArea {
   terrain_ruggedness_m: number | "";
 }
 
-export async function fetchWeakAreas(operator?: string | null, signal?: AbortSignal) {
-  const scope = operator ? `&operator=${encodeURIComponent(operator)}` : "";
+export type WeakBand = "under_5db" | "5_to_10db" | "over_10db";
+
+export async function fetchWeakAreas(
+  options: { operator?: string | null; area?: string | null; band?: WeakBand | null } = {},
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({ limit: "20" });
+  if (options.operator) query.set("operator", options.operator);
+  if (options.area) query.set("area", options.area);
+  if (options.band) query.set("band", options.band);
   return getJson<{
     type: "FeatureCollection";
-    /** How many weak hexagons exist, against however many are returned. */
+    /** Weak hexagons in scope, before the area and band filters. */
     total: number;
+    /** How many survived those filters, against however many are returned. */
+    matched: number;
     features: {
       type: "Feature";
       geometry: { type: "Polygon"; coordinates: number[][][] };
       properties: WeakArea;
     }[];
-  }>(`/weak-areas?limit=20${scope}`, signal);
+  }>(`/weak-areas?${query.toString()}`, signal);
 }
 
 export interface TowerCount {

@@ -34,20 +34,45 @@ DEFAULT_LIMIT = 20
 @router.get("")
 async def weak_areas(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=200),
+    area: str | None = Query(default=None, description="Province, district or village code."),
+    band: str | None = Query(
+        default=None,
+        description="under_5db, 5_to_10db or over_10db.",
+        pattern="^(under_5db|5_to_10db|over_10db)$",
+    ),
     operator: str | None = Depends(enforce_scope),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    """The highest-ranked weak hexagons, as polygons carrying their rank."""
+    """The highest-ranked weak hexagons, as polygons carrying their rank.
+
+    Ranks are assigned over everything in scope and only then filtered, so a
+    number means the same thing whatever is being looked at: choosing a
+    district shows its hexagons still carrying their national positions —
+    ranks 3, 7 and 12 rather than a fresh 1, 2, 3 that would quietly imply the
+    district holds the worst three in the country.
+    """
     rows = await weak_area_rows(session, operator=operator)
+    matched = [
+        row
+        for row in rows
+        if (not band or row["shortfall_band"] == band)
+        and (
+            not area
+            or area in (row.get("adm1_code"), row.get("adm2_code"), row.get("adm3_code"))
+        )
+    ]
     return {
         "type": "FeatureCollection",
+        # Two totals, because "20 of 60" and "20 of 8" are different situations
+        # and a reader who cannot see the difference will assume the first.
         "total": len(rows),
+        "matched": len(matched),
         "features": [
             {
                 "type": "Feature",
                 "geometry": h3_polygon_geojson(row["h3_index"]),
                 "properties": row,
             }
-            for row in rows[:limit]
+            for row in matched[:limit]
         ],
     }

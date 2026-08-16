@@ -330,3 +330,61 @@ async def test_only_weak_hexagons_appear_in_the_weak_list(
     await _measure(client, session, device_key, public_key_b64)
     rows = await weak_area_rows(session)
     assert rows == [], "the default fixture is good coverage and must not appear"
+
+
+async def test_a_rank_means_the_same_thing_in_every_view(
+    client, session, device_key, public_key_b64
+):
+    """Filtering must not renumber what survives.
+
+    A district showing ranks 3, 7 and 12 says those are the third, seventh and
+    twelfth worst in scope. Renumbering them 1, 2, 3 would quietly claim the
+    district holds the three worst places in the country.
+    """
+    from app.api.v1.weak_areas import weak_areas as endpoint
+    from app.services.export import weak_area_rows
+
+    await enroll(client, public_key_b64)
+
+    async def drive(tag: str, *, lat: float, rsrp: float) -> None:
+        records = [
+            sign_record(
+                make_record(
+                    record_id=f"rec-{tag}{i:04d}", minutes_ago=90 - i, lat=lat, lon=BASE_LON,
+                    registered=True, network_type="LTE", cells=3,
+                    signal={"rsrp_dbm": rsrp, "level": 1},
+                ),
+                device_key,
+            )
+            for i in range(3)
+        ]
+        assert (
+            await client.post(
+                "/api/v1/measurements/batch", json=batch(records, batch_id=f"batch-{tag}")
+            )
+        ).json()["accepted"] == 3
+
+    await drive("bandA", lat=BASE_LAT, rsrp=-112.0)
+    await drive("bandB", lat=BASE_LAT + 0.05, rsrp=-125.0)
+    await rebuild_tiles(session)
+
+    everything = await weak_area_rows(session)
+    assert len(everything) == 2
+    deep = next(r for r in everything if r["shortfall_band"] == "over_10db")
+
+    filtered = await endpoint(limit=20, area=None, band="over_10db", operator=None, session=session)
+    assert filtered["total"] == 2, "the unfiltered count stays visible"
+    assert filtered["matched"] == 1
+    assert len(filtered["features"]) == 1
+    # The surviving row keeps the rank it had among all of them.
+    assert filtered["features"][0]["properties"]["rank"] == deep["rank"]
+
+
+async def test_the_csv_never_carries_the_area_codes_used_for_filtering(
+    client, session, device_key, public_key_b64
+):
+    """Internal join keys should not become columns somebody reads as data."""
+    from app.services.export import WEAK_AREA_COLUMNS
+
+    for code in ("adm1_code", "adm2_code", "adm3_code"):
+        assert code not in WEAK_AREA_COLUMNS

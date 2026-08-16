@@ -8,6 +8,7 @@ import {
   type SessionState,
   fetchCells,
   fetchWeakAreas,
+  type WeakBand,
   fetchCollectors,
   fetchNetworks,
   fetchPriorityAreas,
@@ -107,6 +108,7 @@ export function App() {
   // numbered outlines over it is a second reading of the same ground.
   const [weakAreas, setWeakAreas] = useState<GeoJsonData>(EMPTY_GEOJSON);
   const [showWeakAreas, setShowWeakAreas] = useState(false);
+  const [weakBand, setWeakBand] = useState<WeakBand | null>(null);
   const [live, setLive] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
   const [sessionReachable, setSessionReachable] = useState(true);
@@ -300,6 +302,23 @@ export function App() {
    * is added, not when a measurement lands, and reloading it would reset the
    * filter under the reader's cursor.
    */
+  /**
+   * The marked hexagons follow every filter the map has, and the clock.
+   *
+   * Fetched whether or not they are being shown — twenty polygons cost
+   * nothing, and a toggle that waits for a request feels broken — and
+   * refreshed on the same poll as the coverage, so a hexagon that stops being
+   * weak stops being marked without anybody reloading.
+   */
+  const loadWeakAreas = useCallback(
+    (signal?: AbortSignal) => {
+      fetchWeakAreas({ operator, area: areaCode, band: weakBand }, signal)
+        .then((body) => setWeakAreas(body as unknown as GeoJsonData))
+        .catch(() => undefined);
+    },
+    [operator, areaCode, weakBand],
+  );
+
   const refresh = useCallback(
     (signal?: AbortSignal) => {
       fetchSummary(signal).then(setSummary).catch(() => undefined);
@@ -309,9 +328,12 @@ export function App() {
       fetchCells(operator, signal)
         .then((body) => setCells(body as unknown as GeoJsonData))
         .catch(() => undefined);
+      loadWeakAreas(signal);
       if (!areaCode && lastBounds.current) loadTiles(lastBounds.current, { silent: true });
     },
-    [areaCode, loadTiles],
+    // `operator` was already reached through loadTiles rather than named here,
+    // which worked by accident. Named now, with the rest.
+    [areaCode, operator, loadTiles, loadWeakAreas],
   );
 
   useEffect(() => {
@@ -333,16 +355,11 @@ export function App() {
    * minute the map would show one network's coverage under four networks'
    * transmitters.
    */
-  // Follows the network filter like the masts do, and is fetched whether or
-  // not it is being shown: twenty polygons cost nothing, and a toggle that
-  // waits for a request feels broken.
   useEffect(() => {
     const controller = new AbortController();
-    fetchWeakAreas(operator, controller.signal)
-      .then((body) => setWeakAreas(body as unknown as GeoJsonData))
-      .catch(() => undefined);
+    loadWeakAreas(controller.signal);
     return () => controller.abort();
-  }, [operator]);
+  }, [loadWeakAreas]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -525,6 +542,24 @@ export function App() {
               >
                 {t.weakMark}
               </button>
+            )}
+
+            {/* Only while the marks are on. A filter for something invisible
+                is a control that appears to do nothing. */}
+            {view === "map" && showWeakAreas && (
+              <select
+                className="select"
+                value={weakBand ?? ""}
+                onChange={(event) =>
+                  setWeakBand((event.target.value || null) as WeakBand | null)
+                }
+                aria-label={t.weakMark}
+              >
+                <option value="">{t.weakBandAll}</option>
+                <option value="under_5db">{t.weakBandUnder5}</option>
+                <option value="5_to_10db">{t.weakBand5to10}</option>
+                <option value="over_10db">{t.weakBandOver10}</option>
+              </select>
             )}
 
             {view === "map" && (

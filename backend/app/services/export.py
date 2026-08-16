@@ -327,6 +327,13 @@ async def weak_area_rows(
                 "centroid_lon": round(tile.centroid_lon, 6),
                 "province": names.get(tile.adm1_code or "", ""),
                 "district": names.get(tile.adm2_code or "", ""),
+                # Not in WEAK_AREA_COLUMNS, so they never reach the CSV. They
+                # are here so an area filter can be applied after ranking
+                # rather than before it, which is what keeps a rank number
+                # meaning the same thing in every view.
+                "adm1_code": tile.adm1_code,
+                "adm2_code": tile.adm2_code,
+                "adm3_code": tile.adm3_code,
                 "avg_rsrp_dbm": round(tile.avg_rsrp_dbm, 1),
                 "shortfall_db": shortfall,
                 # Grouped by what the size of the gap implies, not by a guess

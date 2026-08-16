@@ -189,6 +189,10 @@ export interface Strings {
   weakToCell: string;
   weakNote: string;
   weakLegend: string;
+  weakBandAll: string;
+  weakBandUnder5: string;
+  weakBand5to10: string;
+  weakBandOver10: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -465,6 +469,10 @@ const en: Strings = {
     "Ranked by people times decibels short. Readings were taken inside vehicles, which costs 6-10 dB — check outside before spending on any of these.",
   weakLegend:
     "Numbered outlines are the weak-4G hexagons reaching the most people. The rank is about who lives there, not about the signal.",
+  weakBandAll: "Any shortfall",
+  weakBandUnder5: "Under 5 dB — inside vehicle loss",
+  weakBand5to10: "5 to 10 dB",
+  weakBandOver10: "Over 10 dB",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -736,6 +744,10 @@ const lo: Strings = {
     "ຈັດລຳດັບຕາມ ຈຳນວນຄົນ ຄູນ ເດຊິເບລທີ່ຂາດ. ການວັດແທກເຮັດຢູ່ໃນລົດ ຊຶ່ງເສຍ 6-10 dB — ໃຫ້ກວດຢູ່ນອກລົດກ່ອນໃຊ້ງົບປະມານ.",
   weakLegend:
     "ເສັ້ນຂອບທີ່ມີໝາຍເລກ ຄືຮວງເຜິ້ງ 4G ອ່ອນ ທີ່ກະທົບຄົນຫຼາຍທີ່ສຸດ. ລຳດັບນີ້ກ່ຽວກັບຈຳນວນຄົນ ບໍ່ແມ່ນກ່ຽວກັບສັນຍານ.",
+  weakBandAll: "ທຸກລະດັບ",
+  weakBandUnder5: "ຕ່ຳກວ່າ 5 dB — ຢູ່ໃນຂອບເຂດການສູນເສຍຂອງລົດ",
+  weakBand5to10: "5 ຫາ 10 dB",
+  weakBandOver10: "ເກີນ 10 dB",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",
