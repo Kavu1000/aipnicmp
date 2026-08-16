@@ -2056,11 +2056,24 @@ main {
 }
 
 /* Matches the map marker exactly, so the legend and the map cannot drift. */
+/* The legend swatch alternates with the marker, so the two cannot disagree
+   about what a collector looks like. Static under reduced motion, matching
+   the map. */
 .swatch-collector {
-  background: #4f46e5;
+  background: #e11d2f;
   border: 2px solid #ffffff;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgb(79 70 229 / 45%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 18%);
+  animation: collector-beacon 1.4s steps(1, end) infinite;
+}
+
+@keyframes collector-beacon {
+  0%, 50% { background: #e11d2f; }
+  50.01%, 100% { background: #1d4ed8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swatch-collector { animation: none; }
 }
 
 /* The two swatches that sit inline in a sentence rather than in the list.
@@ -2105,4 +2118,37 @@ main {
   display: flex;
   flex-direction: column;
   opacity: 0.75;
+}
+
+/* ---------- collector hover ---------- */
+
+.collector-popup .maplibregl-popup-content {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.collector-popup .maplibregl-popup-tip {
+  border-top-color: var(--panel);
+  border-bottom-color: var(--panel);
+}
+
+/* Tabular figures so the two coordinates line up under each other rather than
+   jittering as the digits change. */
+.collector-popup-coords {
+  display: block;
+  margin-block-start: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.collector-popup-note {
+  display: block;
+  margin-block-start: 0.3rem;
+  max-inline-size: 22ch;
+  color: var(--muted);
+  font-size: 0.72rem;
 }

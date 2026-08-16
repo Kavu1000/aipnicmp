@@ -570,6 +570,7 @@ export function App() {
               areaOutline={areaOutline}
               fitTo={fitTo}
               collectors={collectors}
+              collectorLabels={{ collector: t.collectorHere, approximate: t.approxPosition }}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
               onAreaSelect={setAreaCode}

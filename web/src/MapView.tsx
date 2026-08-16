@@ -25,6 +25,21 @@ const AREAS_POINT = "areas-point";
 /** The selected area's own border, and the dimming of everything outside it. */
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
+
+/**
+ * The two colours the collector marker alternates between.
+ *
+ * Asked for as a beacon, and it behaves as one. Worth knowing what it costs:
+ * red is this map's colour for "no service at all", so a red dot sitting in a
+ * hexagon is one glance away from being read as a reading rather than a phone.
+ * The white ring around it is what keeps the two apart — no tile is ever
+ * outlined in white — and the blue half of the cycle is never a coverage
+ * colour at all, so the marker spends half its time unmistakable.
+ */
+const BEACON = ["#e11d2f", "#1d4ed8"] as const;
+
+/** How long each colour holds. Slow enough to read, fast enough to notice. */
+const BEACON_INTERVAL_MS = 700;
 const COLLECTORS_COUNT_LAYER = "collector-count";
 const OUTLINE_SOURCE = "area-outline";
 const MASK_SOURCE = "area-mask";
@@ -336,6 +351,8 @@ interface Props {
    * no position and are simply not drawn.
    */
   collectors: Collector[];
+  /** Wording for the hover popup; kept out of this file so it stays translated. */
+  collectorLabels: { collector: string; approximate: string };
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
   /** A click on a shaded area — the drill-down from province to district. */
@@ -374,6 +391,7 @@ export function MapView({
   areaOutline,
   fitTo,
   collectors,
+  collectorLabels,
   onBoundsChange,
   onSelect,
   onAreaSelect,
@@ -387,8 +405,8 @@ export function MapView({
   const latestOutline = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
-  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect });
-  handlers.current = { onBoundsChange, onSelect, onAreaSelect };
+  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels });
+  handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels };
 
   /**
    * Positions as GeoJSON.
@@ -449,6 +467,33 @@ export function MapView({
       collectorPoints as never,
     );
   }, [collectorPoints]);
+
+  /**
+   * The beacon: alternate the marker's colour on a timer.
+   *
+   * A paint expression cannot depend on the clock, so the swap is driven from
+   * here. Only the colour changes — radius and ring stay put, because a marker
+   * that also grows and shrinks is harder to click and drags the eye away from
+   * the coverage the map exists to show.
+   *
+   * Stopped entirely when the reader has asked for reduced motion. A blinking
+   * element is exactly what that setting is for, and a marker that never
+   * changes colour still says everything this one needs to.
+   */
+  useEffect(() => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    let phase = 0;
+    const timer = window.setInterval(() => {
+      const instance = map.current;
+      if (!instance?.getLayer(COLLECTORS_LAYER)) return;
+      phase = 1 - phase;
+      instance.setPaintProperty(COLLECTORS_LAYER, "circle-color", BEACON[phase]);
+    }, BEACON_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   // The auto-fit must happen once, and must not fight the user afterwards.
   const hasFitted = useRef(false);
@@ -720,10 +765,17 @@ export function MapView({
             6, ["case", [">", ["get", "count"], 1], 6, 3.5],
             12, ["case", [">", ["get", "count"], 1], 11, 7],
           ],
-          "circle-color": ["case", ["get", "reporting"], "#4f46e5", "#ffffff"],
+          // Beacon red and blue, alternating — see BEACON below. The colour is
+          // driven from JavaScript rather than an expression because a paint
+          // expression cannot depend on time.
+          "circle-color": BEACON[0],
           "circle-opacity": 1,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": ["case", ["get", "reporting"], "#ffffff", "#4f46e5"],
+          // A white ring under both colours, always. It is what stops a red
+          // marker being read as a red hexagon: no tile on this map has a
+          // white outline, so anything wearing one is drawn on top rather than
+          // part of the coverage beneath it.
+          "circle-stroke-width": 2.5,
+          "circle-stroke-color": "#ffffff",
           "circle-stroke-opacity": 1,
         },
       });
@@ -744,7 +796,10 @@ export function MapView({
         },
         paint: {
           // Reads against both states of the disc it sits on.
-          "text-color": ["case", ["get", "reporting"], "#ffffff", "#4f46e5"],
+          // White in both beacon phases: red and blue are each dark enough to
+          // carry white type, and a colour that switched with them would
+          // flicker the number as well as the disc.
+          "text-color": "#ffffff",
         },
       });
 
@@ -777,6 +832,47 @@ export function MapView({
           instance.getCanvas().style.cursor = "";
         });
       }
+
+      /*
+        Hovering a collector shows the coordinates it reported from.
+
+        They are the hexagon's centre, not the phone's fix — the server never
+        publishes the fix — so the popup says so rather than leaving a reader to
+        assume six decimal places of truth. Four decimals is about eleven
+        metres, which is already far finer than the 740 m the number actually
+        means; more would be dressing up an approximation.
+      */
+      const collectorPopup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 14,
+        className: "collector-popup",
+      });
+
+      instance.on("mousemove", COLLECTORS_LAYER, (event) => {
+        const feature = event.features?.[0] as MapGeoJSONFeature | undefined;
+        if (!feature || feature.geometry.type !== "Point") return;
+        instance.getCanvas().style.cursor = "pointer";
+
+        const [lon, lat] = feature.geometry.coordinates as [number, number];
+        const labels = handlers.current.collectorLabels;
+        const count = Number(feature.properties?.count ?? 1);
+        const heading = count > 1 ? `${labels.collector} × ${count}` : labels.collector;
+
+        collectorPopup
+          .setLngLat([lon, lat])
+          .setHTML(
+            `<strong>${heading}</strong>` +
+              `<span class="collector-popup-coords">lat ${lat.toFixed(4)}<br>lon ${lon.toFixed(4)}</span>` +
+              `<span class="collector-popup-note">${labels.approximate}</span>`,
+          )
+          .addTo(instance);
+      });
+
+      instance.on("mouseleave", COLLECTORS_LAYER, () => {
+        instance.getCanvas().style.cursor = "";
+        collectorPopup.remove();
+      });
     };
 
     instance.on("style.load", () => {
