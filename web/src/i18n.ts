@@ -169,6 +169,7 @@ export interface Strings {
   legendPredicted: string;
   legendAreaShading: string;
   legendCollector: string;
+  legendMasts: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -415,6 +416,8 @@ const en: Strings = {
     "A shaded province or district is coloured by what has been measured inside it, and shaded faintly when little of it has been. Pale does not mean poor coverage — it means little evidence.",
   legendCollector:
     "A collector's last reported hexagon — hollow once the phone has gone quiet. Not a live position.",
+  legendMasts:
+    "Base stations, estimated from where collectors heard them. The ring is a signal marker, not the reach of the mast.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -659,6 +662,8 @@ const lo: Strings = {
     "ແຂວງ ຫຼື ເມືອງ ທີ່ແຕ້ມສີ ໃຊ້ສີຕາມສິ່ງທີ່ວັດແທກໄດ້ພາຍໃນ ແລະ ຈະຈາງລົງເມື່ອວັດແທກໄດ້ໜ້ອຍ. ສີຈາງບໍ່ໄດ້ໝາຍຄວາມວ່າສັນຍານບໍ່ດີ — ແຕ່ໝາຍຄວາມວ່າມີຂໍ້ມູນໜ້ອຍ.",
   legendCollector:
     "ຮວງເຜິ້ງຫຼ້າສຸດທີ່ຜູ້ເກັບຂໍ້ມູນລາຍງານ — ເປັນວົງເປົ່າເມື່ອໂທລະສັບງຽບໄປ. ບໍ່ແມ່ນຕຳແໜ່ງສົດ.",
+  legendMasts:
+    "ສະຖານີຖານ, ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ. ວົງສັນຍານເປັນເຄື່ອງໝາຍ ບໍ່ແມ່ນໄລຍະທີ່ເສົາສົ່ງເຖິງ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",

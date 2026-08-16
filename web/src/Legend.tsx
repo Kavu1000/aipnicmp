@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { COLOUR_HEX, LEGEND_ORDER, stateInfo } from "./coverage";
+import { OPERATOR_COLOURS } from "./MapView";
 import type { Strings } from "./i18n";
 
 /**
@@ -62,6 +63,17 @@ export function Legend({ t }: { t: Strings }) {
         <p>
           <span className="swatch swatch-collector" /> {t.legendCollector}
         </p>
+        {/* Which colour belongs to which network. Without this a reader sees
+            four kinds of dot and no way to tell whose mast is whose. */}
+        <p className="legend-masts">
+          {Object.entries(OPERATOR_COLOURS).map(([operator, hex]) => (
+            <span key={operator} className="legend-mast">
+              <span className="swatch swatch-mast" style={{ background: hex }} />
+              {operator}
+            </span>
+          ))}
+        </p>
+        <p>{t.legendMasts}</p>
         <p>
           <span className="swatch swatch-predicted" /> {t.legendPredicted}
         </p>

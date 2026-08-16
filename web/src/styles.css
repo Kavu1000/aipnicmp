@@ -2294,3 +2294,24 @@ main {
   pointer-events: none;
   z-index: 2;
 }
+
+/* Which colour is whose mast. */
+.legend-masts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+}
+
+.legend-mast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.swatch-mast {
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 20%);
+}

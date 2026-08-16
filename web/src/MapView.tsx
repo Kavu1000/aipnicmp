@@ -29,6 +29,44 @@ const LINKS_LABEL_LAYER = "collector-link-labels";
 const CELLS_SOURCE = "observed-cells";
 const CELLS_LAYER = "observed-cell-points";
 const CELLS_HALO_LAYER = "observed-cell-halo";
+const CELLS_PULSE_LAYER = "observed-cell-pulse";
+
+/**
+ * One colour per network, so masts can be told apart at a glance.
+ *
+ * Chosen from outside the coverage scale entirely. Green, yellow, orange and
+ * red already mean five specific things about signal on this map, and the
+ * collector beacon has taken red and blue, so a mast wearing any of those
+ * would be read as a reading rather than as a transmitter.
+ *
+ * An unrecognised network falls back to the first colour rather than
+ * disappearing: a mast nobody has a colour for is still a mast.
+ */
+export const OPERATOR_COLOURS: Record<string, string> = {
+  "Lao Telecom": "#6b21a8",
+  ETL: "#0f766e",
+  Unitel: "#be185d",
+  Tplus: "#7c2d12",
+};
+
+const OPERATOR_COLOUR_EXPRESSION = [
+  "match",
+  ["get", "operator"],
+  ...Object.entries(OPERATOR_COLOURS).flatMap(([name, hex]) => [name, hex]),
+  "#6b21a8",
+] as unknown as maplibregl.ExpressionSpecification;
+
+/**
+ * The broadcast pulse, in screen pixels rather than metres.
+ *
+ * Deliberately not drawn to scale. This platform does not know how far any
+ * mast reaches — that is what the coverage model is for — so a ring expanding
+ * to a real distance would be inventing a coverage radius and putting it on a
+ * map somebody spends money from. In pixels it stays the same size as the map
+ * zooms, which reads as an indicator rather than a measurement.
+ */
+const PULSE_FRAMES = 28;
+const PULSE_INTERVAL_MS = 55;
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
 
@@ -560,6 +598,46 @@ export function MapView({
   }, [collectorPoints]);
 
   /**
+   * The broadcast: a ring that swells out of each mast and fades.
+   *
+   * Driven from here because a paint property cannot depend on the clock. The
+   * radius grows and the opacity falls together, so the ring dissolves rather
+   * than stopping at an edge — an edge would read as the limit of coverage,
+   * which is precisely the thing this platform has not measured and must not
+   * appear to claim.
+   *
+   * Every mast pulses in step. Staggering them would need a phase per feature
+   * and a data rewrite each frame, which is a lot of work to make a decorative
+   * ring less tidy.
+   *
+   * Stopped entirely under prefers-reduced-motion, like the collector beacon
+   * and the link dashes. Everything the pulse conveys — where the mast is, and
+   * whose it is — is already in the dot beneath it.
+   */
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    const timer = window.setInterval(() => {
+      const instance = map.current;
+      if (!instance?.getLayer(CELLS_PULSE_LAYER)) return;
+
+      frame = (frame + 1) % PULSE_FRAMES;
+      const progress = frame / PULSE_FRAMES;
+      instance.setPaintProperty(CELLS_PULSE_LAYER, "circle-radius", 4 + progress * 26);
+      // Fades to nothing well before the ring stops growing, so it never
+      // draws a boundary.
+      instance.setPaintProperty(
+        CELLS_PULSE_LAYER,
+        "circle-stroke-opacity",
+        Math.max(0, 0.55 * (1 - progress) ** 1.6),
+      );
+    }, PULSE_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  /**
    * The dashes travel from the phone towards the mast.
    *
    * MapLibre cannot animate a paint property, so the pattern is stepped
@@ -906,6 +984,21 @@ export function MapView({
       // placed from readings spread over eight kilometres is not known to the
       // metre, and a bare dot would be believed as though it were.
       instance.addSource(CELLS_SOURCE, { type: "geojson", data: latestCells.current });
+      // The pulse sits under the uncertainty halo and the mast itself, so it
+      // never obscures either.
+      instance.addLayer({
+        id: CELLS_PULSE_LAYER,
+        type: "circle",
+        source: CELLS_SOURCE,
+        paint: {
+          "circle-radius": 4,
+          "circle-color": "transparent",
+          "circle-stroke-width": 2,
+          "circle-stroke-color": OPERATOR_COLOUR_EXPRESSION,
+          "circle-stroke-opacity": 0.55,
+        },
+      });
+
       instance.addLayer({
         id: CELLS_HALO_LAYER,
         type: "circle",
@@ -919,10 +1012,10 @@ export function MapView({
             8, ["/", ["get", "uncertainty_m"], 150],
             16, ["/", ["get", "uncertainty_m"], 1.2],
           ],
-          "circle-color": "#6b21a8",
+          "circle-color": OPERATOR_COLOUR_EXPRESSION,
           "circle-opacity": 0.10,
           "circle-stroke-width": 1,
-          "circle-stroke-color": "#6b21a8",
+          "circle-stroke-color": OPERATOR_COLOUR_EXPRESSION,
           "circle-stroke-opacity": 0.35,
         },
       });
@@ -932,10 +1025,9 @@ export function MapView({
         source: CELLS_SOURCE,
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 14, 6],
-          // Purple: not on the coverage scale, and not the fleet's indigo
-          // beacon either, so a mast is never mistaken for a reading or a
-          // collector.
-          "circle-color": "#6b21a8",
+          // Coloured by network, from a palette outside the coverage scale, so
+          // a mast is never mistaken for a reading or a collector.
+          "circle-color": OPERATOR_COLOUR_EXPRESSION,
           "circle-stroke-width": 1.5,
           "circle-stroke-color": "#ffffff",
         },
