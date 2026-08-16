@@ -50,6 +50,13 @@ import java.util.Date
  * questions they will actually have — is it recording, how much is waiting to
  * send, and did anything reach the server.
  */
+/**
+ * How recently an upload must have succeeded for the phone to still count as
+ * getting records out. Comfortably longer than the sampling interval, so a
+ * quiet moment between records does not flip the mode line to offline.
+ */
+private const val RECENT_UPLOAD_MILLIS = 5 * 60 * 1000L
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -477,9 +484,31 @@ class MainActivity : AppCompatActivity() {
         val running = CollectionService.isRunning
         val queued = store.count()
 
-        val online = NetworkStatus.isOnline(this)
-        binding.modeValue.setText(if (online) R.string.mode_online else R.string.mode_offline)
-        binding.modeValue.setTextColor(getColor(if (online) R.color.good else R.color.calls_only))
+        // What is happening to the records, not what a capability flag says
+        // this instant.
+        //
+        // This line used to be NetworkStatus.isOnline() alone, which requires
+        // NET_CAPABILITY_VALIDATED. Android drops that during revalidation, a
+        // cell handover or a dual-SIM switch while data keeps working, so the
+        // screen announced "Offline - records are being kept on this phone"
+        // above a queue of zero, twenty-four sent, and an upload four minutes
+        // earlier. Every figure on the card contradicted the one word above
+        // them.
+        //
+        // A collector reads this to learn whether their work is getting out.
+        // The queue and the last upload answer that directly, so they decide
+        // it: anything waiting means the phone is holding records, and a
+        // successful upload in the last few minutes means it is not, whatever
+        // the flag says between one probe and the next.
+        val uploadedRecently =
+            prefs.lastUploadAtMillis > 0 &&
+                System.currentTimeMillis() - prefs.lastUploadAtMillis < RECENT_UPLOAD_MILLIS
+        val gettingOut = queued == 0 && (NetworkStatus.isOnline(this) || uploadedRecently)
+
+        binding.modeValue.setText(if (gettingOut) R.string.mode_online else R.string.mode_offline)
+        binding.modeValue.setTextColor(
+            getColor(if (gettingOut) R.color.good else R.color.calls_only)
+        )
 
         binding.statusValue.text = when {
             running -> getString(R.string.status_collecting)
