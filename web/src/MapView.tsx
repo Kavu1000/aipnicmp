@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type MapGeoJSONFeature, type StyleSpecification } from "maplibre-gl";
 import {
   MAX_BBOX_DEGREES,
@@ -117,7 +117,12 @@ const TERRAIN_TILES: maplibregl.RasterDEMSourceSpecification = {
   tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
   encoding: "terrarium",
   tileSize: 256,
-  maxzoom: 13,
+  // The source really does go to 15, checked tile by tile over the hills
+  // north-east of Vientiane: z14 and z15 return full tiles and z16 is a 404.
+  // This said 13, so the last two levels of relief were being thrown away and
+  // the 3D view flattened into smooth mounds exactly when a reader zoomed in
+  // to see which ridge was blocking a valley.
+  maxzoom: 15,
   attribution:
     '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a> (AWS Open Data)',
 };
@@ -361,6 +366,8 @@ interface Props {
   cells: GeoJsonData;
   /** Wording for the hover popup; kept out of this file so it stays translated. */
   collectorLabels: { collector: string; approximate: string };
+  /** Shown when the view outruns the satellite imagery. */
+  imageryLimitLabel: string;
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
   /** A click on a shaded area — the drill-down from province to district. */
@@ -401,6 +408,7 @@ export function MapView({
   collectors,
   cells,
   collectorLabels,
+  imageryLimitLabel,
   onBoundsChange,
   onSelect,
   onAreaSelect,
@@ -623,6 +631,9 @@ export function MapView({
    */
   const styleReady = useRef(false);
 
+  /** Whether the view has zoomed past the imagery's own resolution. */
+  const [beyondImagery, setBeyondImagery] = useState(false);
+
   useEffect(() => {
     if (!container.current || map.current) return;
 
@@ -658,6 +669,10 @@ export function MapView({
       new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
       "bottom-right",
     );
+
+    const watchZoom = () => setBeyondImagery(instance.getZoom() > SATELLITE_TILES.maxzoom!);
+    instance.on("zoom", watchZoom);
+    watchZoom();
 
     const observer = new ResizeObserver(() => instance.resize());
     observer.observe(container.current);
@@ -1218,5 +1233,19 @@ export function MapView({
     );
   }, [fitTo]);
 
-  return <div ref={container} className="map" />;
+  return (
+    <>
+      <div ref={container} className="map" />
+      {/*
+        Sentinel-2 is a 10 m/pixel satellite, which is about zoom 14 at Lao
+        latitudes. Past that the screen is asking for detail that was never
+        photographed, and MapLibre magnifies what it has. Saying so is better
+        than letting a reader conclude the map is broken or the tiles failed —
+        and it is the difference between a limit and a fault.
+      */}
+      {basemap === "satellite" && beyondImagery && (
+        <div className="imagery-limit">{imageryLimitLabel}</div>
+      )}
+    </>
+  );
 }

@@ -2277,3 +2277,20 @@ main {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Says the photograph has run out, not that the map has failed. Sits by the
+   scale bar, where a reader already looks to judge distance. */
+.imagery-limit {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 3.4rem;
+  max-inline-size: 30ch;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+  background: rgb(16 32 44 / 72%);
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 2;
+}

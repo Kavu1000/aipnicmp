@@ -630,6 +630,7 @@ export function App() {
               collectors={collectors}
               cells={cells}
               collectorLabels={{ collector: t.collectorHere, approximate: t.approxPosition }}
+              imageryLimitLabel={t.imageryLimit}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
               onAreaSelect={setAreaCode}
