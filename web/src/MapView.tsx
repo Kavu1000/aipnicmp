@@ -57,16 +57,47 @@ const OPERATOR_COLOUR_EXPRESSION = [
 ] as unknown as maplibregl.ExpressionSpecification;
 
 /**
- * The broadcast pulse, in screen pixels rather than metres.
+ * How wide the uncertainty halo is drawn, in real metres at this zoom, times
+ * an optional fraction of the way out.
  *
- * Deliberately not drawn to scale. This platform does not know how far any
- * mast reaches — that is what the coverage model is for — so a ring expanding
- * to a real distance would be inventing a coverage radius and putting it on a
- * map somebody spends money from. In pixels it stays the same size as the map
- * zooms, which reads as an indicator rather than a measurement.
+ * Shared with the pulse below, so the two can never disagree about where the
+ * circle ends. The fraction is folded into each zoom stop rather than
+ * multiplying the whole thing: MapLibre only accepts a `["zoom"]` expression
+ * as the outermost one, so `["*", interpolate, fraction]` is rejected at
+ * runtime while the types allow it.
  */
-const PULSE_FRAMES = 28;
+const haloRadius = (fraction?: unknown) => {
+  const metresAt = (divisor: number) => {
+    const width = ["/", ["get", "uncertainty_m"], divisor];
+    return fraction === undefined ? width : ["*", width, fraction];
+  };
+  return [
+    "interpolate", ["exponential", 2], ["zoom"],
+    8, metresAt(150),
+    16, metresAt(1.2),
+  ] as unknown as maplibregl.ExpressionSpecification;
+};
+
+const PULSE_FRAMES = 44;
 const PULSE_INTERVAL_MS = 55;
+
+/**
+ * How far through its own cycle each mast is, at global time `t`.
+ *
+ * The phase comes from the feature, so masts sweep independently rather than
+ * flashing in unison — a grid of synchronised rings reads as one blinking
+ * object, and these are separate transmitters that have nothing to do with
+ * each other.
+ */
+const pulseProgress = (t: number) => [
+  "%",
+  // Defaulted rather than read straight: a feature that reaches the layer
+  // without a phase would make the whole expression fail to evaluate, and one
+  // mast pulsing in step with the clock is a far smaller fault than the ring
+  // disappearing for every mast on the map.
+  ["+", ["number", ["get", "pulse_phase"], 0], t],
+  1,
+];
 
 /**
  * Past this, a mast marker names a neighbourhood rather than a position.
@@ -83,13 +114,28 @@ const PULSE_INTERVAL_MS = 55;
 const VAGUE_UNCERTAINTY_M = 2000;
 
 /** Full strength for a mast that is actually placed, faint for a guess. */
-const byConfidence = (sure: number, vague: number) =>
+const byConfidence = (sure: unknown, vague: unknown) =>
   [
     "case",
     ["<", ["get", "uncertainty_m"], VAGUE_UNCERTAINTY_M],
     sure,
     vague,
   ] as unknown as maplibregl.ExpressionSpecification;
+
+/**
+ * A phase in [0, 1) that stays the same for the same mast across refreshes.
+ *
+ * Derived from the cell's own identity rather than drawn at random, so a mast
+ * does not jump to a new point in its cycle every time the layer reloads.
+ */
+function phaseOf(key: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 1000) / 1000;
+}
 
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
@@ -560,7 +606,10 @@ export function MapView({
     [collectors],
   );
   latestCollectors.current = collectorPoints;
-  latestCells.current = cells;
+  // Left unset here: the ref feeds the source at map-load time, and it must
+  // carry the phase-stamped copy below. Assigning the raw cells would leave a
+  // map that finished loading after the data arrived with unphased masts, and
+  // no later render to correct it.
 
   /**
    * One line per collector that has a placed mast serving it.
@@ -607,11 +656,38 @@ export function MapView({
     (instance.getSource(LINKS_SOURCE) as maplibregl.GeoJSONSource).setData(links as never);
   }, [links]);
 
+  /**
+   * The masts, each stamped with its own place in the pulse cycle.
+   *
+   * Stamped here rather than sent by the server: it is a property of how the
+   * map draws, not of what the fleet measured, and the API should not be
+   * carrying animation state.
+   */
+  const pulsingCells = useMemo(() => {
+    const collection = cells as unknown as {
+      features?: { properties?: Record<string, unknown> }[];
+    };
+    if (!collection?.features) return cells;
+    return {
+      ...collection,
+      features: collection.features.map((feature, index) => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          pulse_phase: phaseOf(String(feature.properties?.cell ?? index)),
+        },
+      })),
+    } as unknown as GeoJsonData;
+  }, [cells]);
+  latestCells.current = pulsingCells;
+
   useEffect(() => {
     const instance = map.current;
     if (!instance?.getSource(CELLS_SOURCE)) return;
-    (instance.getSource(CELLS_SOURCE) as maplibregl.GeoJSONSource).setData(cells as never);
-  }, [cells]);
+    (instance.getSource(CELLS_SOURCE) as maplibregl.GeoJSONSource).setData(
+      pulsingCells as never,
+    );
+  }, [pulsingCells]);
 
   useEffect(() => {
     const instance = map.current;
@@ -622,43 +698,60 @@ export function MapView({
   }, [collectorPoints]);
 
   /**
-   * The broadcast: a ring that swells out of each mast and fades.
+   * The broadcast: a ring that sweeps out of each mast to the edge of its own
+   * uncertainty circle, and fades there.
    *
-   * Driven from here because a paint property cannot depend on the clock. The
-   * radius grows and the opacity falls together, so the ring dissolves rather
-   * than stopping at an edge — an edge would read as the limit of coverage,
-   * which is precisely the thing this platform has not measured and must not
-   * appear to claim.
+   * Driven from here because a paint property cannot depend on the clock. Only
+   * one number changes per frame — the global time the phase expression is
+   * measured against — so the ring is redrawn without the feature data being
+   * touched, and each mast keeps its own phase.
    *
-   * Every mast pulses in step. Staggering them would need a phase per feature
-   * and a data rewrite each frame, which is a lot of work to make a decorative
-   * ring less tidy.
+   * The ring now reaches an edge, which earlier versions of this file went out
+   * of their way to avoid: a ring stopping at a real distance would have been
+   * inventing a coverage radius and putting it on a map somebody spends money
+   * from. It is safe here because the edge it reaches is the uncertainty halo,
+   * a circle the map already draws and the legend now names. The pulse traces
+   * a boundary that is already explained rather than implying a new one — and
+   * a wider sweep means a *less* certain position, which is the opposite of
+   * the coverage reading, so the animation argues against the misreading
+   * instead of feeding it.
    *
    * Stopped entirely under prefers-reduced-motion, like the collector beacon
    * and the link dashes. Everything the pulse conveys — where the mast is, and
    * whose it is — is already in the dot beneath it.
    */
   useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const paint = (instance: maplibregl.Map, t: number) => {
+      const progress = pulseProgress(t);
+      instance.setPaintProperty(CELLS_PULSE_LAYER, "circle-radius", haloRadius(progress));
+      // Holds most of its strength across the sweep and drops away at the rim,
+      // so the ring arrives at the halo rather than dying halfway to it. A
+      // mast that could be two kilometres away sweeps faintly: it should not
+      // broadcast as confidently as one that has been placed.
+      const fade = ["-", 1, ["^", progress, 2.2]];
+      instance.setPaintProperty(
+        CELLS_PULSE_LAYER,
+        "circle-stroke-opacity",
+        byConfidence(["*", 0.5, fade], ["*", 0.16, fade]),
+      );
+    };
+
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      // Nothing static is left behind: a stopped ring at full radius would be
+      // a drawn boundary, which is worse than no ring at all.
+      const instance = map.current;
+      if (instance?.getLayer(CELLS_PULSE_LAYER)) {
+        instance.setPaintProperty(CELLS_PULSE_LAYER, "circle-stroke-opacity", 0);
+      }
+      return;
+    }
 
     let frame = 0;
     const timer = window.setInterval(() => {
       const instance = map.current;
       if (!instance?.getLayer(CELLS_PULSE_LAYER)) return;
-
       frame = (frame + 1) % PULSE_FRAMES;
-      const progress = frame / PULSE_FRAMES;
-      instance.setPaintProperty(CELLS_PULSE_LAYER, "circle-radius", 4 + progress * 26);
-      // Fades to nothing well before the ring stops growing, so it never
-      // draws a boundary.
-      // A mast that could be two kilometres away should not broadcast as
-      // confidently as one that has been placed.
-      const fade = Math.max(0, 0.55 * (1 - progress) ** 1.6);
-      instance.setPaintProperty(
-        CELLS_PULSE_LAYER,
-        "circle-stroke-opacity",
-        byConfidence(fade, fade * 0.35),
-      );
+      paint(instance, frame / PULSE_FRAMES);
     }, PULSE_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
@@ -1018,11 +1111,14 @@ export function MapView({
         type: "circle",
         source: CELLS_SOURCE,
         paint: {
-          "circle-radius": 4,
+          // Starts closed and invisible; the animation supplies the radius and
+          // the opacity from the first frame onward. Anything drawn here would
+          // be a boundary sitting on the map until then.
+          "circle-radius": 0,
           "circle-color": "transparent",
           "circle-stroke-width": 2,
           "circle-stroke-color": OPERATOR_COLOUR_EXPRESSION,
-          "circle-stroke-opacity": 0.55,
+          "circle-stroke-opacity": 0,
         },
       });
 
@@ -1034,11 +1130,7 @@ export function MapView({
           // Radius in real metres, converted at this latitude and zoom, so the
           // circle shrinks and grows with the map rather than staying a
           // decorative blob.
-          "circle-radius": [
-            "interpolate", ["exponential", 2], ["zoom"],
-            8, ["/", ["get", "uncertainty_m"], 150],
-            16, ["/", ["get", "uncertainty_m"], 1.2],
-          ],
+          "circle-radius": haloRadius(),
           "circle-color": OPERATOR_COLOUR_EXPRESSION,
           "circle-opacity": byConfidence(0.1, 0.04),
           "circle-stroke-width": 1,
