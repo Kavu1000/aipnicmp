@@ -176,6 +176,7 @@ export interface Strings {
   legendMastHaloShort: string;
   legendMastVagueShort: string;
   legendMore: string;
+  linkDistanceUnclear: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -435,6 +436,7 @@ const en: Strings = {
   legendMastHaloShort: "How far the point could be out — not the area covered.",
   legendMastVagueShort: "Faded: could be out by more than 2 km.",
   legendMore: "How to read this map",
+  linkDistanceUnclear: "distance unclear",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -689,6 +691,7 @@ const lo: Strings = {
   legendMastHaloShort: "ໄລຍະທີ່ຈຸດນີ້ອາດຄາດເຄື່ອນ — ບໍ່ແມ່ນພື້ນທີ່ໃຫ້ບໍລິການ.",
   legendMastVagueShort: "ຈາງ: ອາດຄາດເຄື່ອນເກີນ 2 ກິໂລແມັດ.",
   legendMore: "ວິທີອ່ານແຜນທີ່ນີ້",
+  linkDistanceUnclear: "ໄລຍະບໍ່ແນ່ນອນ",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",

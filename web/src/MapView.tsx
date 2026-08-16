@@ -123,6 +123,38 @@ const byConfidence = (sure: unknown, vague: unknown) =>
   ] as unknown as maplibregl.ExpressionSpecification;
 
 /**
+ * How far the phone was from the cell serving it — to the precision the two
+ * estimates can actually carry.
+ *
+ * Both ends are approximate: the phone is placed at its hexagon's centre, and
+ * the cell at the middle of the stretch of road it was heard along. The server
+ * already adds those together and sends the total as `distance_uncertainty_m`.
+ * This label ignored it and printed "≈ 3.5 km" regardless.
+ *
+ * Survivable while a cell's uncertainty was half its spread. Widening it to
+ * the whole spread — which the split-half check forced — made the error bar
+ * larger than the number itself on 38 of 69 cells. A distance whose
+ * uncertainty exceeds it is not a loose distance, it is no distance at all,
+ * and printing one along a line on a map invites somebody to plan against it.
+ */
+function linkLabel(
+  tower: { distance_m: number; distance_uncertainty_m?: number },
+  unclear: string,
+): string {
+  const metres = tower.distance_m;
+  const give = tower.distance_uncertainty_m;
+  // No figure means unknown, not exact. Defaulting this to zero printed
+  // "± 0.0 km" against a server that had not sent one — perfect precision
+  // claimed precisely where there was none to claim.
+  if (give == null || give >= metres) return unclear;
+  if (metres >= 1000) {
+    return `≈ ${(metres / 1000).toFixed(1)} ± ${(give / 1000).toFixed(1)} km`;
+  }
+  const to50 = (value: number) => Math.round(value / 50) * 50;
+  return `≈ ${to50(metres)} ± ${to50(give)} m`;
+}
+
+/**
  * A phase in [0, 1) that stays the same for the same mast across refreshes.
  *
  * Derived from the cell's own identity rather than drawn at random, so a mast
@@ -473,7 +505,7 @@ interface Props {
   /** Base stations the fleet has placed, with their uncertainty. */
   cells: GeoJsonData;
   /** Wording for the hover popup; kept out of this file so it stays translated. */
-  collectorLabels: { collector: string; approximate: string };
+  collectorLabels: { collector: string; approximate: string; distanceUnclear: string };
   /** Shown when the view outruns the satellite imagery. */
   imageryLimitLabel: string;
   /** Wording for the mast popup, kept out of this file so it stays translated. */
@@ -618,6 +650,9 @@ export function MapView({
    * fetched: the line is simply the two points the client already holds, and
    * sending a third payload to say so would be a round trip for no fact.
    */
+  // A primitive rather than the labels object, which is rebuilt on every
+  // render upstream and would send the whole link layer to the map each time.
+  const unclear = collectorLabels.distanceUnclear;
   const links = useMemo<GeoJsonData>(
     () => ({
       type: "FeatureCollection",
@@ -634,19 +669,14 @@ export function MapView({
                   ],
                 },
                 properties: {
-                  // Rounded to the precision the estimate can carry: a metre
-                  // figure beside a kilometre of doubt would be a fiction.
-                  label:
-                    row.serving_tower.distance_m >= 1000
-                      ? `≈ ${(row.serving_tower.distance_m / 1000).toFixed(1)} km`
-                      : `≈ ${Math.round(row.serving_tower.distance_m / 50) * 50} m`,
+                  label: linkLabel(row.serving_tower, unclear),
                 },
               },
             ]
           : [],
       ),
     }) as unknown as GeoJsonData,
-    [collectors],
+    [collectors, unclear],
   );
   latestLinks.current = links;
 

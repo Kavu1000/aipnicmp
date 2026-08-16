@@ -642,7 +642,11 @@ export function App() {
               fitTo={fitTo}
               collectors={collectors}
               cells={cells}
-              collectorLabels={{ collector: t.collectorHere, approximate: t.approxPosition }}
+              collectorLabels={{
+                collector: t.collectorHere,
+                approximate: t.approxPosition,
+                distanceUnclear: t.linkDistanceUnclear,
+              }}
               imageryLimitLabel={t.imageryLimit}
               cellLabels={{
                 mast: t.mastLabel,
