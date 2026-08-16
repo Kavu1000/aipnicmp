@@ -47,5 +47,21 @@ celery_app.conf.update(
             "task": "app.workers.tasks.rebuild_all_tiles_task",
             "schedule": crontab(hour=3, minute=10),
         },
+        # Where each cell was heard, re-derived from the whole history.
+        #
+        # Hourly at :20, clear of both the minute tick and the 03:10 full
+        # rebuild. Until this was scheduled the cell layer only moved when
+        # somebody ran the script by hand, so a freshly driven route showed
+        # measured hexagons and no cells at all.
+        #
+        # Given its own expiry: the global 120 s default suits a task that is
+        # redone every minute and would quietly discard this one whenever the
+        # worker happened to be busy at :20, leaving the layer stale for an
+        # hour with nothing in the logs to say why.
+        "estimate-cell-sites": {
+            "task": "app.workers.tasks.estimate_cell_sites_task",
+            "schedule": crontab(minute=20),
+            "options": {"expires": 1800},
+        },
     },
 )

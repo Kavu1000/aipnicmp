@@ -9,6 +9,7 @@ from app.db.session import SessionLocal
 from app.models.tile import H3Tile
 from app.services.aggregate import rebuild_tiles
 from app.workers.celery_app import celery_app
+from scripts.estimate_cell_sites import build as estimate_cell_sites
 
 """How far back an incremental run reaches beyond the last tile write.
 
@@ -67,3 +68,27 @@ def rebuild_all_tiles_task() -> dict[str, int]:
     Vientiane is when the fewest phones are collecting.
     """
     return {"tiles_written": asyncio.run(_full())}
+
+
+@celery_app.task(name="app.workers.tasks.estimate_cell_sites_task")
+def estimate_cell_sites_task() -> dict[str, int]:
+    """Re-place the observed cells from everything heard so far.
+
+    Scheduled because it was not, and the difference was visible on the map:
+    the hexagons refresh every minute from the tick above, while the cell
+    layer only changed when somebody ran the script by hand. A route driven
+    after the last manual run showed sixty-four measured hexagons and not one
+    cell — twenty-four of which qualified and were simply never written.
+
+    Hourly rather than by the minute. A cell's estimate barely moves once a
+    stretch of road has been driven, and this recomputes every cell from its
+    whole history rather than only what changed. The delete and the insert
+    share a transaction, so a reader sees the previous set or the new one,
+    never an empty map.
+
+    Worth watching as the fleet grows: finding the widest separation between a
+    cell's readings compares every pair, so the cost per cell is quadratic in
+    how often it was heard. Fine at a few hundred readings per cell, and the
+    first thing to reach for if this task ever starts overrunning its hour.
+    """
+    return {"cells": asyncio.run(estimate_cell_sites())}
