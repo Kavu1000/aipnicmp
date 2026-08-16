@@ -9,6 +9,7 @@ only the archive still knows what the numbers do not mean.
 
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 import json
@@ -91,8 +92,12 @@ async def test_the_hexagons_carry_geometry_and_a_join_key(
         assert properties["colour"]
         assert properties["measurements"] >= 1
 
-    csv_body = (await client.get("/api/v1/exports/tiles.csv")).text
-    rows = list(csv.DictReader(io.StringIO(csv_body)))
+    csv_response = await client.get("/api/v1/exports/tiles.csv")
+    # The byte-order mark Excel needs to read UTF-8 on Windows. Asserted here
+    # because it is invisible in every viewer that matters and would be dropped
+    # by a well-meaning refactor.
+    assert csv_response.content.startswith(codecs.BOM_UTF8)
+    rows = list(csv.DictReader(io.StringIO(csv_response.content.decode("utf-8-sig"))))
     assert len(rows) == len(body["features"])
     assert "h3_index" in rows[0] and "worst_state" in rows[0]
 
@@ -195,8 +200,13 @@ async def test_the_area_table_counts_by_state(client, session, device_key, publi
     await session.commit()
     assert (await session.scalars(select(H3Tile))).all()
 
-    rows = list(csv.DictReader(io.StringIO((await client.get("/api/v1/exports/areas.csv")).text)))
+    areas = await client.get("/api/v1/exports/areas.csv")
+    # Every district name in this file is in Lao script, and Excel on Windows
+    # renders it as mojibake without the mark.
+    assert areas.content.startswith(codecs.BOM_UTF8)
+    rows = list(csv.DictReader(io.StringIO(areas.content.decode("utf-8-sig"))))
     assert rows, "a province with measured hexagons should produce a row"
+    assert any(ord(c) > 0x0E00 for c in rows[0]["name_lo"] or ""), "Lao name should survive"
     assert set(rows[0]) >= {
         "code", "level", "name_en", "hexagons_measured",
         "good", "weak", "calls_only", "unusable", "no_network",
