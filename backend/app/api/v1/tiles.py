@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.radio import RadioState
 from app.db.session import get_session
+from app.services.auth import enforce_scope, operator_scope
 from app.models.tile import H3Tile, H3TileOperator
 from app.services.areas import area_or_none, tile_column
 from app.services.geo import h3_polygon_geojson
@@ -152,10 +153,8 @@ async def get_tiles(
         ),
     ),
     include_predicted: bool = Query(default=True),
-    operator: str | None = Query(
-        default=None,
-        description="Restrict to one network. Omit for the combined view: can anyone get service here?",
-    ),
+    operator: str | None = Depends(enforce_scope),
+    scope: str | None = Depends(operator_scope),
     state: RadioState | None = Query(
         default=None,
         description=(
@@ -206,6 +205,16 @@ async def get_tiles(
     elif not include_predicted:
         conditions.append(H3Tile.is_predicted.is_(False))
 
+    # A network account sees its own coverage, and the places where nothing at
+    # all was heard.
+    #
+    # Per-operator tiles exist only where that operator was observed, so a
+    # strict scope would hide every hexagon with no service — which is the one
+    # thing an operator most needs in order to decide where to build, and the
+    # finding this platform exists to produce. A dead zone attributes nothing
+    # to anybody: it says nobody was there, so it leaks no competitor's
+    # coverage. Fetched separately below and merged.
+
     if state is not None:
         # The median state, which is what the tile is drawn as. Filtering on
         # the worst reading instead would return hexagons the map shows green,
@@ -237,6 +246,37 @@ async def get_tiles(
             for tile in tiles
         ],
     }
+    # The dead zones a network account is still entitled to see.
+    #
+    # Only for scoped accounts, and only NO_CELL: an unscoped reader already
+    # has the combined map, and any other state would attribute coverage to
+    # somebody. Fetched with the same area or viewport conditions, minus the
+    # operator ones, so the two halves describe the same ground.
+    if scope is not None and state in (None, RadioState.NO_CELL):
+        dead = (
+            await session.scalars(
+                select(H3Tile)
+                .where(
+                    H3Tile.dominant_state == RadioState.NO_CELL.value,
+                    *(
+                        [
+                            H3Tile.centroid_lat.between(min_lat, max_lat),
+                            H3Tile.centroid_lon.between(min_lon, max_lon),
+                        ]
+                        if has_bbox and area is None
+                        else []
+                    ),
+                )
+                .limit(MAX_TILES)
+            )
+        ).all()
+        seen = {feature["properties"].get("h3") for feature in body["features"]}
+        body["features"].extend(
+            _feature(tile, detailed=tile.device_count >= settings.tile_min_devices)
+            for tile in dead
+            if tile.h3_index not in seen
+        )
+
     if operator:
         body["operator"] = operator
     if described is not None:

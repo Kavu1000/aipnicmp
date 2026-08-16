@@ -23,7 +23,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
+from app.core.operators import NETWORK_NAMES
 from app.models.user import (
+    ROLE_OPERATOR,
     ROLE_SUPER_ADMIN,
     STATUS_APPROVED,
     STATUS_PENDING,
@@ -40,7 +42,10 @@ class Decision(BaseModel):
 
 
 class RoleChange(BaseModel):
+    """A role, and the network that goes with it when the role needs one."""
+
     role: Literal["super_admin", "admin"]
+    operator: str | None = None
 
 
 async def _load(session: AsyncSession, user_id: int) -> User:
@@ -141,9 +146,31 @@ async def set_role(
     if body.role != ROLE_SUPER_ADMIN:
         await _refuse_last_super_admin(session, target)
 
+    # A network account must name its network. Without one the scope resolves
+    # to a sentinel that matches nothing, so the account would see an empty map
+    # and nobody would know why — and a future change that treated a missing
+    # scope as "no restriction" would open the whole platform instead.
+    if body.role == ROLE_OPERATOR:
+        network = (body.operator or "").strip()
+        if network not in NETWORK_NAMES.values():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"operator must be one of: {', '.join(sorted(NETWORK_NAMES.values()))}",
+            )
+        target.scoped_operator = network
+    else:
+        # Demotion clears the network as well as the role. Leaving it behind
+        # would let a later promotion silently inherit a scope nobody chose.
+        target.scoped_operator = None
+
     target.role = body.role
     target.decided_at = datetime.now(timezone.utc)
     target.decided_by = actor.email
+    # Recorded separately from the approval decision: a government platform
+    # letting one company see a map its competitors appear on has to be able to
+    # say who allowed it, and when.
+    target.role_changed_at = target.decided_at
+    target.role_changed_by = actor.email
     await session.commit()
 
     return {"user": target.public_dict()}

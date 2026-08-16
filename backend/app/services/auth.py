@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from jwt import PyJWKClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -242,3 +242,50 @@ async def require_super_admin(user: User = Depends(require_user)) -> User:
     if not user.is_super_admin:
         raise AuthError("only a super admin may do this", status.HTTP_403_FORBIDDEN)
     return user
+
+
+async def operator_scope(user: User = Depends(require_user)) -> str | None:
+    """The network this request may see, or None for unrestricted.
+
+    Read from the account, never from the request. An operator account cannot
+    widen its own view by asking differently, because nothing it sends is
+    consulted.
+    """
+    return user.operator_scope
+
+
+async def enforce_scope(
+    operator: str | None = Query(default=None),
+    scope: str | None = Depends(operator_scope),
+) -> str | None:
+    """Resolve the network a request is answered for, refusing a mismatch.
+
+    An operator account asking for somebody else's network is refused rather
+    than quietly corrected. Silently substituting the right answer would hide
+    the bug — or the attempt — and leave the client believing it had been given
+    what it asked for. A 403 says what happened.
+    """
+    if scope is None:
+        return operator
+    if operator is not None and operator != scope:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="this account may only see its own network",
+        )
+    return scope
+
+
+async def deny_operator_accounts(user: User = Depends(require_user)) -> None:
+    """Close an endpoint to operator accounts.
+
+    Used where an endpoint cannot be scoped to one network — the collector
+    fleet, which is internal operations rather than coverage, and anything
+    describing the survey as a whole. Deny by default is the rule here: these
+    four companies compete, and an endpoint that forgets to scope itself should
+    fail shut rather than serve everything.
+    """
+    if user.is_operator:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="not available to network accounts",
+        )
