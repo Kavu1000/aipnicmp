@@ -251,9 +251,26 @@ class CollectionService : Service() {
         // A coverage map built on network-derived positions would attribute
         // readings to the wrong village, which is worse than no reading at all.
         // GPS costs more battery; a wrong position costs more than that.
+        // No displacement filter here. Sampler decides.
+        //
+        // This used to carry setMinUpdateDistanceMeters(50f), which tells the
+        // provider to withhold any fix taken within 50 m of the last one. A
+        // stationary phone therefore received no callbacks at all, and a
+        // callback is the only thing that starts a reading — so a collector
+        // parked in a village recorded nothing for as long as they stayed
+        // there.
+        //
+        // That is backwards for this project. Sitting still in a place with no
+        // service is not an absence of evidence, it is the evidence: proposal
+        // 2.3 asks for a record every 100 m *or* every 60 seconds, and Sampler
+        // implements exactly that, with its own comment saying the time branch
+        // exists so a slow walk through a dead zone still produces something.
+        // The provider was quietly preventing that branch from ever running.
+        //
+        // Sampler still refuses duplicates, so nothing floods the queue; the
+        // decision simply moves to the layer that can be unit-tested.
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 30_000L)
             .setMinUpdateIntervalMillis(10_000L)
-            .setMinUpdateDistanceMeters(50f)
             // Wait for a real fix rather than handing back a coarse one first.
             .setWaitForAccurateLocation(true)
             .build()
