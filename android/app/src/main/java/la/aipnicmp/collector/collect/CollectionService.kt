@@ -251,6 +251,24 @@ class CollectionService : Service() {
         // A coverage map built on network-derived positions would attribute
         // readings to the wrong village, which is worse than no reading at all.
         // GPS costs more battery; a wrong position costs more than that.
+        // Ten seconds between fixes, not thirty.
+        //
+        // Proposal 2.3 asks for a record every 100 m. At 80 km/h that is every
+        // 4.5 seconds, and a thirty-second interval delivered one fix every
+        // 670 m — wider than a hexagon, so a drive laid down roughly one
+        // reading per hexagon and skipped the ones where the road clipped a
+        // corner. A ribbon with holes in it, and every tile in it flagged low
+        // confidence for resting on a single reading.
+        //
+        // At ten seconds the same drive gives about four readings per hexagon
+        // and no gaps. Sampler still enforces the 100 m rule, so a phone in
+        // traffic or standing still does not multiply its records; only a
+        // moving one gets the extra detail, which is the case that needed it.
+        //
+        // It costs battery: the receiver is asked three times as often. A day
+        // of driving wants a car charger either way, and a sparse map of a
+        // country is worth less than a dense map of one province.
+        //
         // No displacement filter here. Sampler decides.
         //
         // This used to carry setMinUpdateDistanceMeters(50f), which tells the
@@ -269,8 +287,8 @@ class CollectionService : Service() {
         //
         // Sampler still refuses duplicates, so nothing floods the queue; the
         // decision simply moves to the layer that can be unit-tested.
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 30_000L)
-            .setMinUpdateIntervalMillis(10_000L)
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L)
+            .setMinUpdateIntervalMillis(5_000L)
             // Wait for a real fix rather than handing back a coarse one first.
             .setWaitForAccurateLocation(true)
             .build()
