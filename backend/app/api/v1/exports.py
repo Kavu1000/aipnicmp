@@ -74,6 +74,23 @@ async def areas_csv(
     return _attach(export.areas_csv(rows), "text/csv", _stamp("areas", "csv"))
 
 
+@router.get("/weak-areas.csv")
+async def weak_areas_csv(
+    operator: str | None = Depends(enforce_scope),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Weak-4G hexagons ranked by people times decibels short.
+
+    The rows an RF planner can work from: where, how far under, how many people
+    and what the ground looks like. It stops short of a remedy, because the
+    remedy depends on tilts, azimuths and bands that only the operator holds —
+    and on whether the shortfall survives being measured outside a car, which
+    the manifest in the bundle explains at length.
+    """
+    rows = await export.weak_area_rows(session, operator=operator)
+    return _attach(export.weak_areas_csv(rows), "text/csv", _stamp("weak-areas", "csv"))
+
+
 @router.get("/cells.geojson")
 async def cells_geojson(
     operator: str | None = Depends(enforce_scope),

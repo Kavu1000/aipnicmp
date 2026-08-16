@@ -60,6 +60,7 @@ async def test_the_bundle_carries_the_manifest_with_the_data(
         "tiles.csv",
         "areas.csv",
         "cells.geojson",
+        "weak-areas.csv",
     }
 
     manifest = archive.read("MANIFEST.txt").decode()
@@ -71,6 +72,11 @@ async def test_the_bundle_carries_the_manifest_with_the_data(
     # And enough provenance to tell two exports apart a year later.
     assert "Generated:" in manifest
     assert "Export version:" in manifest
+    # The caveat that decides whether any money should move: these readings
+    # were taken inside a car, and the car costs more decibels than the median
+    # shortfall the file reports.
+    assert "inside moving vehicles" in manifest
+    assert "before committing money" in manifest
 
 
 async def test_the_hexagons_carry_geometry_and_a_join_key(
@@ -230,3 +236,97 @@ async def test_cells_say_what_they_are_in_the_manifest(
     geo = json.loads(archive.read("cells.geojson"))
     assert geo["type"] == "FeatureCollection"
     assert "uncertainty_m is the" in archive.read("MANIFEST.txt").decode()
+
+
+async def test_weak_areas_rank_by_people_times_shortfall(
+    client, session, device_key, public_key_b64
+):
+    """A planner reads the top of this list, so the top has to be the right rows.
+
+    Neither figure alone orders it correctly: a village three decibels under
+    matters more than empty ground fifteen under, and the product is what says
+    so.
+    """
+    from sqlalchemy import select, update
+
+    from app.models.features import HexFeature
+    from app.models.tile import H3Tile
+    from app.services.export import weak_area_rows
+
+    await enroll(client, public_key_b64)
+
+    # Two hexagons far enough apart to stay separate, both weak — and sent as
+    # two batches, because five kilometres between consecutive readings inside
+    # one upload is exactly what the trajectory check rejects, and rightly.
+    async def drive(tag: str, *, lat: float, rsrp: float) -> None:
+        records = [
+            sign_record(
+                make_record(
+                    record_id=f"rec-{tag}{i:04d}",
+                    minutes_ago=90 - i,
+                    lat=lat,
+                    lon=BASE_LON,
+                    registered=True,
+                    network_type="LTE",
+                    cells=3,
+                    signal={"rsrp_dbm": rsrp, "level": 1},
+                ),
+                device_key,
+            )
+            for i in range(3)
+        ]
+        response = await client.post(
+            "/api/v1/measurements/batch", json=batch(records, batch_id=f"batch-{tag}")
+        )
+        assert response.json()["accepted"] == 3, response.text
+
+    # One barely under the line, one far under.
+    await drive("weakA", lat=BASE_LAT, rsrp=-112.0)
+    await drive("weakB", lat=BASE_LAT + 0.05, rsrp=-125.0)
+    await rebuild_tiles(session)
+
+    tiles = (await session.scalars(select(H3Tile))).all()
+    assert len(tiles) == 2
+    barely = min(tiles, key=lambda t: abs(t.avg_rsrp_dbm + 112.0))
+    deeply = next(t for t in tiles if t.h3_index != barely.h3_index)
+
+    # The barely-weak hexagon is a village; the deeply-weak one is empty.
+    session.add_all(
+        [
+            HexFeature(
+                h3_index=barely.h3_index, resolution=8,
+                centroid_lat=barely.centroid_lat, centroid_lon=barely.centroid_lon,
+                area_km2=0.84, population=2000.0, terrain_ruggedness_m=4.0,
+                elevation_mean_m=180.0,
+            ),
+            HexFeature(
+                h3_index=deeply.h3_index, resolution=8,
+                centroid_lat=deeply.centroid_lat, centroid_lon=deeply.centroid_lon,
+                area_km2=0.84, population=10.0, terrain_ruggedness_m=50.0,
+                elevation_mean_m=400.0,
+            ),
+        ]
+    )
+    await session.execute(update(H3Tile).values(is_predicted=False))
+    await session.commit()
+
+    rows = await weak_area_rows(session)
+    assert [row["h3_index"] for row in rows] == [barely.h3_index, deeply.h3_index]
+    assert rows[0]["rank"] == 1
+    assert rows[0]["shortfall_band"] == "under_5db"
+    assert rows[1]["shortfall_band"] == "over_10db"
+    # The deeply-weak one is further under and still ranked second, which is
+    # the whole point of weighting by population.
+    assert rows[1]["shortfall_db"] > rows[0]["shortfall_db"]
+    assert rows[0]["people_times_shortfall"] > rows[1]["people_times_shortfall"]
+
+
+async def test_only_weak_hexagons_appear_in_the_weak_list(
+    client, session, device_key, public_key_b64
+):
+    """A good hexagon in a remediation list sends somebody to a working tower."""
+    from app.services.export import weak_area_rows
+
+    await _measure(client, session, device_key, public_key_b64)
+    rows = await weak_area_rows(session)
+    assert rows == [], "the default fixture is good coverage and must not appear"

@@ -31,11 +31,12 @@ from typing import Any, Iterable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.radio import RadioState
+from app.core.radio import RSRP_GOOD_DBM, RadioState
 from app.models.area import AdminArea
 from app.models.cell import ObservedCell
+from app.models.features import HexFeature
 from app.models.tile import H3Tile, H3TileOperator
-from app.services.geo import h3_polygon_geojson
+from app.services.geo import h3_polygon_geojson, haversine_m
 
 #: Bumped when a column is added, removed or given a new meaning, so a file
 #: found on somebody's disk in a year can be matched to what produced it.
@@ -83,6 +84,25 @@ AREA_COLUMNS = [
     "calls_only",
     "unusable",
     "no_network",
+]
+
+WEAK_AREA_COLUMNS = [
+    "rank",
+    "h3_index",
+    "centroid_lat",
+    "centroid_lon",
+    "province",
+    "district",
+    "avg_rsrp_dbm",
+    "shortfall_db",
+    "shortfall_band",
+    "population",
+    "people_times_shortfall",
+    "measurements",
+    "devices",
+    "distance_to_nearest_cell_m",
+    "terrain_ruggedness_m",
+    "elevation_mean_m",
 ]
 
 
@@ -232,6 +252,113 @@ async def area_rows(
     return sorted(tally.values(), key=lambda row: (row["level"], row["code"]))
 
 
+async def weak_area_rows(
+    session: AsyncSession, *, operator: str | None = None
+) -> list[dict[str, Any]]:
+    """Weak-4G hexagons ranked by how many people the shortfall affects.
+
+    Registered on LTE and below the good line: the state whose remedy is
+    optimisation rather than construction. Ranked by population times decibels
+    short, because a village three decibels under is worth more attention than
+    empty ground fifteen under, and neither figure alone says that.
+
+    The columns are evidence, not a prescription. ``shortfall_band`` groups the
+    rows by how far under they are because that is what separates a remedy
+    costing nothing from one costing a mast — but which remedy applies depends
+    on antenna tilts and bands that only the operator holds, so this file
+    stops at saying where and how much.
+    """
+    table = H3TileOperator if operator else H3Tile
+    query = select(table).where(
+        table.dominant_state == RadioState.LTE_WEAK.value,
+        table.measurement_count > 0,
+        table.avg_rsrp_dbm.is_not(None),
+    )
+    if operator:
+        query = query.where(H3TileOperator.operator_name == operator)
+    else:
+        query = query.where(H3Tile.is_predicted.is_(False))
+
+    tiles = (await session.scalars(query)).all()
+    if not tiles:
+        return []
+
+    features = {
+        row.h3_index: row
+        for row in (
+            await session.execute(
+                select(
+                    HexFeature.h3_index,
+                    HexFeature.population,
+                    HexFeature.terrain_ruggedness_m,
+                    HexFeature.elevation_mean_m,
+                ).where(HexFeature.h3_index.in_([tile.h3_index for tile in tiles]))
+            )
+        ).all()
+    }
+    names = {
+        area.code: area.name_en
+        for area in (await session.scalars(select(AdminArea).where(AdminArea.level <= 2))).all()
+    }
+    cells = (
+        await session.execute(
+            select(ObservedCell.est_lat, ObservedCell.est_lon).where(
+                ObservedCell.position_is_reliable.is_(True)
+            )
+        )
+    ).all()
+
+    rows: list[dict[str, Any]] = []
+    for tile in tiles:
+        shortfall = round(RSRP_GOOD_DBM - tile.avg_rsrp_dbm, 1)
+        feature = features.get(tile.h3_index)
+        population = round(feature.population) if feature and feature.population else 0
+        nearest = min(
+            (
+                haversine_m(tile.centroid_lat, tile.centroid_lon, cell.est_lat, cell.est_lon)
+                for cell in cells
+            ),
+            default=None,
+        )
+        rows.append(
+            {
+                "h3_index": tile.h3_index,
+                "centroid_lat": round(tile.centroid_lat, 6),
+                "centroid_lon": round(tile.centroid_lon, 6),
+                "province": names.get(tile.adm1_code or "", ""),
+                "district": names.get(tile.adm2_code or "", ""),
+                "avg_rsrp_dbm": round(tile.avg_rsrp_dbm, 1),
+                "shortfall_db": shortfall,
+                # Grouped by what the size of the gap implies, not by a guess
+                # at the cause. Under 5 dB is inside the noise a vehicle body
+                # adds; over 10 dB is not.
+                "shortfall_band": (
+                    "under_5db" if shortfall <= 5 else "5_to_10db" if shortfall <= 10 else "over_10db"
+                ),
+                "population": population,
+                "people_times_shortfall": round(population * shortfall),
+                "measurements": tile.measurement_count,
+                "devices": tile.device_count,
+                "distance_to_nearest_cell_m": round(nearest) if nearest is not None else "",
+                "terrain_ruggedness_m": (
+                    round(feature.terrain_ruggedness_m, 1)
+                    if feature and feature.terrain_ruggedness_m is not None
+                    else ""
+                ),
+                "elevation_mean_m": (
+                    round(feature.elevation_mean_m)
+                    if feature and feature.elevation_mean_m is not None
+                    else ""
+                ),
+            }
+        )
+
+    rows.sort(key=lambda row: -row["people_times_shortfall"])
+    for position, row in enumerate(rows, start=1):
+        row["rank"] = position
+    return rows
+
+
 def tiles_geojson(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Hexagons as polygons, so this opens in QGIS without a join step."""
     return {
@@ -298,6 +425,7 @@ def manifest(
         "  tiles.csv         the same rows, without geometry (for a spreadsheet)",
         "  areas.csv         one row per province and district",
         "  cells.geojson     observed cells that could be given a position",
+        "  weak-areas.csv    weak-4G hexagons, ranked by people times decibels",
         "",
         "Joining this to your own data",
         "-" * 60,
@@ -320,6 +448,26 @@ def manifest(
         "  5. A national statistic. Shares are computed over measured hexagons",
         "     only. See the coverage figures in the platform for how much of",
         "     the country that currently is.",
+        "",
+        "",
+        "Before acting on weak-areas.csv",
+        "-" * 60,
+        "  These readings were taken on phones inside moving vehicles. A vehicle",
+        "  body costs roughly 6-10 dB, which is larger than the median shortfall",
+        "  in this file — so a hexagon a few decibels under the line may already",
+        "  be adequate for somebody standing outside, and the figure describes",
+        "  the car as much as the coverage.",
+        "",
+        "  Measure inside and outside the vehicle at a sample of these places",
+        "  before committing money to any of them. shortfall_band groups the",
+        "  rows by size of gap for that reason: under_5db is inside the range a",
+        "  vehicle body alone can explain.",
+        "",
+        "  The file says where and how much. It does not say why, and the remedy",
+        "  turns entirely on why: antenna tilt and azimuth, band, terrain",
+        "  shadowing and site position are what separate a fix costing nothing",
+        "  from one costing a mast. The operator holds all four; this platform",
+        "  holds none of them.",
         "",
         "  A hexagon's colour is the median state of every reading ever taken",
         "  inside it, not the worst; worst_state is a separate column.",
@@ -344,6 +492,7 @@ async def bundle(
     tiles = await tile_rows(session, operator=operator, area=area)
     cells = await cell_rows(session, operator=operator)
     areas = await area_rows(session, operator=operator)
+    weak = await weak_area_rows(session, operator=operator)
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -357,6 +506,7 @@ async def bundle(
                     "hexagons": len(tiles),
                     "areas": len(areas),
                     "observed cells": len(cells),
+                    "weak-4G hexagons": len(weak),
                 },
             ),
         )
@@ -364,6 +514,7 @@ async def bundle(
         archive.writestr("tiles.csv", _csv(TILE_COLUMNS, tiles))
         archive.writestr("areas.csv", _csv(AREA_COLUMNS, areas))
         archive.writestr("cells.geojson", json.dumps(cells_geojson(cells)))
+        archive.writestr("weak-areas.csv", _csv(WEAK_AREA_COLUMNS, weak))
 
     return buffer.getvalue()
 
@@ -374,3 +525,7 @@ def tiles_csv(rows: list[dict[str, Any]]) -> str:
 
 def areas_csv(rows: list[dict[str, Any]]) -> str:
     return _csv(AREA_COLUMNS, rows)
+
+
+def weak_areas_csv(rows: list[dict[str, Any]]) -> str:
+    return _csv(WEAK_AREA_COLUMNS, rows)
