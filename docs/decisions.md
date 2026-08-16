@@ -248,6 +248,38 @@ Health checks stay open for the same reason: a load balancer cannot sign in
 either. `/stats` does not — it is coverage data that happens to live beside
 them.
 
+## 25. A collector's position is published as a hexagon, never as a path
+
+Asked twice, and settled the same way both times: the fleet view shows where
+each phone **last** reported, snapped to its H3 hexagon — about 740 m across —
+and nothing else. No history, no trail, never the GPS fix the handset recorded.
+
+Every ingredient for full movement tracking is already on the server. Each
+measurement carries exact coordinates, a timestamp and the device id, so a path
+per collector is a query away rather than a feature to build. It is withheld
+because it can be, not because it is hard.
+
+Three reasons it stays withheld.
+
+The proposal commits to it in writing, twice — 2.6 and 3.5 both say location
+data is anonymised and aggregated into grid tiles before any display. A live
+per-person path is the opposite of that sentence, in a document being judged.
+
+The people carrying these phones are teachers, health workers, drivers and
+provincial staff. A coarse position answers an operational question — is anyone
+collecting in Attapeu today, is a phone sitting still — without answering where
+somebody went after work. The first is fleet management; the second is
+surveillance, and the difference is not a slider.
+
+And it would not work where it matters anyway. In a dead zone there is no live
+position at all: records queue on the handset and arrive in a burst hours
+later, so a trail would fill itself in retroactively across exactly the places
+this project exists to find.
+
+If it is ever revisited, the conditions are known: admin-only, today's
+hexagons only, deleted nightly, disclosed to every collector, and 2.6 amended
+first.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified
