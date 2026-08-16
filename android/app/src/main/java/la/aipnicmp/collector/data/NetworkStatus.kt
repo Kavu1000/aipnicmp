@@ -23,9 +23,25 @@ object NetworkStatus {
     fun isOnline(context: Context): Boolean {
         val manager = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
             ?: return false
-        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+        // Every network, not just the active one.
+        //
+        // Android names one network "active", and when a phone is attached to
+        // wifi that has stopped working it can go on naming that one — attached
+        // but unvalidated — while mobile data carries every request perfectly
+        // well. Asking only the active network then reports a phone as offline
+        // in the middle of a town, and each reading it takes is filed as
+        // "recorded with no internet" moments before it uploads successfully
+        // over the connection that was there all along.
+        //
+        // The question this answers is whether anything can reach the server,
+        // so it asks all of them and takes the best answer.
+        return manager.allNetworks.any { network ->
+            val capabilities = manager.getNetworkCapabilities(network)
+            capabilities != null &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
     }
 
     /**
@@ -40,10 +56,19 @@ object NetworkStatus {
     fun isCellular(context: Context): Boolean {
         val manager = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
             ?: return false
-        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
-        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+        // Same reasoning as isOnline, with the opposite emphasis: a working
+        // cellular path must be found specifically, because a throughput test
+        // run over wifi measures somebody's router and files the answer against
+        // a hexagon as though a tower produced it. Wifi being present is not a
+        // reason to skip the test — wifi being the thing measured is.
+        return manager.allNetworks.any { network ->
+            val capabilities = manager.getNetworkCapabilities(network)
+            capabilities != null &&
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
     }
 
     /**
