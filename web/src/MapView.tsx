@@ -23,6 +23,9 @@ const AREAS_FILL = "areas-fill";
 const AREAS_POINT = "areas-point";
 
 /** The selected area's own border, and the dimming of everything outside it. */
+const CELLS_SOURCE = "observed-cells";
+const CELLS_LAYER = "observed-cell-points";
+const CELLS_HALO_LAYER = "observed-cell-halo";
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
 
@@ -298,7 +301,7 @@ function writeHash(map: maplibregl.Map): void {
   window.history.replaceState(null, "", next);
 }
 
-type GeoJsonData = Parameters<maplibregl.GeoJSONSource["setData"]>[0];
+export type GeoJsonData = Parameters<maplibregl.GeoJSONSource["setData"]>[0];
 
 /**
  * A layer that came with the basemap style, remembered before this app adds any
@@ -351,6 +354,8 @@ interface Props {
    * no position and are simply not drawn.
    */
   collectors: Collector[];
+  /** Base stations the fleet has placed, with their uncertainty. */
+  cells: GeoJsonData;
   /** Wording for the hover popup; kept out of this file so it stays translated. */
   collectorLabels: { collector: string; approximate: string };
   onBoundsChange: (bounds: Bounds) => void;
@@ -391,6 +396,7 @@ export function MapView({
   areaOutline,
   fitTo,
   collectors,
+  cells,
   collectorLabels,
   onBoundsChange,
   onSelect,
@@ -405,6 +411,7 @@ export function MapView({
   const latestOutline = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestCells = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels });
   handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels };
 
@@ -470,6 +477,13 @@ export function MapView({
     [collectors],
   );
   latestCollectors.current = collectorPoints;
+  latestCells.current = cells;
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance?.getSource(CELLS_SOURCE)) return;
+    (instance.getSource(CELLS_SOURCE) as maplibregl.GeoJSONSource).setData(cells as never);
+  }, [cells]);
 
   useEffect(() => {
     const instance = map.current;
@@ -738,6 +752,48 @@ export function MapView({
         source: OUTLINE_SOURCE,
         filter: ["get", "approximate"],
         paint: { "line-color": "#16202c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+
+      // Base stations, drawn under the fleet and over the hexagons.
+      //
+      // Two layers, and the halo is the important one: it is the uncertainty
+      // the estimate carries, in metres, drawn to the map's own scale. A mast
+      // placed from readings spread over eight kilometres is not known to the
+      // metre, and a bare dot would be believed as though it were.
+      instance.addSource(CELLS_SOURCE, { type: "geojson", data: latestCells.current });
+      instance.addLayer({
+        id: CELLS_HALO_LAYER,
+        type: "circle",
+        source: CELLS_SOURCE,
+        paint: {
+          // Radius in real metres, converted at this latitude and zoom, so the
+          // circle shrinks and grows with the map rather than staying a
+          // decorative blob.
+          "circle-radius": [
+            "interpolate", ["exponential", 2], ["zoom"],
+            8, ["/", ["get", "uncertainty_m"], 150],
+            16, ["/", ["get", "uncertainty_m"], 1.2],
+          ],
+          "circle-color": "#6b21a8",
+          "circle-opacity": 0.10,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#6b21a8",
+          "circle-stroke-opacity": 0.35,
+        },
+      });
+      instance.addLayer({
+        id: CELLS_LAYER,
+        type: "circle",
+        source: CELLS_SOURCE,
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 14, 6],
+          // Purple: not on the coverage scale, and not the fleet's indigo
+          // beacon either, so a mast is never mistaken for a reading or a
+          // collector.
+          "circle-color": "#6b21a8",
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#ffffff",
+        },
       });
 
       // Where the fleet is, to the nearest hexagon. Drawn last so a collector

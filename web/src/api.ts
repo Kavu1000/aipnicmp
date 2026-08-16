@@ -447,3 +447,34 @@ export async function fetchCollectors(
     signal,
   );
 }
+
+
+/**
+ * A base station the fleet has placed, with the doubt that came with it.
+ *
+ * Derived from our own readings rather than a purchased database. The server
+ * publishes only cells whose observations were spread widely enough to
+ * constrain a position, and `uncertainty_m` is never smaller than half that
+ * spread — so the circle can be drawn rather than a point that would be
+ * believed.
+ */
+export interface ObservedCell {
+  operator: string | null;
+  cell: string;
+  observations: number;
+  uncertainty_m: number;
+  spread_m: number;
+  best_rsrp_dbm: number | null;
+  last_seen_at: string | null;
+}
+
+export async function fetchCells(signal?: AbortSignal) {
+  return getJson<{
+    type: "FeatureCollection";
+    features: {
+      type: "Feature";
+      geometry: { type: "Point"; coordinates: [number, number] };
+      properties: ObservedCell;
+    }[];
+  }>("/cells", signal);
+}

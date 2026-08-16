@@ -6,6 +6,7 @@ import {
   fetchSession,
   signOut,
   type SessionState,
+  fetchCells,
   fetchCollectors,
   fetchNetworks,
   fetchPriorityAreas,
@@ -26,6 +27,7 @@ import {
   type Basemap,
   type FitTarget,
   type FlyTarget,
+  type GeoJsonData,
 } from "./MapView";
 import { AreaFilter } from "./AreaFilter";
 import { AreaSummary } from "./AreaSummary";
@@ -49,6 +51,9 @@ import { formatAge, formatArea, formatShare } from "./coverage";
 const REFRESH_INTERVAL_MS = 60_000;
 import { outlineOf } from "./geo";
 import { LANGUAGE_NAMES, TRANSLATIONS, loadLanguage, saveLanguage, type Language } from "./i18n";
+
+/** An empty collection, for state that starts before the first fetch. */
+const EMPTY_GEOJSON = { type: "FeatureCollection", features: [] } as unknown as GeoJsonData;
 
 const EMPTY: TileCollection = { type: "FeatureCollection", features: [] };
 
@@ -87,6 +92,9 @@ export function App() {
   const [fitTo, setFitTo] = useState<FitTarget | null>(null);
   const [areaNotice, setAreaNotice] = useState<string | null>(null);
   const [collectors, setCollectors] = useState<Collector[]>([]);
+  // Base stations the fleet has placed. Refreshed with everything else:
+  // a new drive can place a mast that could not be placed before.
+  const [cells, setCells] = useState<GeoJsonData>(EMPTY_GEOJSON);
   const [live, setLive] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
   const [sessionReachable, setSessionReachable] = useState(true);
@@ -276,6 +284,9 @@ export function App() {
       fetchCollectors(signal)
         .then((body) => setCollectors(body.collectors))
         .catch(() => undefined);
+      fetchCells(signal)
+        .then((body) => setCells(body as unknown as GeoJsonData))
+        .catch(() => undefined);
       if (!areaCode && lastBounds.current) loadTiles(lastBounds.current, { silent: true });
     },
     [areaCode, loadTiles],
@@ -288,6 +299,9 @@ export function App() {
     fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
     fetchCollectors(controller.signal)
       .then((body) => setCollectors(body.collectors))
+      .catch(() => undefined);
+    fetchCells(controller.signal)
+      .then((body) => setCells(body as unknown as GeoJsonData))
       .catch(() => undefined);
     return () => controller.abort();
   }, [approved]);
@@ -570,6 +584,7 @@ export function App() {
               areaOutline={areaOutline}
               fitTo={fitTo}
               collectors={collectors}
+              cells={cells}
               collectorLabels={{ collector: t.collectorHere, approximate: t.approxPosition }}
               onBoundsChange={loadTiles}
               onSelect={setSelected}

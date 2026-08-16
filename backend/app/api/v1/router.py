@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends
 from app.api.v1 import (
     admin,
     areas,
+    cells,
     auth,
     dashboard,
     devices,
@@ -50,6 +51,7 @@ signed_in = [Depends(require_user)]
 api_router.include_router(areas.router, dependencies=signed_in)
 api_router.include_router(dashboard.router, dependencies=signed_in)
 api_router.include_router(tiles.router, dependencies=signed_in)
+api_router.include_router(cells.router, dependencies=signed_in)
 api_router.include_router(reports.router, dependencies=signed_in)
 api_router.include_router(sites.router, dependencies=signed_in)
 
