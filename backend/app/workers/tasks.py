@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from app.db.session import SessionLocal
 from app.models.tile import H3Tile
 from app.services.aggregate import rebuild_tiles
+from app.services.retention import coarsen_old_fixes
 from app.workers.celery_app import celery_app
 from scripts.estimate_cell_sites import build as estimate_cell_sites
 
@@ -92,3 +93,31 @@ def estimate_cell_sites_task() -> dict[str, int]:
     first thing to reach for if this task ever starts overrunning its hour.
     """
     return {"cells": asyncio.run(estimate_cell_sites())}
+
+
+async def _coarsen() -> int:
+    """Sweep repeatedly, because one pass is capped to keep the lock short."""
+    done = 0
+    async with SessionLocal() as session:
+        while True:
+            moved = await coarsen_old_fixes(session)
+            done += moved
+            if moved == 0:
+                return done
+
+
+@celery_app.task(name="app.workers.tasks.coarsen_old_fixes_task")
+def coarsen_old_fixes_task() -> dict[str, int]:
+    """Age exact GPS fixes down to the hexagon they already belong to.
+
+    Nightly. A collector's readings are a position every ten seconds while they
+    moved, which together is a record of where a person went — and the platform
+    publishes hexagons, so keeping the fixes forever promises less than the map
+    does. Nothing published changes: tiles are built from the hexagon index, and
+    a hexagon's centre is inside that same hexagon.
+
+    Runs after the full tile rebuild rather than before it, so a night's
+    aggregation is never working against rows that are being rewritten
+    underneath it.
+    """
+    return {"coarsened": asyncio.run(_coarsen())}

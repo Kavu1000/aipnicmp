@@ -81,6 +81,19 @@ class Settings(BaseSettings):
     h3_resolution: int = 8
     tile_min_devices: int = 2
 
+    # How long an exact GPS fix is kept before it is replaced by the centre of
+    # the hexagon it already belongs to.
+    #
+    # A collector's readings are a fix every ten seconds while they moved, which
+    # together is a record of a person's movements. The map has never shown it —
+    # it publishes hexagons — but holding it forever is a different promise from
+    # the one the platform makes to the people carrying the phones.
+    #
+    # Ninety days leaves room to investigate a suspect device or re-derive cell
+    # positions from fresh data before the precision goes. Set to 0 to keep
+    # exact fixes indefinitely, which is a decision worth making deliberately.
+    retention_precise_days: int = 90
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:

@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    DateTime,
     Float,
     ForeignKey,
     Index,
@@ -130,6 +131,13 @@ class Measurement(Base):
     quality_flags: Mapped[str | None] = mapped_column(String(255))
 
     h3_index: Mapped[str | None] = mapped_column(String(20), index=True)
+
+    #: When this row's exact fix was replaced by its hexagon's centre.
+    #:
+    #: Null means the precise coordinate is still held. Once set, ``lat`` and
+    #: ``lon`` are the centre of ``h3_index`` and no longer describe where the
+    #: collector actually was — which is the point.
+    coarsened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     batch = relationship("IngestBatch", lazy="noload")
 

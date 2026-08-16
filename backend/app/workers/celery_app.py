@@ -63,5 +63,16 @@ celery_app.conf.update(
             "schedule": crontab(minute=20),
             "options": {"expires": 1800},
         },
+        # Exact GPS fixes aged down to the hexagon they already sit in.
+        #
+        # 04:00, after the 03:10 full rebuild has finished, so a night's
+        # aggregation is never reading rows this is rewriting. Nightly rather
+        # than hourly because the window is measured in months and a missed
+        # night costs nothing.
+        "coarsen-old-fixes": {
+            "task": "app.workers.tasks.coarsen_old_fixes_task",
+            "schedule": crontab(hour=4, minute=0),
+            "options": {"expires": 3600},
+        },
     },
 )
