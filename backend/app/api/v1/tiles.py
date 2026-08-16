@@ -7,6 +7,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.radio import RadioState
 from app.db.session import get_session
 from app.models.tile import H3Tile, H3TileOperator
 from app.services.areas import area_or_none, tile_column
@@ -155,6 +156,13 @@ async def get_tiles(
         default=None,
         description="Restrict to one network. Omit for the combined view: can anyone get service here?",
     ),
+    state: RadioState | None = Query(
+        default=None,
+        description=(
+            "Restrict to one radio state, so a reader can ask where a single "
+            "problem is rather than reading five colours at once."
+        ),
+    ),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Coverage tiles inside a viewport or an administrative area, as GeoJSON.
@@ -197,6 +205,13 @@ async def get_tiles(
         conditions.append(H3TileOperator.operator_name == operator)
     elif not include_predicted:
         conditions.append(H3Tile.is_predicted.is_(False))
+
+    if state is not None:
+        # The median state, which is what the tile is drawn as. Filtering on
+        # the worst reading instead would return hexagons the map shows green,
+        # and a filter whose results contradict the colours beside them is
+        # worse than no filter.
+        conditions.append(model.dominant_state == state.value)
 
     def restrict(query: Select) -> Select:
         return query.where(*conditions) if conditions else query

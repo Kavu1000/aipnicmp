@@ -149,3 +149,68 @@ async def test_the_five_colours_are_all_different(
     assert len(set(colours)) == len(colours) == 5, colours
     # Grey means "not measured" and must never be one of them.
     assert "grey" not in colours
+
+
+async def test_the_state_filter_returns_only_that_state(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """Asking for one problem should return only that problem.
+
+    A reader looking for dead zones does not want to search five colours for
+    them, and an operator asked to fix weak coverage should be able to see just
+    the weak hexagons.
+    """
+    await enroll(client, public_key_b64)
+
+    good = [
+        sign_record(
+            make_record(record_id=f"rec-fgood{i:04d}", minutes_ago=60 - i, lat=BASE_LAT),
+            device_key,
+        )
+        for i in range(3)
+    ]
+    weak = [
+        sign_record(
+            make_record(
+                record_id=f"rec-fweak{i:04d}",
+                minutes_ago=30 - i,
+                # Far enough to land in a different hexagon.
+                lat=BASE_LAT + 0.05,
+                signal={"rsrp_dbm": -115.0, "level": 1},
+            ),
+            device_key,
+        )
+        for i in range(3)
+    ]
+    assert (
+        await client.post(
+            "/api/v1/measurements/batch", json=batch(good + weak, batch_id="batch-filter1")
+        )
+    ).json()["accepted"] == 6
+
+    await rebuild_tiles(session)
+
+    viewport = {
+        "min_lat": BASE_LAT - 0.5,
+        "min_lon": BASE_LON - 0.5,
+        "max_lat": BASE_LAT + 0.5,
+        "max_lon": BASE_LON + 0.5,
+    }
+
+    everything = (await client.get("/api/v1/tiles", params=viewport)).json()["features"]
+    assert len({f["properties"]["state"] for f in everything}) == 2
+
+    only_weak = (
+        await client.get("/api/v1/tiles", params={**viewport, "state": "LTE_WEAK"})
+    ).json()["features"]
+    assert only_weak
+    assert {f["properties"]["state"] for f in only_weak} == {"LTE_WEAK"}
+    assert {f["properties"]["colour"] for f in only_weak} == {"yellow"}
+
+    # And a state nobody has measured returns nothing rather than everything —
+    # a filter that silently ignores itself is how a reader concludes there are
+    # no dead zones.
+    none_found = (
+        await client.get("/api/v1/tiles", params={**viewport, "state": "NO_CELL"})
+    ).json()["features"]
+    assert none_found == []

@@ -315,6 +315,8 @@ export interface TileQuery {
   bounds?: Bounds | null;
   operator?: string | null;
   area?: string | null;
+  /** One radio state, so a reader can ask where a single problem is. */
+  state?: RadioState | null;
 }
 
 export async function fetchTiles(query: TileQuery, signal?: AbortSignal): Promise<TileCollection> {
@@ -328,6 +330,7 @@ export async function fetchTiles(query: TileQuery, signal?: AbortSignal): Promis
     params.set("max_lon", String(query.bounds.maxLon));
   }
   if (query.operator) params.set("operator", query.operator);
+  if (query.state) params.set("state", query.state);
   return getJson<TileCollection>(`/tiles?${params}`, signal);
 }
 

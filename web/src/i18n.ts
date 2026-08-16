@@ -85,6 +85,8 @@ export interface Strings {
 
   coverage: string;
   allOperators: string;
+  signalState: string;
+  allStates: string;
   operator: string;
 
   areaCountry: string;
@@ -300,6 +302,8 @@ const en: Strings = {
 
   coverage: "Coverage",
   allOperators: "All networks",
+  signalState: "Signal status",
+  allStates: "All signal levels",
   operator: "Network",
 
   areaCountry: "Country",
@@ -529,6 +533,8 @@ const lo: Strings = {
 
   coverage: "ການຄອບຄຸມສັນຍານ",
   allOperators: "ທຸກເຄືອຂ່າຍ",
+  signalState: "ສະຖານະສັນຍານ",
+  allStates: "ທຸກລະດັບສັນຍານ",
   operator: "ເຄືອຂ່າຍ",
 
   areaCountry: "ປະເທດ",

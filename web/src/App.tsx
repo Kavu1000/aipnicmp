@@ -17,6 +17,7 @@ import {
   type Bounds,
   type Collector,
   type Network,
+  type RadioState,
   type Summary,
   type TileCollection,
   type TileProperties,
@@ -40,7 +41,7 @@ import { Collectors } from "./Collectors";
 import { Towers } from "./Towers";
 import { LanguagePicker } from "./LanguagePicker";
 import { Sidebar, type View } from "./Sidebar";
-import { formatAge, formatArea, formatShare } from "./coverage";
+import { LEGEND_ORDER, formatAge, formatArea, formatShare, stateInfo } from "./coverage";
 
 /**
  * How often the map asks the server what changed.
@@ -80,6 +81,9 @@ export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [operator, setOperator] = useState<string | null>(null);
+  // One state at a time, so "where are the dead zones" is a question the
+  // map can answer rather than one the reader has to search five colours for.
+  const [state, setState] = useState<RadioState | null>(null);
   const [selected, setSelected] = useState<TileProperties | null>(null);
   const [flyTo, setFlyTo] = useState<FlyTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +125,7 @@ export function App() {
         inFlight.current = controller;
         if (!silent) setLoading(true);
 
-        fetchTiles({ bounds, operator }, controller.signal)
+        fetchTiles({ bounds, operator, state }, controller.signal)
           .then((collection) => {
             setTiles(collection);
             setError(null);
@@ -135,14 +139,14 @@ export function App() {
           });
       }, silent ? 0 : 250);
     },
-    [operator, areaCode],
+    [operator, areaCode, state],
   );
 
   // Switching network refetches the current viewport rather than waiting for
   // the next pan, which would leave the map showing the previous operator.
   useEffect(() => {
     if (!areaCode && lastBounds.current) loadTiles(lastBounds.current);
-  }, [operator, areaCode, loadTiles]);
+  }, [operator, areaCode, state, loadTiles]);
 
   /**
    * Load everything that belongs to the selected area.
@@ -183,7 +187,7 @@ export function App() {
         }
 
         try {
-          const collection = await fetchTiles({ area: areaCode, operator }, signal);
+          const collection = await fetchTiles({ area: areaCode, operator, state }, signal);
           if (!signal.aborted) setTiles(collection);
         } catch (cause) {
           if (cause instanceof ApiError && cause.status === 400) {
@@ -497,6 +501,28 @@ export function App() {
                     {network.measured
                       ? network.operator
                       : `${network.operator} — ${t.networkUnmeasured}`}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* The five states, in the legend's order so the dropdown and the
+                key read the same way down. Named by what they mean rather than
+                by their colour: a reader filtering for dead zones is looking
+                for "no network at all", not for red. */}
+            {view === "map" && (
+              <select
+                className="select"
+                value={state ?? ""}
+                onChange={(event) =>
+                  setState((event.target.value || null) as RadioState | null)
+                }
+                aria-label={t.signalState}
+              >
+                <option value="">{t.allStates}</option>
+                {LEGEND_ORDER.map((value) => (
+                  <option key={value} value={value}>
+                    {stateInfo(t)[value].label}
                   </option>
                 ))}
               </select>
