@@ -15,8 +15,17 @@ android {
         // "unusable" — the distinction the whole project rests on.
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // Bump both whenever a build goes out to collectors.
+        //
+        // versionName is sent with every upload and is what the Collectors page
+        // shows, so leaving it fixed meant every phone reported 0.1.0 whatever
+        // it was actually running — and there was no way to tell which handsets
+        // had taken an update and which were still collecting with an old rule.
+        //
+        // versionCode is what Android compares when installing over an existing
+        // copy; equal codes are treated as a reinstall rather than an upgrade.
+        versionCode = 2
+        versionName = "0.2.0"
 
         // Where the collector uploads. HTTPS is not a preference here: Android
         // 9+ refuses cleartext, so an http:// endpoint cannot be used from a
