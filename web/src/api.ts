@@ -19,6 +19,9 @@ export type InvestmentAction = "new_tower" | "upgrade" | "optimisation" | "none"
 
 export interface TileProperties {
   h3: string;
+  /** Centre of the hexagon — never finer than the hexagon itself. */
+  lat?: number;
+  lon?: number;
   colour: TileColour;
   state: RadioState | null;
   predicted: boolean;

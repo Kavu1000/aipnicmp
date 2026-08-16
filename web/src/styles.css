@@ -871,6 +871,33 @@ main {
   word-break: break-all;
 }
 
+/* Coordinates and the way there, under the hexagon's figures. */
+.inspector-place {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.inspector-place dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.inspector-place dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0;
+}
+
+.inspector-place .coords {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
 /* ---------- toast ---------- */
 
 .toast {

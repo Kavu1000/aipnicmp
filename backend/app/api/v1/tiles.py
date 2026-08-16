@@ -29,6 +29,13 @@ def _feature(tile: H3Tile, *, detailed: bool) -> dict[str, Any]:
     """
     properties: dict[str, Any] = {
         "h3": tile.h3_index,
+        # The hexagon's centre. Published with the colour rather than with the
+        # detail, because the polygon itself is already in this response — the
+        # centre of a shape you have been given is not a new disclosure, and
+        # withholding it only stopped the client offering directions to a place
+        # it was already drawing.
+        "lat": tile.centroid_lat,
+        "lon": tile.centroid_lon,
         "colour": tile.colour,
         "state": tile.dominant_state,
         "predicted": tile.is_predicted,
@@ -60,6 +67,13 @@ def _feature(tile: H3Tile, *, detailed: bool) -> dict[str, Any]:
 def _operator_feature(tile: H3TileOperator, *, detailed: bool) -> dict[str, Any]:
     properties: dict[str, Any] = {
         "h3": tile.h3_index,
+        # The hexagon's centre. Published with the colour rather than with the
+        # detail, because the polygon itself is already in this response — the
+        # centre of a shape you have been given is not a new disclosure, and
+        # withholding it only stopped the client offering directions to a place
+        # it was already drawing.
+        "lat": tile.centroid_lat,
+        "lon": tile.centroid_lon,
         "colour": tile.colour,
         "state": tile.dominant_state,
         "predicted": False,

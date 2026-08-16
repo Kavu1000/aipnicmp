@@ -180,6 +180,8 @@ export interface Strings {
   inspectorDownload: string;
   inspectorLatency: string;
   inspectorLastMeasured: string;
+  inspectorLocation: string;
+  inspectorDirections: string;
 
   dashTitle: string;
   dashSubtitle: string;
@@ -399,6 +401,8 @@ const en: Strings = {
   inspectorDownload: "Download",
   inspectorLatency: "Latency",
   inspectorLastMeasured: "Last measured",
+  inspectorLocation: "Location",
+  inspectorDirections: "Directions",
 
   dashTitle: "Coverage dashboard",
   dashSubtitle: "For operators and the Ministry of Technology and Communications",
@@ -613,6 +617,8 @@ const lo: Strings = {
   inspectorDownload: "ຄວາມໄວດາວໂຫຼດ",
   inspectorLatency: "ຄວາມຊັກຊ້າ",
   inspectorLastMeasured: "ວັດແທກຄັ້ງລ່າສຸດ",
+  inspectorLocation: "ທີ່ຕັ້ງ",
+  inspectorDirections: "ນຳທາງໄປ",
 
   dashTitle: "ລາຍງານການຄອບຄຸມສັນຍານ",
   dashSubtitle: "ສຳລັບຜູ້ໃຫ້ບໍລິການ ແລະ ກະຊວງເຕັກໂນໂລຊີ ແລະ ການສື່ສານ",

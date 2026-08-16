@@ -87,6 +87,38 @@ export function TileInspector({ tile, t, onClose }: Props) {
         </p>
       )}
 
+      {tile.lat != null && tile.lon != null && (
+        <div className="inspector-place">
+          <dt>{t.inspectorLocation}</dt>
+          <dd>
+            {/*
+              Four decimals, about 11 m — finer would be false precision, since
+              this is the centre of a hexagon 700 m across and not a spot
+              anybody measured.
+            */}
+            <span className="coords">
+              {tile.lat.toFixed(4)}, {tile.lon.toFixed(4)}
+            </span>
+            {/*
+              Directions rather than a pin. Someone reading this panel is
+              deciding whether to go and look — at a dead zone, a site for a
+              mast, a reading they do not believe — and the next thing they
+              need is the way there. noreferrer as well as noopener: the map
+              provider has no business knowing which coverage page this came
+              from.
+            */}
+            <a
+              className="link"
+              href={`https://www.google.com/maps/dir/?api=1&destination=${tile.lat},${tile.lon}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.inspectorDirections}
+            </a>
+          </dd>
+        </div>
+      )}
+
       <p className="hexid">{tile.h3}</p>
     </aside>
   );

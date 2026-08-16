@@ -529,6 +529,33 @@ async def test_a_village_child_is_a_point_feature(client: AsyncClient, session: 
     assert feature["properties"]["radius_m"] == 3_000.0
 
 
+async def test_a_tile_carries_the_centre_of_its_hexagon(
+    client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
+):
+    """So the map can offer directions to a place it is already drawing. The
+    polygon is in the same response, so the centre is not a new disclosure —
+    and it must be published with the colour rather than the detail, or a
+    single-collector tile would lose it exactly where somebody most wants to go
+    and look."""
+    await seed_areas(session)
+    await seed_journey(client, device_key, public_key_b64)
+    await rebuild_tiles(session)
+
+    body = (await client.get("/api/v1/tiles", params={"area": DISTRICT_SOUTH})).json()
+    for feature in body["features"]:
+        properties = feature["properties"]
+        assert properties["lat"] is not None and properties["lon"] is not None
+        # Inside its own hexagon, not merely somewhere in Laos.
+        ring = feature["geometry"]["coordinates"][0]
+        lons = [point[0] for point in ring]
+        lats = [point[1] for point in ring]
+        assert min(lons) <= properties["lon"] <= max(lons)
+        assert min(lats) <= properties["lat"] <= max(lats)
+
+    # Withheld detail must not take the location with it.
+    assert any(f["properties"].get("low_confidence") for f in body["features"])
+
+
 async def test_tiles_can_be_filtered_to_one_district(
     client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
 ):
