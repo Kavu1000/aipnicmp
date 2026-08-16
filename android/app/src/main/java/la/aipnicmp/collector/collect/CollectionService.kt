@@ -70,6 +70,15 @@ class CollectionService : Service() {
          * That is the budget doing its job rather than a fault, but it is the
          * reason to change one if the other changes.
          */
+        /**
+         * Records that may be waiting and still allow a throughput test.
+         *
+         * Above this the phone is draining a backlog, and those records matter
+         * more than a speed sample. Below it, this is just the last reading or
+         * two still in flight.
+         */
+        private const val MAX_QUEUE_FOR_SPEED_TEST = 5
+
         private const val SPEED_TEST_INTERVAL_MILLIS = 5 * 60 * 1000L
 
         /** Above this, the fix came from wifi or cell towers rather than GPS. */
@@ -329,8 +338,27 @@ class CollectionService : Service() {
             elapsedMillis - lastSpeedTestAtMillis >= SPEED_TEST_INTERVAL_MILLIS
         if (!due) return null
         if (!snapshot.registered) return null
+        // isCellular requires a validated internet path, so an offline phone
+        // never gets this far: no request is made, no battery spent, no bytes
+        // charged. A test needs a working connection by definition — there is
+        // nothing to measure without one.
         if (!NetworkStatus.isCellular(this)) return null
         if (!prefs.speedTestAllowed()) return null
+
+        // Nor while a backlog is still going out.
+        //
+        // The moment a collector comes back into coverage is exactly when a
+        // test was most likely to fire — the interval has long since elapsed —
+        // and it is the worst moment for one. The signal is at its weakest at
+        // the edge of coverage, so the figure would be the least representative
+        // reading of the day, and the quarter of a megabyte it pulls down
+        // competes with the queue of real measurements trying to get out.
+        // Those records are the point; a throughput sample is not.
+        //
+        // A handful is not a backlog: one record still in flight from the last
+        // sample should not postpone a test that only comes round every twelve
+        // minutes.
+        if (store.count() > MAX_QUEUE_FOR_SPEED_TEST) return null
 
         // Stamped before the run, not after: a test on a bad link can take
         // twenty seconds, and timing the gap from the end would let a slow
