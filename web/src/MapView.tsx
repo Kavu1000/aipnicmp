@@ -23,6 +23,9 @@ const AREAS_FILL = "areas-fill";
 const AREAS_POINT = "areas-point";
 
 /** The selected area's own border, and the dimming of everything outside it. */
+const LINKS_SOURCE = "collector-links";
+const LINKS_LAYER = "collector-link-lines";
+const LINKS_LABEL_LAYER = "collector-link-labels";
 const CELLS_SOURCE = "observed-cells";
 const CELLS_LAYER = "observed-cell-points";
 const CELLS_HALO_LAYER = "observed-cell-halo";
@@ -412,6 +415,7 @@ export function MapView({
   const latestMask = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCells = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
+  const latestLinks = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels });
   handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels };
 
@@ -479,6 +483,51 @@ export function MapView({
   latestCollectors.current = collectorPoints;
   latestCells.current = cells;
 
+  /**
+   * One line per collector that has a placed mast serving it.
+   *
+   * Built here rather than on the server because both endpoints are already
+   * fetched: the line is simply the two points the client already holds, and
+   * sending a third payload to say so would be a round trip for no fact.
+   */
+  const links = useMemo<GeoJsonData>(
+    () => ({
+      type: "FeatureCollection",
+      features: collectors.flatMap((row) =>
+        row.position && row.serving_tower
+          ? [
+              {
+                type: "Feature" as const,
+                geometry: {
+                  type: "LineString" as const,
+                  coordinates: [
+                    [row.position.lon, row.position.lat],
+                    [row.serving_tower.lon, row.serving_tower.lat],
+                  ],
+                },
+                properties: {
+                  // Rounded to the precision the estimate can carry: a metre
+                  // figure beside a kilometre of doubt would be a fiction.
+                  label:
+                    row.serving_tower.distance_m >= 1000
+                      ? `≈ ${(row.serving_tower.distance_m / 1000).toFixed(1)} km`
+                      : `≈ ${Math.round(row.serving_tower.distance_m / 50) * 50} m`,
+                },
+              },
+            ]
+          : [],
+      ),
+    }) as unknown as GeoJsonData,
+    [collectors],
+  );
+  latestLinks.current = links;
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance?.getSource(LINKS_SOURCE)) return;
+    (instance.getSource(LINKS_SOURCE) as maplibregl.GeoJSONSource).setData(links as never);
+  }, [links]);
+
   useEffect(() => {
     const instance = map.current;
     if (!instance?.getSource(CELLS_SOURCE)) return;
@@ -492,6 +541,41 @@ export function MapView({
       collectorPoints as never,
     );
   }, [collectorPoints]);
+
+  /**
+   * The dashes travel from the phone towards the mast.
+   *
+   * MapLibre cannot animate a paint property, so the pattern is stepped
+   * through by hand — a short cycle of dash arrays that reads as movement in
+   * one direction. Direction matters: the line runs phone to mast in the
+   * geometry, so the flow says which end is being served by which.
+   *
+   * Stopped under prefers-reduced-motion, like the collector beacon. A moving
+   * line is decoration on top of a fact, and the fact survives without it.
+   */
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Each frame shifts the gap along, so the drawn segment appears to travel.
+    const frames = [
+      [0, 4, 3],
+      [0.5, 4, 2.5],
+      [1, 4, 2],
+      [1.5, 4, 1.5],
+      [2, 4, 1],
+      [2.5, 4, 0.5],
+      [3, 4, 0],
+    ];
+    let step = 0;
+    const timer = window.setInterval(() => {
+      const instance = map.current;
+      if (!instance?.getLayer(LINKS_LAYER)) return;
+      step = (step + 1) % frames.length;
+      instance.setPaintProperty(LINKS_LAYER, "line-dasharray", frames[step]);
+    }, 90);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   /**
    * The beacon: alternate the marker's colour on a timer.
@@ -752,6 +836,43 @@ export function MapView({
         source: OUTLINE_SOURCE,
         filter: ["get", "approximate"],
         paint: { "line-color": "#16202c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+
+      // The link from a phone to the mast serving it.
+      //
+      // Dashed and moving, because a solid line would read as a surveyed
+      // connection. Both ends are estimates — the phone is placed at its
+      // hexagon centre and the mast to about a kilometre — so this says
+      // "these two are associated and roughly this far apart", which is all
+      // the data supports.
+      instance.addSource(LINKS_SOURCE, { type: "geojson", data: latestLinks.current });
+      instance.addLayer({
+        id: LINKS_LAYER,
+        type: "line",
+        source: LINKS_SOURCE,
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": "#6b21a8",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.2, 14, 2.4],
+          "line-opacity": 0.75,
+          "line-dasharray": [0, 2, 3],
+        },
+      });
+      instance.addLayer({
+        id: LINKS_LABEL_LAYER,
+        type: "symbol",
+        source: LINKS_SOURCE,
+        layout: {
+          "symbol-placement": "line-center",
+          "text-field": ["get", "label"],
+          "text-size": 11,
+          "text-offset": [0, -0.8],
+        },
+        paint: {
+          "text-color": "#6b21a8",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.5,
+        },
       });
 
       // Base stations, drawn under the fleet and over the hexagons.

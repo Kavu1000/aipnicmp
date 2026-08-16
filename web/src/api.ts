@@ -194,11 +194,23 @@ export interface CollectorPosition {
   at: string;
 }
 
+/** The mast serving a collector, when the platform has managed to place it. */
+export interface ServingTower {
+  lat: number;
+  lon: number;
+  operator: string | null;
+  cell: string;
+  distance_m: number;
+  /** Both ends are estimates, so the distance carries their doubt. */
+  distance_uncertainty_m: number;
+}
+
 export interface Collector {
   id: string;
   position?: CollectorPosition | null;
   /** Uploaded recently enough to count as active. See REPORTING_WINDOW. */
   is_reporting?: boolean;
+  serving_tower?: ServingTower | null;
   silent_for_s?: number | null;
   model: string | null;
   manufacturer: string | null;

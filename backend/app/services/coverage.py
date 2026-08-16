@@ -26,11 +26,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.operators import NETWORK_NAMES, normalise_mnc, operator_from_reported_name
 from app.core.radio import STATE_COLOUR, RadioState
+from app.models.cell import ObservedCell
 from app.models.device import Device
 from app.models.measurement import Measurement
 from app.models.tile import H3Tile, H3TileOperator
 from app.services.network import canonical_operator_column, has_operator_identity
 from app.services.geo import h3_centroid
+from app.services.validation import haversine_m
 
 # CIA World Factbook / UN figure for Lao PDR.
 LAO_AREA_KM2 = 236_800
@@ -405,14 +407,36 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
     # newest reading overwrites, which settles the tie when a device has two
     # measurements sharing the same captured_at.
     last_cell: dict[str, tuple[str, datetime]] = {}
-    for device_id, h3_index, captured_at in (
+    last_serving: dict[str, tuple[str | None, str | None, int | None, int | None]] = {}
+    for device_id, h3_index, captured_at, mcc, mnc, lac, cid in (
         await session.execute(
-            select(Measurement.device_id, Measurement.h3_index, Measurement.captured_at)
+            select(
+                Measurement.device_id,
+                Measurement.h3_index,
+                Measurement.captured_at,
+                Measurement.mcc,
+                Measurement.mnc,
+                Measurement.serving_lac_tac,
+                Measurement.serving_cid,
+            )
             .where(Measurement.h3_index.is_not(None))
             .order_by(Measurement.captured_at.asc())
         )
     ).all():
         last_cell[device_id] = (h3_index, captured_at)
+        last_serving[device_id] = (mcc, mnc, lac, cid)
+
+    # The masts the platform has been able to place, keyed by identity. Only
+    # the reliable ones: a link drawn to a cell estimated from one car park
+    # would put a confident line on the map between two guesses.
+    placed = {
+        (cell.mcc, cell.mnc, cell.lac_tac, cell.cid): cell
+        for cell in (
+            await session.scalars(
+                select(ObservedCell).where(ObservedCell.position_is_reliable.is_(True))
+            )
+        ).all()
+    }
 
     now = datetime.now(timezone.utc)
 
@@ -421,6 +445,7 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
         total = device.records_accepted + device.records_rejected
         cell = last_cell.get(device.install_id)
         position = None
+        link = None
         if cell is not None:
             lat, lon = h3_centroid(cell[0])
             position = {
@@ -430,6 +455,31 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
                 "resolution": settings.h3_resolution,
                 "at": cell[1].isoformat(),
             }
+
+            # The mast that was serving this phone, when the platform has
+            # managed to place it. Distance is measured from the hexagon
+            # centre, not the handset's fix, because the centre is all this
+            # view ever publishes — so it inherits that coarseness and says so.
+            serving = last_serving.get(device.install_id)
+            if serving is not None:
+                mast = placed.get(
+                    (serving[0], normalise_mnc(serving[1]), serving[2], serving[3])
+                )
+                if mast is not None:
+                    metres = haversine_m(lat, lon, mast.est_lat, mast.est_lon)
+                    link = {
+                        "lat": mast.est_lat,
+                        "lon": mast.est_lon,
+                        "operator": mast.operator_name,
+                        "cell": f"{mast.mcc}-{mast.mnc}-{mast.lac_tac}-{mast.cid}",
+                        "distance_m": round(metres),
+                        # Both ends are approximate, so the distance is too.
+                        # Half a hexagon plus the mast's own uncertainty is the
+                        # least dishonest bound available.
+                        "distance_uncertainty_m": round(
+                            mast.uncertainty_m + tile_area_km2() ** 0.5 * 500
+                        ),
+                    }
 
         # "Reporting" rather than "online": the server only ever learns that a
         # phone uploaded, which is not the same as it being switched on now. A
@@ -444,6 +494,7 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
             {
                 "id": device.install_id[:16],
                 "position": position,
+                "serving_tower": link,
                 "is_reporting": reporting,
                 "silent_for_s": int((now - last_seen).total_seconds()) if last_seen else None,
                 "model": device.model,
