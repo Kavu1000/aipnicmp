@@ -2,7 +2,14 @@ import { BrandMark } from "./BrandMark";
 import type { AccountUser } from "./api";
 import type { Strings } from "./i18n";
 
-export type View = "map" | "overview" | "priority" | "networks" | "collectors" | "users";
+export type View =
+  | "map"
+  | "overview"
+  | "priority"
+  | "networks"
+  | "collectors"
+  | "method"
+  | "users";
 
 interface Props {
   view: View;
@@ -61,6 +68,10 @@ export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOu
             hint: strings.navCollectorsHint,
           },
         ]),
+    // Offered to every role, including network accounts. How a reading becomes
+    // a colour, and what the platform declines to claim, is exactly what an
+    // operator being shown its own coverage should be able to check.
+    { id: "method", label: strings.navMethod, icon: "❋", hint: strings.navMethodHint },
   ];
 
   // Deciding who may sign in is a super admin's job, so it is a super admin's

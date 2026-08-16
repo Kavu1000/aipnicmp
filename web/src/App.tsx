@@ -35,6 +35,7 @@ import { AreaSummary } from "./AreaSummary";
 import { Login } from "./Login";
 import { Users } from "./Users";
 import { Legend } from "./Legend";
+import { Method } from "./Method";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
@@ -412,6 +413,7 @@ export function App() {
     priority: t.priorityTitle,
     networks: t.networksTitle,
     collectors: t.collectorsTitle,
+    method: t.methodTitle,
     users: t.usersTitle,
   };
 
@@ -729,6 +731,7 @@ export function App() {
                   </>
                 )}
                 {view === "collectors" && !scopedTo && <Collectors t={t} />}
+                {view === "method" && <Method t={t} />}
                 {view === "users" && (
                   <Users t={t} currentUserId={session.user?.id ?? null} />
                 )}

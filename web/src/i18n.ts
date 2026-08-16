@@ -132,6 +132,10 @@ export interface Strings {
   loginAdvisorsTitle: string;
   signOut: string;
 
+  navMethod: string;
+  methodTitle: string;
+  navMethodHint: string;
+  methodLanguageNote: string;
   navUsers: string;
   navUsersHint: string;
   usersTitle: string;
@@ -380,6 +384,11 @@ const en: Strings = {
   loginAdvisorsTitle: "Advisors",
   signOut: "Sign out",
 
+  navMethod: "Method",
+  methodTitle: "How this platform decides what it shows",
+  navMethodHint: "How a reading becomes a colour",
+  methodLanguageNote:
+    "This note is kept in English, the language of the record it is written from. A Lao translation is planned.",
   navUsers: "Access",
   navUsersHint: "Approve who may sign in",
   usersTitle: "Access",
@@ -638,6 +647,11 @@ const lo: Strings = {
   loginAdvisorsTitle: "ທີ່ປຶກສາ",
   signOut: "ອອກຈາກລະບົບ",
 
+  navMethod: "ວິທີການ",
+  methodTitle: "ແພລດຟອມນີ້ຕັດສິນສະແດງຫຍັງແນວໃດ",
+  navMethodHint: "ການວັດແທກກາຍເປັນສີໄດ້ແນວໃດ",
+  methodLanguageNote:
+    "ເອກະສານນີ້ຮັກສາໄວ້ເປັນພາສາອັງກິດ ຊຶ່ງເປັນພາສາຂອງບັນທຶກຕົ້ນສະບັບ. ການແປເປັນພາສາລາວກຳລັງວາງແຜນຢູ່.",
   navUsers: "ສິດເຂົ້າໃຊ້",
   navUsersHint: "ອະນຸມັດຜູ້ທີ່ເຂົ້າໃຊ້ໄດ້",
   usersTitle: "ສິດເຂົ້າໃຊ້",

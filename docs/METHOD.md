@@ -215,9 +215,7 @@ no one and are the finding that matters most.
 
 ## 8. Current state of the evidence
 
-As of 17 August 2026:
-
-| | |
+| Measure | As of 17 August 2026 |
 |---|---|
 | Measurements | 1,860 |
 | Contributing phones | 10 |
