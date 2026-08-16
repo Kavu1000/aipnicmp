@@ -425,6 +425,14 @@ export function MapView({
       // one feature each, they stack exactly and a fleet of five looks like a
       // fleet of one — which is what a collector sitting beside a colleague
       // sees. The count goes on the marker instead.
+      //
+      // Only collectors still reporting are counted. A reinstalled app cannot
+      // resume its old identity, so one handset accumulates an identity per
+      // install and every one of them keeps its last hexagon forever: one
+      // phone reinstalled three times drew a "4" on a hexagon holding a single
+      // collector. Counting the ones that have uploaded recently answers the
+      // question the number is actually asked — how many collectors are here
+      // now — and a dormant identity cannot inflate it.
       features: Object.values(
         collectors.reduce<
           Record<
@@ -440,7 +448,7 @@ export function MapView({
           const key = `${row.position.lon},${row.position.lat}`;
           const existing = grouped[key];
           if (existing) {
-            existing.properties.count += 1;
+            if (row.is_reporting === true) existing.properties.count += 1;
             // One phone still uploading is enough for the place to count as
             // live; a marker going hollow because a second phone went flat
             // would misreport the first.
@@ -450,7 +458,10 @@ export function MapView({
           grouped[key] = {
             type: "Feature",
             geometry: { type: "Point", coordinates: [row.position.lon, row.position.lat] },
-            properties: { count: 1, reporting: row.is_reporting === true },
+            properties: {
+              count: row.is_reporting === true ? 1 : 0,
+              reporting: row.is_reporting === true,
+            },
           };
           return grouped;
         }, {}),
