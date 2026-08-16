@@ -154,6 +154,11 @@ export interface Strings {
   usersChooseNetworkWhy: string;
   cancel: string;
   imageryLimit: string;
+  mastLabel: string;
+  mastAccuracy: string;
+  mastHeardFrom: string;
+  mastStrongest: string;
+  mastEstimate: string;
   scopeBanner: string;
   scopeBannerDetail: string;
   usersRoleSuperAdmin: string;
@@ -391,6 +396,12 @@ const en: Strings = {
     "A network account sees that network's coverage and the places with no service at all. It cannot see other networks, the collector fleet, or the national summary.",
   cancel: "Cancel",
   imageryLimit: "Satellite imagery is at full detail — Sentinel-2 photographs 10 m per pixel",
+  mastLabel: "Base station",
+  mastAccuracy: "Position accurate to",
+  mastHeardFrom: "Heard from",
+  mastStrongest: "strongest",
+  mastEstimate:
+    "Estimated from where collectors could hear this cell, not a surveyed location. The circle is how far out it could be.",
   scopeBanner: "Showing %NETWORK% only",
   scopeBannerDetail:
     "Hexagons where %NETWORK% was measured, plus places with no network at all. Other operators are not shown, and an empty area means nobody has measured it rather than that there is no coverage.",
@@ -629,6 +640,12 @@ const lo: Strings = {
     "ບັນຊີເຄືອຂ່າຍຈະເຫັນການຄຸ້ມຄອງຂອງເຄືອຂ່າຍນັ້ນ ແລະ ບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ. ຈະບໍ່ເຫັນເຄືອຂ່າຍອື່ນ, ກອງເກັບຂໍ້ມູນ, ຫຼື ສະຫຼຸບລວມທົ່ວປະເທດ.",
   cancel: "ຍົກເລີກ",
   imageryLimit: "ພາບຖ່າຍດາວທຽມລະອຽດເຕັມທີ່ແລ້ວ — Sentinel-2 ຖ່າຍໄດ້ 10 ແມັດຕໍ່ຈຸດ",
+  mastLabel: "ສະຖານີຖານ",
+  mastAccuracy: "ຄວາມແມ່ນຢຳຂອງຕຳແໜ່ງ",
+  mastHeardFrom: "ໄດ້ຍິນຈາກ",
+  mastStrongest: "ແຮງສຸດ",
+  mastEstimate:
+    "ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນເຊວນີ້ ບໍ່ແມ່ນຕຳແໜ່ງທີ່ສຳຫຼວດແທ້. ວົງມົນຄືໄລຍະທີ່ອາດຄາດເຄື່ອນໄດ້.",
   scopeBanner: "ສະແດງສະເພາະ %NETWORK%",
   scopeBannerDetail:
     "ຮວງເຜິ້ງທີ່ວັດແທກ %NETWORK% ໄດ້, ພ້ອມທັງບ່ອນທີ່ບໍ່ມີເຄືອຂ່າຍເລີຍ. ບໍ່ສະແດງຜູ້ໃຫ້ບໍລິການອື່ນ, ແລະ ພື້ນທີ່ຫວ່າງໝາຍຄວາມວ່າຍັງບໍ່ມີໃຜວັດແທກ ບໍ່ແມ່ນວ່າບໍ່ມີສັນຍານ.",

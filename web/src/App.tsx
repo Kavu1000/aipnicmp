@@ -631,6 +631,13 @@ export function App() {
               cells={cells}
               collectorLabels={{ collector: t.collectorHere, approximate: t.approxPosition }}
               imageryLimitLabel={t.imageryLimit}
+              cellLabels={{
+                mast: t.mastLabel,
+                accuracy: t.mastAccuracy,
+                heardFrom: t.mastHeardFrom,
+                strongest: t.mastStrongest,
+                estimate: t.mastEstimate,
+              }}
               onBoundsChange={loadTiles}
               onSelect={setSelected}
               onAreaSelect={setAreaCode}

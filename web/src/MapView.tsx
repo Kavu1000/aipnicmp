@@ -368,6 +368,14 @@ interface Props {
   collectorLabels: { collector: string; approximate: string };
   /** Shown when the view outruns the satellite imagery. */
   imageryLimitLabel: string;
+  /** Wording for the mast popup, kept out of this file so it stays translated. */
+  cellLabels: {
+    mast: string;
+    accuracy: string;
+    heardFrom: string;
+    strongest: string;
+    estimate: string;
+  };
   onBoundsChange: (bounds: Bounds) => void;
   onSelect: (properties: TileProperties | null) => void;
   /** A click on a shaded area — the drill-down from province to district. */
@@ -409,6 +417,7 @@ export function MapView({
   cells,
   collectorLabels,
   imageryLimitLabel,
+  cellLabels,
   onBoundsChange,
   onSelect,
   onAreaSelect,
@@ -424,8 +433,8 @@ export function MapView({
   const latestCollectors = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestCells = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
   const latestLinks = useRef<GeoJsonData>(EMPTY_GEOJSON as unknown as GeoJsonData);
-  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels });
-  handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels };
+  const handlers = useRef({ onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels });
+  handlers.current = { onBoundsChange, onSelect, onAreaSelect, collectorLabels, cellLabels };
 
   /**
    * Positions as GeoJSON.
@@ -1070,6 +1079,54 @@ export function MapView({
               `<span class="collector-popup-note">${labels.approximate}</span>`,
           )
           .addTo(instance);
+      });
+
+      /*
+        Hovering a mast says what it is and how well it is known.
+
+        The uncertainty is given as prominently as the position, because this
+        is an estimate derived from where a phone could hear the cell, not a
+        surveyed location. An engineer reading "Lao Telecom" beside a dot will
+        otherwise take the dot literally and drive to it.
+      */
+      const cellPopup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 14,
+        className: "collector-popup",
+      });
+
+      instance.on("mousemove", CELLS_LAYER, (event) => {
+        const feature = event.features?.[0] as MapGeoJSONFeature | undefined;
+        if (!feature || feature.geometry.type !== "Point") return;
+        instance.getCanvas().style.cursor = "pointer";
+
+        const properties = feature.properties ?? {};
+        const labels = handlers.current.cellLabels;
+        const accuracy = Number(properties.uncertainty_m ?? 0);
+        const best = properties.best_rsrp_dbm;
+
+        const lines = [
+          `<strong>${properties.operator ?? labels.mast}</strong>`,
+          `<span class="collector-popup-coords">${labels.mast} · ${properties.cell ?? ""}</span>`,
+          `<span class="collector-popup-coords">${labels.accuracy}: ±${
+            accuracy >= 1000 ? `${(accuracy / 1000).toFixed(1)} km` : `${Math.round(accuracy)} m`
+          }</span>`,
+          `<span class="collector-popup-coords">${labels.heardFrom}: ${
+            properties.observations ?? 0
+          }${best != null ? ` · ${labels.strongest} ${best} dBm` : ""}</span>`,
+          `<span class="collector-popup-note">${labels.estimate}</span>`,
+        ];
+
+        cellPopup
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .setHTML(lines.join(""))
+          .addTo(instance);
+      });
+
+      instance.on("mouseleave", CELLS_LAYER, () => {
+        instance.getCanvas().style.cursor = "";
+        cellPopup.remove();
       });
 
       instance.on("mouseleave", COLLECTORS_LAYER, () => {
