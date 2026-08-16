@@ -10,6 +10,7 @@ from app.db.session import get_session
 from app.models.tile import CandidateSite
 from app.services.coverage import (
     collectors,
+    tower_summary,
     coverage_summary,
     known_operators,
     network_catalogue,
@@ -91,3 +92,12 @@ async def collector_fleet(session: AsyncSession = Depends(get_session)) -> dict[
         "real": sum(1 for d in fleet if not d["is_simulated"]),
         "collectors": fleet,
     }
+
+
+@router.get("/towers")
+async def towers(
+    area: str | None = Query(default=None, description="Province or district code."),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Base stations per operator, for the country or one administrative area."""
+    return await tower_summary(session, area)

@@ -37,6 +37,7 @@ import { Legend } from "./Legend";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
+import { Towers } from "./Towers";
 import { LanguagePicker } from "./LanguagePicker";
 import { Sidebar, type View } from "./Sidebar";
 import { formatAge, formatArea, formatShare } from "./coverage";
@@ -650,7 +651,15 @@ export function App() {
               <div className="page">
                 {view === "overview" && <Overview summary={summary} t={t} />}
                 {view === "priority" && <Priority t={t} onShowOnMap={showOnMap} />}
-                {view === "networks" && <Networks t={t} />}
+                {view === "networks" && (
+                  <>
+                    <Networks t={t} />
+                    {/* Follows the same area selection as the map, so a
+                        province chosen there answers "how many masts here"
+                        without being chosen again. */}
+                    <Towers area={areaCode} t={t} />
+                  </>
+                )}
                 {view === "collectors" && <Collectors t={t} />}
                 {view === "users" && (
                   <Users t={t} currentUserId={session.user?.id ?? null} />

@@ -28,6 +28,7 @@ from sqlalchemy import delete, text
 
 from app.core.operators import canonical_operator
 from app.db.session import SessionLocal
+from app.services.areas import load_resolver
 from app.models.cell import ObservedCell
 
 log = logging.getLogger("cells")
@@ -118,6 +119,9 @@ async def build(dry_run: bool = False) -> int:
 
     log.info("identified cells with any observation: %d", len(grouped))
 
+    async with SessionLocal() as session:
+        resolver = await load_resolver(session)
+
     estimates: list[ObservedCell] = []
     for (mcc, mnc, lac, cid), points in grouped.items():
         if len(points) < MIN_OBSERVATIONS:
@@ -140,6 +144,8 @@ async def build(dry_run: bool = False) -> int:
                 lac_tac=lac,
                 cid=cid,
                 operator_name=canonical_operator(mcc, mnc, None),
+                adm1_code=resolver.assign(est_lat, est_lon).adm1,
+                adm2_code=resolver.assign(est_lat, est_lon).adm2,
                 observations=len(points),
                 est_lat=est_lat,
                 est_lon=est_lon,

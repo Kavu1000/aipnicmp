@@ -588,3 +588,89 @@ async def roaming_summary(session: AsyncSession) -> dict[str, Any]:
             round(sum(row["measurements"] for row in roaming) / total * 100, 1) if total else 0.0
         ),
     }
+
+
+# How close two cells must be to count as the same mast.
+#
+# An operator puts three or more sectors on one structure, each broadcasting its
+# own identity, so counting cells counts antennas rather than towers. 150 m is
+# wider than any single structure and far tighter than the spacing between
+# sites, so it separates masts without merging neighbours.
+SAME_SITE_METRES = 150.0
+
+
+def _cluster_sites(points: list[tuple[float, float]]) -> int:
+    """How many distinct structures a set of cell positions represents."""
+    taken: set[int] = set()
+    sites = 0
+    for index, (lat, lon) in enumerate(points):
+        if index in taken:
+            continue
+        sites += 1
+        taken.add(index)
+        for other in range(index + 1, len(points)):
+            if other in taken:
+                continue
+            if haversine_m(lat, lon, points[other][0], points[other][1]) <= SAME_SITE_METRES:
+                taken.add(other)
+    return sites
+
+
+async def tower_summary(session: AsyncSession, area: str | None = None) -> dict[str, Any]:
+    """Base stations per operator, for the country or one area.
+
+    Three figures per operator, because they answer different questions and
+    conflating them would overstate the network:
+
+    * ``cells`` — distinct broadcast identities heard. The rawest count.
+    * ``cells_placed`` — those the readings were spread widely enough to put a
+      position on. Always fewer, and only these can be mapped or clustered.
+    * ``sites`` — placed cells grouped by proximity, which is the closest this
+      platform gets to counting masts. An operator running three sectors on one
+      structure appears as three cells and one site, and it is the site that
+      corresponds to a thing standing in a field.
+
+    Every count is of what the fleet has *heard*, never of what an operator
+    owns. A network is only present here where somebody drove carrying its SIM
+    or within earshot of its cells, so these are lower bounds on a network and
+    an upper bound on nothing.
+    """
+    query = select(ObservedCell)
+    if area:
+        query = query.where(
+            (ObservedCell.adm1_code == area) | (ObservedCell.adm2_code == area)
+        )
+    cells = (await session.scalars(query)).all()
+
+    by_operator: dict[str, dict[str, Any]] = {}
+    for cell in cells:
+        name = cell.operator_name or f"{cell.mcc}-{cell.mnc}"
+        entry = by_operator.setdefault(
+            name,
+            {"operator": name, "cells": 0, "cells_placed": 0, "sites": 0, "_points": []},
+        )
+        entry["cells"] += 1
+        if cell.position_is_reliable:
+            entry["cells_placed"] += 1
+            entry["_points"].append((cell.est_lat, cell.est_lon))
+
+    operators = []
+    for entry in by_operator.values():
+        entry["sites"] = _cluster_sites(entry.pop("_points"))
+        operators.append(entry)
+
+    # Every Lao network listed, measured or not. A table showing only the ones
+    # with towers in it would read as though the others have none, when it
+    # means nobody has carried their SIM down this road.
+    present = {row["operator"] for row in operators}
+    for name in NETWORK_NAMES.values():
+        if name not in present:
+            operators.append({"operator": name, "cells": 0, "cells_placed": 0, "sites": 0})
+
+    operators.sort(key=lambda row: (-row["sites"], -row["cells"], row["operator"]))
+    return {
+        "area": area,
+        "operators": operators,
+        "cells": sum(row["cells"] for row in operators),
+        "sites": sum(row["sites"] for row in operators),
+    }

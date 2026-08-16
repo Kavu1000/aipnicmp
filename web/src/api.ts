@@ -490,3 +490,22 @@ export async function fetchCells(signal?: AbortSignal) {
     }[];
   }>("/cells", signal);
 }
+
+
+export interface TowerCount {
+  operator: string;
+  /** Distinct broadcast identities heard. */
+  cells: number;
+  /** Those the readings placed. Only these can be mapped or clustered. */
+  cells_placed: number;
+  /** Placed cells grouped by proximity — the closest thing to a mast count. */
+  sites: number;
+}
+
+export async function fetchTowers(area: string | null, signal?: AbortSignal) {
+  const query = area ? `?area=${encodeURIComponent(area)}` : "";
+  return getJson<{ area: string | null; operators: TowerCount[]; cells: number; sites: number }>(
+    `/dashboard/towers${query}`,
+    signal,
+  );
+}

@@ -34,6 +34,12 @@ class ObservedCell(Base):
     cid: Mapped[int] = mapped_column(Integer)
     operator_name: Mapped[str | None] = mapped_column(String(120), index=True)
 
+    # Which province and district the cell was heard in. Assigned from the
+    # estimated centre: coarse for drawing, ample for attribution, because a
+    # district is tens of kilometres across and the estimate is good to one.
+    adm1_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    adm2_code: Mapped[str | None] = mapped_column(String(32), index=True)
+
     observations: Mapped[int] = mapped_column(Integer)
 
     # The signal-weighted centre of where it was heard. Not the tower: without

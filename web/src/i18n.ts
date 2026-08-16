@@ -45,6 +45,14 @@ export interface Strings {
   collectorsRejected: string;
   collectorsRejectRate: string;
   collectorsSimulated: string;
+  towersTitle: string;
+  towersSubtitle: string;
+  towersOperator: string;
+  towersSites: string;
+  towersPlaced: string;
+  towersCells: string;
+  towersNotMeasured: string;
+  towersNote: string;
   collectorsNone: string;
   collectorsDormant: string;
   collectorsDormantWhy: string;
@@ -247,6 +255,15 @@ const en: Strings = {
   collectorsRejectRate: "Refused",
   collectorsSimulated: "simulated",
   collectorsNone: "No collectors have enrolled yet.",
+  towersTitle: "Base stations found",
+  towersSubtitle: "Masts the collectors have heard, by operator",
+  towersOperator: "Operator",
+  towersSites: "Sites",
+  towersPlaced: "Placed",
+  towersCells: "Cells",
+  towersNotMeasured: "no collector has carried this SIM",
+  towersNote:
+    "A mast usually carries several cells, so cells count antennas and sites count structures. Only cells heard from far enough apart can be placed, and everything here is what the fleet has heard — never what an operator owns.",
   collectorsDormant: "%N% enrolments with no readings",
   collectorsDormantWhy:
     "Almost always the same handset after a reinstall. The signing key lives in the phone's secure hardware and cannot be backed up, so a reinstalled app has to enrol as a new device. These are kept rather than deleted, but they are not working collectors.",
@@ -470,6 +487,15 @@ const lo: Strings = {
   collectorsRejectRate: "ອັດຕາປະຕິເສດ",
   collectorsSimulated: "ຈຳລອງ",
   collectorsNone: "ຍັງບໍ່ມີອຸປະກອນລົງທະບຽນ.",
+  towersTitle: "ສະຖານີຖານທີ່ພົບ",
+  towersSubtitle: "ເສົາສັນຍານທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ, ຕາມຜູ້ໃຫ້ບໍລິການ",
+  towersOperator: "ຜູ້ໃຫ້ບໍລິການ",
+  towersSites: "ຈຸດຕັ້ງ",
+  towersPlaced: "ລະບຸຕຳແໜ່ງໄດ້",
+  towersCells: "ເຊວ",
+  towersNotMeasured: "ຍັງບໍ່ມີຜູ້ເກັບຂໍ້ມູນຖືຊິມນີ້",
+  towersNote:
+    "ເສົາໜຶ່ງມັກມີຫຼາຍເຊວ ດັ່ງນັ້ນ ເຊວ ນັບເສົາອາກາດ ແລະ ຈຸດຕັ້ງ ນັບໂຄງສ້າງ. ສະເພາະເຊວທີ່ໄດ້ຍິນຈາກໄລຍະຫ່າງພຽງພໍຈຶ່ງລະບຸຕຳແໜ່ງໄດ້, ແລະ ທັງໝົດນີ້ແມ່ນສິ່ງທີ່ກອງເກັບຂໍ້ມູນໄດ້ຍິນ ບໍ່ແມ່ນສິ່ງທີ່ຜູ້ໃຫ້ບໍລິການເປັນເຈົ້າຂອງ.",
   collectorsDormant: "%N% ການລົງທະບຽນທີ່ຍັງບໍ່ມີການວັດແທກ",
   collectorsDormantWhy:
     "ສ່ວນຫຼາຍແມ່ນເຄື່ອງເກົ່າທີ່ຕິດຕັ້ງແອັບໃໝ່. ກະແຈລົງລາຍເຊັນເກັບຢູ່ໃນຮາດແວປອດໄພຂອງໂທລະສັບ ແລະ ສຳຮອງບໍ່ໄດ້ ດັ່ງນັ້ນແອັບທີ່ຕິດຕັ້ງໃໝ່ຈຶ່ງຕ້ອງລົງທະບຽນເປັນເຄື່ອງໃໝ່. ລາຍການເຫຼົ່ານີ້ຖືກເກັບໄວ້ ແຕ່ບໍ່ແມ່ນຜູ້ເກັບຂໍ້ມູນທີ່ໃຊ້ງານຢູ່.",
