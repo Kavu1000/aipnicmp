@@ -54,12 +54,23 @@ class CollectionService : Service() {
         const val ACTION_STATE_CHANGED = "la.aipnicmp.collector.STATE_CHANGED"
 
         /**
-         * Samples between throughput tests. At 30s sampling this is roughly one
-         * test every twelve minutes of active collecting — sparse enough to be
-         * affordable, frequent enough to gather paired readings across a day's
-         * drive.
+         * Shortest gap between throughput tests.
+         *
+         * Wall-clock rather than a count of samples. A sample count meant the
+         * rate depended on how fast the collector was moving — a phone standing
+         * still gates to one sample a minute and tested rarely, while the same
+         * phone in a car tested several times as often over the same period.
+         * Time is what the data budget is actually spent against, so time is
+         * what schedules it.
+         *
+         * At five minutes this is twelve runs an hour, and each run is
+         * PAYLOAD_BYTES. Against the 20 MB daily budget that is about eighty
+         * runs, so a phone collecting continuously reaches the ceiling in
+         * something under seven hours and then stops testing until midnight.
+         * That is the budget doing its job rather than a fault, but it is the
+         * reason to change one if the other changes.
          */
-        private const val SAMPLES_BETWEEN_SPEED_TESTS = 25
+        private const val SPEED_TEST_INTERVAL_MILLIS = 5 * 60 * 1000L
 
         /** Above this, the fix came from wifi or cell towers rather than GPS. */
         private const val MAX_ACCURACY_METRES = 50f
@@ -111,8 +122,15 @@ class CollectionService : Service() {
      */
     private val work = java.util.concurrent.Executors.newSingleThreadExecutor()
 
-    /** Samples since the last throughput test, counting the sparse schedule. */
-    private var samplesSinceSpeedTest = SAMPLES_BETWEEN_SPEED_TESTS
+    /**
+     * When the last throughput test ran, as elapsed time since boot.
+     *
+     * Not wall-clock: the system clock can jump when the network corrects it,
+     * and a jump backwards would suspend testing for as long as the correction,
+     * while a jump forwards would fire one immediately. Zero means "not yet
+     * this session", so the first sample after starting always tests.
+     */
+    private var lastSpeedTestAtMillis = 0L
 
     /**
      * Keeps the CPU awake for the length of one sample.
@@ -255,7 +273,7 @@ class CollectionService : Service() {
         if (now - fix.time > MAX_FIX_AGE_MILLIS) return
 
         val snapshot = radio.sample()
-        val speed = maybeMeasureSpeed(snapshot)
+        val speed = maybeMeasureSpeed(snapshot, android.os.SystemClock.elapsedRealtime())
         val measurement = try {
             sampler.buildSigned(fix, snapshot, now, speed)
         } catch (error: Exception) {
@@ -298,19 +316,26 @@ class CollectionService : Service() {
      * - budget spent: this is the only thing the app does that costs the
      *   collector money, so the ceiling is hard rather than advisory.
      *
-     * The sparse schedule is the point. Proposal 2.3 needs enough paired
-     * readings to learn the relationship between radio conditions and real
-     * throughput — a few dozen a day across varied terrain does that. One per
-     * sample would spend a collector's bundle to learn almost nothing extra.
+     * Proposal 2.3 needs enough paired readings to learn the relationship
+     * between radio conditions and real throughput. The schedule is what
+     * decides how many of those a day produces, and the daily budget is what
+     * stops it costing more than it is worth.
      */
-    private fun maybeMeasureSpeed(snapshot: RadioSampler.RadioSnapshot): SpeedTest.Result? {
-        samplesSinceSpeedTest++
-        if (samplesSinceSpeedTest < SAMPLES_BETWEEN_SPEED_TESTS) return null
+    private fun maybeMeasureSpeed(
+        snapshot: RadioSampler.RadioSnapshot,
+        elapsedMillis: Long,
+    ): SpeedTest.Result? {
+        val due = lastSpeedTestAtMillis == 0L ||
+            elapsedMillis - lastSpeedTestAtMillis >= SPEED_TEST_INTERVAL_MILLIS
+        if (!due) return null
         if (!snapshot.registered) return null
         if (!NetworkStatus.isCellular(this)) return null
         if (!prefs.speedTestAllowed()) return null
 
-        samplesSinceSpeedTest = 0
+        // Stamped before the run, not after: a test on a bad link can take
+        // twenty seconds, and timing the gap from the end would let a slow
+        // network schedule itself more often than a fast one.
+        lastSpeedTestAtMillis = elapsedMillis
         val result = SpeedTest.run(prefs.apiBaseUrl)
         // Charged with what actually crossed the wire, including a run that
         // died halfway: the collector paid for those bytes either way.
