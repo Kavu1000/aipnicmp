@@ -2103,7 +2103,7 @@ main {
   .swatch-collector { animation: none; }
 }
 
-/* The two swatches that sit inline in a sentence rather than in the list.
+/* The swatches that sit inline in a sentence rather than in the list.
    `.swatch` is laid out for a flex row, where `margin-top` centres it; in a
    paragraph that margin just pushes it off the line. */
 .legend-note .swatch {
@@ -2314,4 +2314,21 @@ main {
   border-radius: 50%;
   border: 1.5px solid #fff;
   box-shadow: 0 0 0 1px rgb(0 0 0 / 20%);
+}
+
+/* The uncertainty halo, drawn the way the map draws it: a wide pale disc with
+   a small solid dot at its centre, so the swatch itself shows that the circle
+   is about the dot's position rather than the mast's reach. */
+.swatch-mast-halo {
+  border-radius: 50%;
+  border: 1px solid rgb(15 118 110 / 45%);
+  background:
+    radial-gradient(circle, #0f766e 0 2.5px, rgb(15 118 110 / 12%) 2.5px 100%);
+}
+
+.swatch-mast-vague {
+  border-radius: 50%;
+  border: 1px solid rgb(15 118 110 / 18%);
+  background:
+    radial-gradient(circle, rgb(15 118 110 / 45%) 0 2.5px, rgb(15 118 110 / 5%) 2.5px 100%);
 }

@@ -170,6 +170,8 @@ export interface Strings {
   legendAreaShading: string;
   legendCollector: string;
   legendMasts: string;
+  legendMastHalo: string;
+  legendMastVague: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -417,7 +419,11 @@ const en: Strings = {
   legendCollector:
     "A collector's last reported hexagon — hollow once the phone has gone quiet. Not a live position.",
   legendMasts:
-    "Base stations, estimated from where collectors heard them. The ring is a signal marker, not the reach of the mast.",
+    "Base stations, estimated from where collectors heard them — not surveyed positions. The pulsing ring is a marker, not the reach of the mast.",
+  legendMastHalo:
+    "The pale circle is how far the position could be out, not the area the mast covers. A wider circle means a less certain estimate, so a weak hexagon beside a mast usually means the mast is not really there.",
+  legendMastVague:
+    "Faded where the readings were spread too widely to place the mast within 2 km. Read these as somewhere around here.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -663,7 +669,11 @@ const lo: Strings = {
   legendCollector:
     "ຮວງເຜິ້ງຫຼ້າສຸດທີ່ຜູ້ເກັບຂໍ້ມູນລາຍງານ — ເປັນວົງເປົ່າເມື່ອໂທລະສັບງຽບໄປ. ບໍ່ແມ່ນຕຳແໜ່ງສົດ.",
   legendMasts:
-    "ສະຖານີຖານ, ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ. ວົງສັນຍານເປັນເຄື່ອງໝາຍ ບໍ່ແມ່ນໄລຍະທີ່ເສົາສົ່ງເຖິງ.",
+    "ສະຖານີຖານ, ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ — ບໍ່ແມ່ນຕຳແໜ່ງທີ່ສຳຫຼວດຈິງ. ວົງທີ່ກະພິບເປັນພຽງເຄື່ອງໝາຍ ບໍ່ແມ່ນໄລຍະທີ່ເສົາສົ່ງເຖິງ.",
+  legendMastHalo:
+    "ວົງກົມສີຈາງ ຄືໄລຍະທີ່ຕຳແໜ່ງອາດຜິດພາດໄດ້ ບໍ່ແມ່ນພື້ນທີ່ທີ່ເສົາໃຫ້ບໍລິການ. ວົງກວ້າງກວ່າ ໝາຍເຖິງການຄາດຄະເນທີ່ບໍ່ແນ່ນອນກວ່າ ດັ່ງນັ້ນຮວງເຜິ້ງທີ່ສັນຍານອ່ອນຢູ່ຂ້າງເສົາ ສ່ວນຫຼາຍໝາຍຄວາມວ່າເສົາບໍ່ໄດ້ຢູ່ບ່ອນນັ້ນແທ້.",
+  legendMastVague:
+    "ຈາງລົງ ເມື່ອຂໍ້ມູນທີ່ໄດ້ຍິນກະຈາຍກວ້າງເກີນໄປຈົນລະບຸຕຳແໜ່ງເສົາບໍ່ໄດ້ພາຍໃນ 2 ກິໂລແມັດ. ໃຫ້ອ່ານວ່າຢູ່ແຖວນີ້ເທົ່ານັ້ນ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",

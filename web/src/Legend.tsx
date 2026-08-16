@@ -74,6 +74,16 @@ export function Legend({ t }: { t: Strings }) {
           ))}
         </p>
         <p>{t.legendMasts}</p>
+        {/* The circle that prompted "there is a tower here, so why is the
+            signal weak?" — read as a coverage footprint, it is the opposite:
+            how badly the position is pinned down. Only the hover tooltip said
+            so, and the misreading happens at a glance, before anyone hovers. */}
+        <p>
+          <span className="swatch swatch-mast-halo" /> {t.legendMastHalo}
+        </p>
+        <p>
+          <span className="swatch swatch-mast-vague" /> {t.legendMastVague}
+        </p>
         <p>
           <span className="swatch swatch-predicted" /> {t.legendPredicted}
         </p>

@@ -67,6 +67,30 @@ const OPERATOR_COLOUR_EXPRESSION = [
  */
 const PULSE_FRAMES = 28;
 const PULSE_INTERVAL_MS = 55;
+
+/**
+ * Past this, a mast marker names a neighbourhood rather than a position.
+ *
+ * A dot is read as a fact wherever it lands, and these estimates carry between
+ * 865 m and 5 km of uncertainty — a mast heard along ten kilometres of highway
+ * is placed at the middle of the road, not at the tower. Drawn at full strength
+ * they invite the question this threshold exists to answer: why is the hexagon
+ * beside a mast weak? Because the mast is not there.
+ *
+ * 2 km is the point where the estimate stops being able to say which village a
+ * mast serves, which is the smallest question anyone asks of it here.
+ */
+const VAGUE_UNCERTAINTY_M = 2000;
+
+/** Full strength for a mast that is actually placed, faint for a guess. */
+const byConfidence = (sure: number, vague: number) =>
+  [
+    "case",
+    ["<", ["get", "uncertainty_m"], VAGUE_UNCERTAINTY_M],
+    sure,
+    vague,
+  ] as unknown as maplibregl.ExpressionSpecification;
+
 const COLLECTORS_SOURCE = "collectors";
 const COLLECTORS_LAYER = "collector-points";
 
@@ -627,10 +651,13 @@ export function MapView({
       instance.setPaintProperty(CELLS_PULSE_LAYER, "circle-radius", 4 + progress * 26);
       // Fades to nothing well before the ring stops growing, so it never
       // draws a boundary.
+      // A mast that could be two kilometres away should not broadcast as
+      // confidently as one that has been placed.
+      const fade = Math.max(0, 0.55 * (1 - progress) ** 1.6);
       instance.setPaintProperty(
         CELLS_PULSE_LAYER,
         "circle-stroke-opacity",
-        Math.max(0, 0.55 * (1 - progress) ** 1.6),
+        byConfidence(fade, fade * 0.35),
       );
     }, PULSE_INTERVAL_MS);
 
@@ -1013,10 +1040,12 @@ export function MapView({
             16, ["/", ["get", "uncertainty_m"], 1.2],
           ],
           "circle-color": OPERATOR_COLOUR_EXPRESSION,
-          "circle-opacity": 0.10,
+          "circle-opacity": byConfidence(0.1, 0.04),
           "circle-stroke-width": 1,
           "circle-stroke-color": OPERATOR_COLOUR_EXPRESSION,
-          "circle-stroke-opacity": 0.35,
+          // The widest halos are the ones least worth reading, so the outline
+          // that makes them look like a boundary is what goes first.
+          "circle-stroke-opacity": byConfidence(0.35, 0.12),
         },
       });
       instance.addLayer({
@@ -1028,8 +1057,10 @@ export function MapView({
           // Coloured by network, from a palette outside the coverage scale, so
           // a mast is never mistaken for a reading or a collector.
           "circle-color": OPERATOR_COLOUR_EXPRESSION,
+          "circle-opacity": byConfidence(1, 0.45),
           "circle-stroke-width": 1.5,
           "circle-stroke-color": "#ffffff",
+          "circle-stroke-opacity": byConfidence(1, 0.5),
         },
       });
 
