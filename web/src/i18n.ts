@@ -172,6 +172,10 @@ export interface Strings {
   legendMasts: string;
   legendMastHalo: string;
   legendMastVague: string;
+  legendMastsShort: string;
+  legendMastHaloShort: string;
+  legendMastVagueShort: string;
+  legendMore: string;
   legendUnmeasured: string;
   legendShow: string;
   legendHide: string;
@@ -424,6 +428,13 @@ const en: Strings = {
     "The pale circle is how far the point could be out, not the area covered. It spans the whole stretch the cell was heard along, because from a road that is as far as the readings can narrow it — and the mast may sit off the road entirely, which no reading here can see.",
   legendMastVague:
     "Faded where that could be more than 2 km. Read these as somewhere along this stretch, not as a place.",
+  // Short forms carry the warning at a glance; the full text above sits one
+  // click away. The caveat has to survive the trim, so what is cut is the
+  // reasoning, never the correction.
+  legendMastsShort: "Cells heard by collectors — not mast positions.",
+  legendMastHaloShort: "How far the point could be out — not the area covered.",
+  legendMastVagueShort: "Faded: could be out by more than 2 km.",
+  legendMore: "How to read this map",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -674,6 +685,10 @@ const lo: Strings = {
     "ວົງກົມສີຈາງ ຄືໄລຍະທີ່ຈຸດນີ້ອາດຄາດເຄື່ອນໄດ້ ບໍ່ແມ່ນພື້ນທີ່ໃຫ້ບໍລິການ. ມັນກວມທັງໄລຍະທາງທີ່ໄດ້ຍິນເຊວນີ້ ເພາະການເກັບຕາມເສັ້ນທາງ ຈຳກັດໄດ້ພຽງເທົ່ານັ້ນ — ແລະ ເສົາອາດຢູ່ນອກເສັ້ນທາງເລີຍ ຊຶ່ງການວັດແທກນີ້ບໍ່ສາມາດເຫັນໄດ້.",
   legendMastVague:
     "ຈາງລົງ ເມື່ອຄາດເຄື່ອນອາດເກີນ 2 ກິໂລແມັດ. ໃຫ້ອ່ານວ່າຢູ່ຕາມໄລຍະນີ້ ບໍ່ແມ່ນຈຸດໃດຈຸດໜຶ່ງ.",
+  legendMastsShort: "ເຊວທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ — ບໍ່ແມ່ນຕຳແໜ່ງເສົາ.",
+  legendMastHaloShort: "ໄລຍະທີ່ຈຸດນີ້ອາດຄາດເຄື່ອນ — ບໍ່ແມ່ນພື້ນທີ່ໃຫ້ບໍລິການ.",
+  legendMastVagueShort: "ຈາງ: ອາດຄາດເຄື່ອນເກີນ 2 ກິໂລແມັດ.",
+  legendMore: "ວິທີອ່ານແຜນທີ່ນີ້",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",

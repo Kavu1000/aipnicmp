@@ -642,6 +642,66 @@ main {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 1;
+
+  /* Anchored to the bottom, so it grows upward. Without a ceiling it ran off
+     the top of the window and the heading and first colour went with it —
+     silently, because an overflowing absolute box does not clip or scroll, it
+     just leaves. The heading stays put and the rest scrolls under it. */
+  display: flex;
+  flex-direction: column;
+  /* border-box so the ceiling counts the panel's own padding and border.
+     Without it the cap applies to the content alone, and on a short window the
+     panel grew past its own limit until it sat flush against the top edge. */
+  box-sizing: border-box;
+  /* Of the map area, not the window: the legend sits inside the map, and a
+     viewport-height ceiling would let it climb over the topbar instead of
+     stopping at the map it belongs to. The short-screen rule further down
+     tightens this to 1rem, and only ever tightens it. */
+  max-height: calc(100% - 2rem);
+}
+
+.legend-body {
+  overflow-y: auto;
+  /* A flex child will not shrink below its content without this, which would
+     put the ceiling back exactly where it was. */
+  min-height: 0;
+  overscroll-behavior: contain;
+  /* Let the scrollbar sit in the panel's own padding rather than pushing the
+     text in by its width only when it happens to appear. */
+  margin-inline-end: -0.5rem;
+  padding-inline-end: 0.5rem;
+}
+
+.legend-more {
+  margin-top: 0.55rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+
+.legend-more summary {
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--muted);
+  /* The default triangle sits too far from the text at this size. */
+  list-style-position: outside;
+  padding-inline-start: 0.1rem;
+}
+
+.legend-more summary:hover {
+  color: var(--ink);
+}
+
+.legend-more summary:focus-visible {
+  /* Not var(--accent): that is red, which on this map is the colour of an
+     area with no network at all. A focus ring must not read as a reading. */
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.legend-more p {
+  margin-top: 0.45rem;
 }
 
 .legend-head {
