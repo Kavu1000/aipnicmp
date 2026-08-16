@@ -325,8 +325,8 @@ def manifest(
         "  inside it, not the worst; worst_state is a separate column.",
         "  Predicted hexagons are excluded from this export entirely.",
         "",
-        "  The full method is in docs/METHOD.md, and on the Method page of the",
-        "  platform.",
+        "  The full method is in web/src/content/METHOD.md in the repository,",
+        "  and on the Method page of the platform.",
         "",
     ]
     return "\n".join(lines)

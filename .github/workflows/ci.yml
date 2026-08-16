@@ -106,6 +106,13 @@ jobs:
         working-directory: web
         run: npm ci
 
+      # The image is built with `web` as its Docker context, so an import
+      # reaching outside it passes here — the checkout has the whole repo —
+      # and fails minutes later in the image build. Catch it in the fast job.
+      - name: No imports escape the Docker context
+        working-directory: web
+        run: node scripts/check-imports.mjs
+
       - name: Typecheck
         working-directory: web
         run: npx tsc --noEmit

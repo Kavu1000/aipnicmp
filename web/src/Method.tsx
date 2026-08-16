@@ -1,13 +1,19 @@
 import { useMemo } from "react";
-import source from "../../docs/METHOD.md?raw";
+// Inside src/ rather than in docs/ at the repository root, and that is not a
+// filing preference. The web image is built with `web` as its Docker context,
+// so a path reaching outside this directory resolves in a local build and does
+// not exist in the container — which is exactly how it failed: green tests, a
+// clean local `npm run build`, and a broken image build. Keep every import in
+// this app inside web/.
+import source from "./content/METHOD.md?raw";
 import type { Strings } from "./i18n";
 
 /**
  * The methods note, rendered from the file the repository keeps.
  *
  * Imported rather than retyped so there is one document, not a copy that
- * drifts. `docs/METHOD.md` is what a reviewer is pointed at; this is the same
- * text, in the product, one click from the map it describes.
+ * drifts. `web/src/content/METHOD.md` is what a reviewer is pointed at; this is
+ * the same text, in the product, one click from the map it describes.
  *
  * A markdown library would be a dependency for one page, and this project keeps
  * its dependency list to maplibre and React. So the parser below handles
