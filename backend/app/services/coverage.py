@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.operators import NETWORK_NAMES
+from app.core.operators import NETWORK_NAMES, normalise_mnc, operator_from_reported_name
 from app.core.radio import STATE_COLOUR, RadioState
 from app.models.device import Device
 from app.models.measurement import Measurement
@@ -467,3 +467,73 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+async def roaming_summary(session: AsyncSession) -> dict[str, Any]:
+    """Where a SIM's own operator is not the network carrying it.
+
+    Two names travel with every reading. The PLMN says whose radio served the
+    phone; the string the handset prints is the SIM's service provider, which
+    follows the subscription. When they differ the phone is being carried by
+    somebody else's network.
+
+    That is a finding rather than an error. For the subscriber, their
+    operator's coverage in that place *is* the host network's coverage, so a
+    village served only through roaming is a competition question, not a tower
+    question — and the remedy is a commercial agreement rather than capital.
+
+    Reported names that match no known operator are ignored rather than
+    guessed at. Inventing a roaming relationship between two named companies
+    would be worse than reporting nothing.
+    """
+    rows = (
+        await session.execute(
+            select(
+                Measurement.mcc,
+                Measurement.mnc,
+                Measurement.operator_name,
+                func.count(),
+                func.count(func.distinct(Measurement.h3_index)),
+            )
+            .where(Measurement.mcc.is_not(None), Measurement.operator_name.is_not(None))
+            .group_by(Measurement.mcc, Measurement.mnc, Measurement.operator_name)
+        )
+    ).all()
+
+    pairs: dict[tuple[str, str], dict[str, Any]] = {}
+    agreeing = 0
+    unknown = 0
+
+    for mcc, mnc, reported, count, hexagons in rows:
+        serving = NETWORK_NAMES.get((mcc, normalise_mnc(mnc) or ""))
+        sim = operator_from_reported_name(reported)
+
+        if serving is None or sim is None:
+            unknown += count
+            continue
+        if serving == sim:
+            agreeing += count
+            continue
+
+        entry = pairs.setdefault(
+            (sim, serving),
+            {"sim_operator": sim, "served_by": serving, "measurements": 0, "hexagons": 0},
+        )
+        entry["measurements"] += count
+        entry["hexagons"] += hexagons
+
+    roaming = sorted(pairs.values(), key=lambda row: -row["measurements"])
+    total = agreeing + sum(row["measurements"] for row in roaming)
+
+    return {
+        "pairs": roaming,
+        "measurements_agreeing": agreeing,
+        "measurements_roaming": sum(row["measurements"] for row in roaming),
+        "measurements_unidentified": unknown,
+        # The figure that says whether to believe any of this. A handful of
+        # roaming readings is ordinary; most of the fleet apparently roaming
+        # means the PLMN table is wrong, not that the country is.
+        "roaming_share_pct": (
+            round(sum(row["measurements"] for row in roaming) / total * 100, 1) if total else 0.0
+        ),
+    }
