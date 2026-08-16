@@ -13,6 +13,19 @@ spot does not, however confident the arithmetic looks afterwards. So every
 estimate is stored with the spread it came from, and marked unreliable unless
 the readings were spread widely enough to have constrained anything.
 
+And a weighted centroid cannot leave the cloud it averages. Measured against
+the fleet's own data, the estimates land a median 104 m from the nearest
+reading — they sit on the road. The readings themselves run a median 11:1
+along the route against across it, so the across-road direction, which is
+exactly where a mast's offset from the road lies, is not constrained at all.
+Split the readings for one cell by time and the two halves place it a median
+2,079 m apart, worst case 8,295 m.
+
+So this does not locate masts. It finds the centre of the stretch of road each
+cell was heard along, which is a real and useful thing — it says which cells
+exist, whose they are, and roughly where their coverage falls — and it is not
+a base station position. Nothing downstream should describe it as one.
+
     python -m scripts.estimate_cell_sites --dry-run
     python -m scripts.estimate_cell_sites
 """
@@ -150,10 +163,19 @@ async def build(dry_run: bool = False) -> int:
                 est_lat=est_lat,
                 est_lon=est_lon,
                 spread_m=round(spread, 1),
-                # Never better than the spread the readings came from. A
-                # tighter figure would be inventing precision the geometry
-                # cannot supply.
-                uncertainty_m=round(max(spread / 2.0, 250.0), 1),
+                # The whole stretch the cell was heard along, not half of it.
+                #
+                # Calibrated, not chosen. Splitting each cell's readings by
+                # time and estimating from each half separately puts the same
+                # cell a median 2,079 m apart — and half the spread covered
+                # only 10 of 55 cells, because the tightest-spread cells are
+                # the ones whose estimate moves furthest. The full spread
+                # covers 55 of 55.
+                #
+                # Still a lower bound. It bounds the along-road error, which
+                # is the only one the readings can see; a mast standing off to
+                # one side of the route is invisible to this method entirely.
+                uncertainty_m=round(max(spread, 500.0), 1),
                 position_is_reliable=spread >= MIN_SPREAD_M,
                 best_rsrp_dbm=best[2] if best else None,
                 best_lat=best[0] if best else None,

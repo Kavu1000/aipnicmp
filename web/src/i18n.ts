@@ -273,15 +273,15 @@ const en: Strings = {
   collectorsRejectRate: "Refused",
   collectorsSimulated: "simulated",
   collectorsNone: "No collectors have enrolled yet.",
-  towersTitle: "Base stations found",
-  towersSubtitle: "Masts the collectors have heard, by operator",
+  towersTitle: "Cells heard",
+  towersSubtitle: "What the collectors have picked up, by operator — not an operator's own inventory",
   towersOperator: "Operator",
   towersSites: "Sites",
   towersPlaced: "Placed",
   towersCells: "Cells",
   towersNotMeasured: "no collector has carried this SIM",
   towersNote:
-    "A mast usually carries several cells, so cells count antennas and sites count structures. Only cells heard from far enough apart can be placed, and everything here is what the fleet has heard — never what an operator owns.",
+    "A mast usually carries several cells, so cells count antennas rather than structures. Sites group cells heard from the same places; that grouping holds up better than any single position, because cells sharing a mast are heard in the same places and their estimates move together — but it is still a count of what was heard, not of structures anybody has seen. Only cells heard from far enough apart get a position at all, and everything here is what the fleet has heard, never what an operator owns.",
   collectorsDormant: "%N% enrolments with no readings",
   collectorsDormantWhy:
     "Almost always the same handset after a reinstall. The signing key lives in the phone's secure hardware and cannot be backed up, so a reinstalled app has to enrol as a new device. These are kept rather than deleted, but they are not working collectors.",
@@ -399,12 +399,12 @@ const en: Strings = {
     "A network account sees that network's coverage and the places with no service at all. It cannot see other networks, the collector fleet, or the national summary.",
   cancel: "Cancel",
   imageryLimit: "Satellite imagery is at full detail — Sentinel-2 photographs 10 m per pixel",
-  mastLabel: "Base station",
-  mastAccuracy: "Position accurate to",
+  mastLabel: "Observed cell",
+  mastAccuracy: "Could be out by",
   mastHeardFrom: "Heard from",
   mastStrongest: "strongest",
   mastEstimate:
-    "Estimated from where collectors could hear this cell, not a surveyed location. The circle is how far out it could be.",
+    "The centre of where collectors heard this cell — not the position of a mast. Readings taken along a road put this point on the road, so the mast itself may be well to one side. Two separate drives have placed the same cell about 2 km apart.",
   scopeBanner: "Showing %NETWORK% only",
   scopeBannerDetail:
     "Hexagons where %NETWORK% was measured, plus places with no network at all. Other operators are not shown, and an empty area means nobody has measured it rather than that there is no coverage.",
@@ -419,11 +419,11 @@ const en: Strings = {
   legendCollector:
     "A collector's last reported hexagon — hollow once the phone has gone quiet. Not a live position.",
   legendMasts:
-    "Base stations, estimated from where collectors heard them — not surveyed positions. The pulsing ring is a marker, not the reach of the mast.",
+    "Cells the collectors have heard, drawn at the centre of the places they were heard — not mast positions. The pulsing ring is a marker, not the reach of a mast.",
   legendMastHalo:
-    "The pale circle is how far the position could be out, not the area the mast covers. A wider circle means a less certain estimate, so a weak hexagon beside a mast usually means the mast is not really there.",
+    "The pale circle is how far the point could be out, not the area covered. It spans the whole stretch the cell was heard along, because from a road that is as far as the readings can narrow it — and the mast may sit off the road entirely, which no reading here can see.",
   legendMastVague:
-    "Faded where the readings were spread too widely to place the mast within 2 km. Read these as somewhere around here.",
+    "Faded where that could be more than 2 km. Read these as somewhere along this stretch, not as a place.",
   legendUnmeasured: "Unmeasured areas are left blank — the map claims nothing about them.",
   legendShow: "Show legend",
   legendHide: "Hide",
@@ -529,15 +529,15 @@ const lo: Strings = {
   collectorsRejectRate: "ອັດຕາປະຕິເສດ",
   collectorsSimulated: "ຈຳລອງ",
   collectorsNone: "ຍັງບໍ່ມີອຸປະກອນລົງທະບຽນ.",
-  towersTitle: "ສະຖານີຖານທີ່ພົບ",
-  towersSubtitle: "ເສົາສັນຍານທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ, ຕາມຜູ້ໃຫ້ບໍລິການ",
+  towersTitle: "ເຊວທີ່ໄດ້ຍິນ",
+  towersSubtitle: "ສິ່ງທີ່ຜູ້ເກັບຂໍ້ມູນຮັບໄດ້, ຕາມຜູ້ໃຫ້ບໍລິການ — ບໍ່ແມ່ນລາຍການຊັບສິນຂອງຜູ້ໃຫ້ບໍລິການເອງ",
   towersOperator: "ຜູ້ໃຫ້ບໍລິການ",
   towersSites: "ຈຸດຕັ້ງ",
   towersPlaced: "ລະບຸຕຳແໜ່ງໄດ້",
   towersCells: "ເຊວ",
   towersNotMeasured: "ຍັງບໍ່ມີຜູ້ເກັບຂໍ້ມູນຖືຊິມນີ້",
   towersNote:
-    "ເສົາໜຶ່ງມັກມີຫຼາຍເຊວ ດັ່ງນັ້ນ ເຊວ ນັບເສົາອາກາດ ແລະ ຈຸດຕັ້ງ ນັບໂຄງສ້າງ. ສະເພາະເຊວທີ່ໄດ້ຍິນຈາກໄລຍະຫ່າງພຽງພໍຈຶ່ງລະບຸຕຳແໜ່ງໄດ້, ແລະ ທັງໝົດນີ້ແມ່ນສິ່ງທີ່ກອງເກັບຂໍ້ມູນໄດ້ຍິນ ບໍ່ແມ່ນສິ່ງທີ່ຜູ້ໃຫ້ບໍລິການເປັນເຈົ້າຂອງ.",
+    "ເສົາໜຶ່ງມັກມີຫຼາຍເຊວ ດັ່ງນັ້ນ ເຊວ ນັບເສົາອາກາດ ບໍ່ແມ່ນນັບໂຄງສ້າງ. ຈຸດຕັ້ງ ຈັດກຸ່ມເຊວທີ່ໄດ້ຍິນຈາກບ່ອນດຽວກັນ; ການຈັດກຸ່ມນີ້ໜ້າເຊື່ອຖືກວ່າຕຳແໜ່ງດ່ຽວໆ ເພາະເຊວທີ່ຢູ່ເສົາດຽວກັນຈະໄດ້ຍິນຈາກບ່ອນດຽວກັນ ແລະ ການຄາດຄະເນຂອງພວກມັນຈະເໜັງໄປນຳກັນ — ແຕ່ກໍຍັງເປັນການນັບສິ່ງທີ່ໄດ້ຍິນ ບໍ່ແມ່ນນັບໂຄງສ້າງທີ່ໃຜໄດ້ເຫັນ. ສະເພາະເຊວທີ່ໄດ້ຍິນຈາກໄລຍະຫ່າງພຽງພໍຈຶ່ງລະບຸຕຳແໜ່ງໄດ້, ແລະ ທັງໝົດນີ້ແມ່ນສິ່ງທີ່ກອງເກັບຂໍ້ມູນໄດ້ຍິນ ບໍ່ແມ່ນສິ່ງທີ່ຜູ້ໃຫ້ບໍລິການເປັນເຈົ້າຂອງ.",
   collectorsDormant: "%N% ການລົງທະບຽນທີ່ຍັງບໍ່ມີການວັດແທກ",
   collectorsDormantWhy:
     "ສ່ວນຫຼາຍແມ່ນເຄື່ອງເກົ່າທີ່ຕິດຕັ້ງແອັບໃໝ່. ກະແຈລົງລາຍເຊັນເກັບຢູ່ໃນຮາດແວປອດໄພຂອງໂທລະສັບ ແລະ ສຳຮອງບໍ່ໄດ້ ດັ່ງນັ້ນແອັບທີ່ຕິດຕັ້ງໃໝ່ຈຶ່ງຕ້ອງລົງທະບຽນເປັນເຄື່ອງໃໝ່. ລາຍການເຫຼົ່ານີ້ຖືກເກັບໄວ້ ແຕ່ບໍ່ແມ່ນຜູ້ເກັບຂໍ້ມູນທີ່ໃຊ້ງານຢູ່.",
@@ -649,12 +649,12 @@ const lo: Strings = {
     "ບັນຊີເຄືອຂ່າຍຈະເຫັນການຄຸ້ມຄອງຂອງເຄືອຂ່າຍນັ້ນ ແລະ ບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ. ຈະບໍ່ເຫັນເຄືອຂ່າຍອື່ນ, ກອງເກັບຂໍ້ມູນ, ຫຼື ສະຫຼຸບລວມທົ່ວປະເທດ.",
   cancel: "ຍົກເລີກ",
   imageryLimit: "ພາບຖ່າຍດາວທຽມລະອຽດເຕັມທີ່ແລ້ວ — Sentinel-2 ຖ່າຍໄດ້ 10 ແມັດຕໍ່ຈຸດ",
-  mastLabel: "ສະຖານີຖານ",
-  mastAccuracy: "ຄວາມແມ່ນຢຳຂອງຕຳແໜ່ງ",
+  mastLabel: "ເຊວທີ່ສັງເກດເຫັນ",
+  mastAccuracy: "ອາດຄາດເຄື່ອນເຖິງ",
   mastHeardFrom: "ໄດ້ຍິນຈາກ",
   mastStrongest: "ແຮງສຸດ",
   mastEstimate:
-    "ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນເຊວນີ້ ບໍ່ແມ່ນຕຳແໜ່ງທີ່ສຳຫຼວດແທ້. ວົງມົນຄືໄລຍະທີ່ອາດຄາດເຄື່ອນໄດ້.",
+    "ຈຸດກາງຂອງບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນເຊວນີ້ — ບໍ່ແມ່ນຕຳແໜ່ງຂອງເສົາສັນຍານ. ການວັດແທກທີ່ເກັບຕາມເສັ້ນທາງ ຈະເຮັດໃຫ້ຈຸດນີ້ຢູ່ເທິງເສັ້ນທາງ ດັ່ງນັ້ນເສົາຈິງອາດຢູ່ຫ່າງອອກໄປທາງຂ້າງ. ການຂັບເກັບຂໍ້ມູນສອງຄັ້ງແຍກກັນ ວາງເຊວດຽວກັນຫ່າງກັນປະມານ 2 ກິໂລແມັດ.",
   scopeBanner: "ສະແດງສະເພາະ %NETWORK%",
   scopeBannerDetail:
     "ຮວງເຜິ້ງທີ່ວັດແທກ %NETWORK% ໄດ້, ພ້ອມທັງບ່ອນທີ່ບໍ່ມີເຄືອຂ່າຍເລີຍ. ບໍ່ສະແດງຜູ້ໃຫ້ບໍລິການອື່ນ, ແລະ ພື້ນທີ່ຫວ່າງໝາຍຄວາມວ່າຍັງບໍ່ມີໃຜວັດແທກ ບໍ່ແມ່ນວ່າບໍ່ມີສັນຍານ.",
@@ -669,11 +669,11 @@ const lo: Strings = {
   legendCollector:
     "ຮວງເຜິ້ງຫຼ້າສຸດທີ່ຜູ້ເກັບຂໍ້ມູນລາຍງານ — ເປັນວົງເປົ່າເມື່ອໂທລະສັບງຽບໄປ. ບໍ່ແມ່ນຕຳແໜ່ງສົດ.",
   legendMasts:
-    "ສະຖານີຖານ, ຄາດຄະເນຈາກບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ — ບໍ່ແມ່ນຕຳແໜ່ງທີ່ສຳຫຼວດຈິງ. ວົງທີ່ກະພິບເປັນພຽງເຄື່ອງໝາຍ ບໍ່ແມ່ນໄລຍະທີ່ເສົາສົ່ງເຖິງ.",
+    "ເຊວທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນ, ແຕ້ມຢູ່ຈຸດກາງຂອງບ່ອນທີ່ໄດ້ຍິນ — ບໍ່ແມ່ນຕຳແໜ່ງເສົາສັນຍານ. ວົງທີ່ກະພິບເປັນພຽງເຄື່ອງໝາຍ ບໍ່ແມ່ນໄລຍະທີ່ເສົາສົ່ງເຖິງ.",
   legendMastHalo:
-    "ວົງກົມສີຈາງ ຄືໄລຍະທີ່ຕຳແໜ່ງອາດຜິດພາດໄດ້ ບໍ່ແມ່ນພື້ນທີ່ທີ່ເສົາໃຫ້ບໍລິການ. ວົງກວ້າງກວ່າ ໝາຍເຖິງການຄາດຄະເນທີ່ບໍ່ແນ່ນອນກວ່າ ດັ່ງນັ້ນຮວງເຜິ້ງທີ່ສັນຍານອ່ອນຢູ່ຂ້າງເສົາ ສ່ວນຫຼາຍໝາຍຄວາມວ່າເສົາບໍ່ໄດ້ຢູ່ບ່ອນນັ້ນແທ້.",
+    "ວົງກົມສີຈາງ ຄືໄລຍະທີ່ຈຸດນີ້ອາດຄາດເຄື່ອນໄດ້ ບໍ່ແມ່ນພື້ນທີ່ໃຫ້ບໍລິການ. ມັນກວມທັງໄລຍະທາງທີ່ໄດ້ຍິນເຊວນີ້ ເພາະການເກັບຕາມເສັ້ນທາງ ຈຳກັດໄດ້ພຽງເທົ່ານັ້ນ — ແລະ ເສົາອາດຢູ່ນອກເສັ້ນທາງເລີຍ ຊຶ່ງການວັດແທກນີ້ບໍ່ສາມາດເຫັນໄດ້.",
   legendMastVague:
-    "ຈາງລົງ ເມື່ອຂໍ້ມູນທີ່ໄດ້ຍິນກະຈາຍກວ້າງເກີນໄປຈົນລະບຸຕຳແໜ່ງເສົາບໍ່ໄດ້ພາຍໃນ 2 ກິໂລແມັດ. ໃຫ້ອ່ານວ່າຢູ່ແຖວນີ້ເທົ່ານັ້ນ.",
+    "ຈາງລົງ ເມື່ອຄາດເຄື່ອນອາດເກີນ 2 ກິໂລແມັດ. ໃຫ້ອ່ານວ່າຢູ່ຕາມໄລຍະນີ້ ບໍ່ແມ່ນຈຸດໃດຈຸດໜຶ່ງ.",
   legendUnmeasured: "ພື້ນທີ່ທີ່ຍັງບໍ່ໄດ້ວັດແທກຈະຖືກປະໄວ້ວ່າງ — ແຜນທີ່ບໍ່ໄດ້ອ້າງອີງຫຍັງກ່ຽວກັບມັນ.",
   legendShow: "ສະແດງຄຳອະທິບາຍ",
   legendHide: "ເຊື່ອງ",
