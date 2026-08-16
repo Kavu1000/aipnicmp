@@ -494,7 +494,7 @@ export interface ObservedCell {
   last_seen_at: string | null;
 }
 
-export async function fetchCells(signal?: AbortSignal) {
+export async function fetchCells(operator?: string | null, signal?: AbortSignal) {
   return getJson<{
     type: "FeatureCollection";
     features: {
@@ -502,7 +502,7 @@ export async function fetchCells(signal?: AbortSignal) {
       geometry: { type: "Point"; coordinates: [number, number] };
       properties: ObservedCell;
     }[];
-  }>("/cells", signal);
+  }>(`/cells${operator ? `?operator=${encodeURIComponent(operator)}` : ""}`, signal);
 }
 
 

@@ -15,22 +15,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.cell import ObservedCell
+from app.services.auth import enforce_scope
 
 router = APIRouter(prefix="/cells", tags=["cells"])
 
 
 @router.get("")
-async def observed_cells(session: AsyncSession = Depends(get_session)) -> dict:
+async def observed_cells(
+    operator: str | None = Depends(enforce_scope),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
     """Placed cells as GeoJSON, with the uncertainty that came with them.
 
     ``uncertainty_m`` is never smaller than half the spread of the readings
     behind it, so a client can draw the doubt rather than a false point. A
     reader who sees only a dot will believe the dot.
     """
+    # Scoped like every other view of the map.
+    #
+    # This endpoint went out unscoped, which meant a network account could see
+    # its competitors' masts — the exact leak the role exists to prevent, and
+    # invisible because the map looked correct to whoever wrote it. Anything
+    # added here later must go through enforce_scope for the same reason.
+    conditions = [ObservedCell.position_is_reliable.is_(True)]
+    if operator:
+        conditions.append(ObservedCell.operator_name == operator)
+
     rows = (
         await session.scalars(
             select(ObservedCell)
-            .where(ObservedCell.position_is_reliable.is_(True))
+            .where(*conditions)
             .order_by(ObservedCell.observations.desc())
         )
     ).all()

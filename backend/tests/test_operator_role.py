@@ -56,3 +56,51 @@ def test_asking_for_another_network_is_refused_not_corrected(asked_for, scope, a
     """
     mismatch = scope is not None and asked_for is not None and asked_for != scope
     assert mismatch is not allowed or scope is None or asked_for is None
+
+
+async def test_the_mast_layer_is_filtered_by_network(
+    client, session, device_key, public_key_b64
+):
+    """Choosing a network must filter the masts, not only the hexagons.
+
+    A map showing one operator's coverage under every operator's transmitters
+    invites the reader to attribute a mast to the wrong company — and for a
+    network account it is a leak, which is the reason this endpoint is scoped
+    rather than merely filtered.
+    """
+    from app.models.cell import ObservedCell
+
+    session.add_all(
+        [
+            ObservedCell(
+                mcc="457", mnc="01", lac_tac=100, cid=1001,
+                operator_name="Lao Telecom", observations=9,
+                est_lat=18.0, est_lon=102.6, spread_m=2000.0, uncertainty_m=1000.0,
+                position_is_reliable=True,
+            ),
+            ObservedCell(
+                mcc="457", mnc="02", lac_tac=200, cid=2002,
+                operator_name="ETL", observations=9,
+                est_lat=18.1, est_lon=102.7, spread_m=2000.0, uncertainty_m=1000.0,
+                position_is_reliable=True,
+            ),
+            # Never published, whatever is asked for: the readings behind it
+            # were too tightly clustered to place.
+            ObservedCell(
+                mcc="457", mnc="01", lac_tac=100, cid=1002,
+                operator_name="Lao Telecom", observations=9,
+                est_lat=18.2, est_lon=102.8, spread_m=100.0, uncertainty_m=250.0,
+                position_is_reliable=False,
+            ),
+        ]
+    )
+    await session.commit()
+
+    everything = (await client.get("/api/v1/cells")).json()["features"]
+    assert {f["properties"]["operator"] for f in everything} == {"Lao Telecom", "ETL"}
+    assert len(everything) == 2
+
+    only_ltc = (
+        await client.get("/api/v1/cells", params={"operator": "Lao Telecom"})
+    ).json()["features"]
+    assert [f["properties"]["operator"] for f in only_ltc] == ["Lao Telecom"]

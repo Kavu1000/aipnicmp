@@ -299,7 +299,7 @@ export function App() {
       fetchCollectors(signal)
         .then((body) => setCollectors(body.collectors))
         .catch(() => undefined);
-      fetchCells(signal)
+      fetchCells(operator, signal)
         .then((body) => setCells(body as unknown as GeoJsonData))
         .catch(() => undefined);
       if (!areaCode && lastBounds.current) loadTiles(lastBounds.current, { silent: true });
@@ -315,11 +315,24 @@ export function App() {
     fetchCollectors(controller.signal)
       .then((body) => setCollectors(body.collectors))
       .catch(() => undefined);
-    fetchCells(controller.signal)
+    return () => controller.abort();
+  }, [approved]);
+
+  /**
+   * Masts follow the network filter, not the refresh clock.
+   *
+   * Choosing a network repaints the hexagons at once; without this the masts
+   * would keep showing every operator until the next poll, so for up to a
+   * minute the map would show one network's coverage under four networks'
+   * transmitters.
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCells(operator, controller.signal)
       .then((body) => setCells(body as unknown as GeoJsonData))
       .catch(() => undefined);
     return () => controller.abort();
-  }, [approved]);
+  }, [operator]);
 
   /**
    * Keep the map current while it is being watched.
