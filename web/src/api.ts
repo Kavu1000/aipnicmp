@@ -232,7 +232,7 @@ export interface Collector {
   rejection_rate_pct: number;
 }
 
-export type UserRole = "super_admin" | "admin";
+export type UserRole = "super_admin" | "admin" | "operator";
 export type UserStatus = "pending" | "approved" | "rejected";
 
 export interface AccountUser {
@@ -241,6 +241,10 @@ export interface AccountUser {
   name: string | null;
   picture_url: string | null;
   role: UserRole;
+  /** The network an operator account is confined to. Null for other roles. */
+  scoped_operator?: string | null;
+  role_changed_at?: string | null;
+  role_changed_by?: string | null;
   status: UserStatus;
   requested_at: string | null;
   decided_at: string | null;
@@ -369,8 +373,15 @@ export async function decideUser(id: number, status: UserStatus): Promise<Accoun
   return body.user;
 }
 
-export async function setUserRole(id: number, role: UserRole): Promise<AccountUser> {
-  const body = await postJson<{ user: AccountUser }>(`/users/${id}/role`, { role });
+export async function setUserRole(
+  id: number,
+  role: UserRole,
+  operator?: string | null,
+): Promise<AccountUser> {
+  // The network travels with the role. Sending it separately would leave a
+  // moment where an operator account exists with no network, and that account
+  // is scoped to nothing — an empty map with no explanation.
+  const body = await postJson<{ user: AccountUser }>(`/users/${id}/role`, { role, operator });
   return body.user;
 }
 

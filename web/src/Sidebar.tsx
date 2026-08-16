@@ -25,12 +25,42 @@ interface Props {
  * door rather than buried under administration.
  */
 export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOut }: Props) {
+  // A network account sees its own coverage and the dead zones, so the pages
+  // that describe the survey as a whole are not offered to it. The server
+  // refuses them either way; leaving them in the menu would advertise three
+  // doors that answer 403, which reads as a broken product rather than a
+  // deliberate boundary.
+  const scoped = user?.role === "operator";
+
   const items: Array<{ id: View; label: string; icon: string; hint: string }> = [
     { id: "map", label: strings.navMap, icon: "◉", hint: strings.navMapHint },
-    { id: "overview", label: strings.navOverview, icon: "▤", hint: strings.navOverviewHint },
-    { id: "priority", label: strings.navPriority, icon: "▲", hint: strings.navPriorityHint },
+    ...(scoped
+      ? []
+      : [
+          {
+            id: "overview" as View,
+            label: strings.navOverview,
+            icon: "▤",
+            hint: strings.navOverviewHint,
+          },
+          {
+            id: "priority" as View,
+            label: strings.navPriority,
+            icon: "▲",
+            hint: strings.navPriorityHint,
+          },
+        ]),
     { id: "networks", label: strings.navNetworks, icon: "◈", hint: strings.navNetworksHint },
-    { id: "collectors", label: strings.navCollectors, icon: "▮", hint: strings.navCollectorsHint },
+    ...(scoped
+      ? []
+      : [
+          {
+            id: "collectors" as View,
+            label: strings.navCollectors,
+            icon: "▮",
+            hint: strings.navCollectorsHint,
+          },
+        ]),
   ];
 
   // Deciding who may sign in is a super admin's job, so it is a super admin's

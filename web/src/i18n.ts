@@ -148,6 +148,13 @@ export interface Strings {
   usersYou: string;
   usersLastSuperAdmin: string;
   usersRoleAdmin: string;
+  usersRoleOperator: string;
+  usersNoNetwork: string;
+  usersChooseNetwork: string;
+  usersChooseNetworkWhy: string;
+  cancel: string;
+  scopeBanner: string;
+  scopeBannerDetail: string;
   usersRoleSuperAdmin: string;
   usersStatusPending: string;
   usersStatusApproved: string;
@@ -376,6 +383,15 @@ const en: Strings = {
   usersYou: "you",
   usersLastSuperAdmin: "the last super admin",
   usersRoleAdmin: "Admin",
+  usersRoleOperator: "Network operator",
+  usersNoNetwork: "no network set",
+  usersChooseNetwork: "Which network does this account belong to?",
+  usersChooseNetworkWhy:
+    "A network account sees that network's coverage and the places with no service at all. It cannot see other networks, the collector fleet, or the national summary.",
+  cancel: "Cancel",
+  scopeBanner: "Showing %NETWORK% only",
+  scopeBannerDetail:
+    "Hexagons where %NETWORK% was measured, plus places with no network at all. Other operators are not shown, and an empty area means nobody has measured it rather than that there is no coverage.",
   usersRoleSuperAdmin: "Super admin",
   usersStatusPending: "Waiting",
   usersStatusApproved: "Approved",
@@ -604,6 +620,15 @@ const lo: Strings = {
   usersYou: "ທ່ານ",
   usersLastSuperAdmin: "ຜູ້ດູແລສູງສຸດຄົນສຸດທ້າຍ",
   usersRoleAdmin: "ຜູ້ດູແລ",
+  usersRoleOperator: "ຜູ້ໃຫ້ບໍລິການເຄືອຂ່າຍ",
+  usersNoNetwork: "ຍັງບໍ່ໄດ້ກຳນົດເຄືອຂ່າຍ",
+  usersChooseNetwork: "ບັນຊີນີ້ຂຶ້ນກັບເຄືອຂ່າຍໃດ?",
+  usersChooseNetworkWhy:
+    "ບັນຊີເຄືອຂ່າຍຈະເຫັນການຄຸ້ມຄອງຂອງເຄືອຂ່າຍນັ້ນ ແລະ ບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ. ຈະບໍ່ເຫັນເຄືອຂ່າຍອື່ນ, ກອງເກັບຂໍ້ມູນ, ຫຼື ສະຫຼຸບລວມທົ່ວປະເທດ.",
+  cancel: "ຍົກເລີກ",
+  scopeBanner: "ສະແດງສະເພາະ %NETWORK%",
+  scopeBannerDetail:
+    "ຮວງເຜິ້ງທີ່ວັດແທກ %NETWORK% ໄດ້, ພ້ອມທັງບ່ອນທີ່ບໍ່ມີເຄືອຂ່າຍເລີຍ. ບໍ່ສະແດງຜູ້ໃຫ້ບໍລິການອື່ນ, ແລະ ພື້ນທີ່ຫວ່າງໝາຍຄວາມວ່າຍັງບໍ່ມີໃຜວັດແທກ ບໍ່ແມ່ນວ່າບໍ່ມີສັນຍານ.",
   usersRoleSuperAdmin: "ຜູ້ດູແລສູງສຸດ",
   usersStatusPending: "ລໍຖ້າ",
   usersStatusApproved: "ອະນຸມັດແລ້ວ",

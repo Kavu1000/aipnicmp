@@ -248,6 +248,16 @@ export function App() {
   // permitted and there is no account to show.
   const approved = session !== null && (!session.auth_enabled || session.approved);
 
+  /**
+   * The network this account is confined to, or null for an ordinary one.
+   *
+   * The server is what enforces this — the scope is taken from the account on
+   * every request and nothing sent from here can widen it. What the client
+   * does with it is manners: offering a reader a page that will answer 403 is
+   * worse than not offering it.
+   */
+  const scopedTo = session?.user?.role === "operator" ? session.user.scoped_operator ?? null : null;
+
   const handleSignOut = useCallback(async () => {
     try {
       await signOut();
@@ -600,6 +610,13 @@ export function App() {
           {/* The map stays mounted behind the other views so switching back
               never rebuilds it or loses the user's position. */}
           <div className={view === "map" ? "pane map-shell" : "pane map-shell hidden"}>
+            {scopedTo && (
+              <div className="scope-banner">
+                <strong>{t.scopeBanner.replace("%NETWORK%", scopedTo)}</strong>
+                <span>{t.scopeBannerDetail}</span>
+              </div>
+            )}
+
             <div className="map-area">
             <MapView
               tiles={tiles}
@@ -686,7 +703,7 @@ export function App() {
                     <Towers area={areaCode} t={t} />
                   </>
                 )}
-                {view === "collectors" && <Collectors t={t} />}
+                {view === "collectors" && !scopedTo && <Collectors t={t} />}
                 {view === "users" && (
                   <Users t={t} currentUserId={session.user?.id ?? null} />
                 )}

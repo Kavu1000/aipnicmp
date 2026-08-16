@@ -2190,3 +2190,90 @@ main {
   font-size: 0.82rem;
   line-height: 1.55;
 }
+
+/* ---------- network-account scope ---------- */
+
+/*
+  Says what is being shown before the reader draws a conclusion from it. A
+  filtered map looks exactly like a complete one, and an operator seeing few
+  hexagons should understand they are seeing their own network rather than a
+  country with little coverage.
+*/
+.scope-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  padding: 0.6rem 1rem;
+  border-block-end: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+.scope-banner strong {
+  font-size: 0.9rem;
+}
+
+.scope-banner span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  max-inline-size: 88ch;
+}
+
+/* ---------- choosing a network for an account ---------- */
+
+.operator-picker {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(16 32 44 / 45%);
+  z-index: 60;
+}
+
+.operator-picker-card {
+  max-inline-size: 34rem;
+  padding: 1.25rem 1.4rem 1.1rem;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.operator-picker-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.operator-picker-card p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.operator-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block-end: 0.9rem;
+}
+
+.operator-option {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.operator-option:hover {
+  border-color: var(--accent);
+}
+
+.operator-option.chosen {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}

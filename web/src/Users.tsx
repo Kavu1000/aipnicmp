@@ -8,6 +8,16 @@ import {
   type UserStatus,
 } from "./api";
 import { formatAge } from "./coverage";
+
+/**
+ * The networks an account may be tied to.
+ *
+ * Listed here rather than fetched, because the choice is which company an
+ * account belongs to, not which networks happen to have been measured. A
+ * newly signed operator should be grantable access before a collector has
+ * ever carried their SIM.
+ */
+const LAO_NETWORKS = ["Lao Telecom", "ETL", "Unitel", "Tplus"] as const;
 import type { Strings } from "./i18n";
 
 /**
@@ -39,6 +49,11 @@ export function Users({ t, currentUserId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  // Set while a super admin is choosing which network an account belongs to.
+  const [pendingOperator, setPendingOperator] = useState<{
+    id: number;
+    current: string | null;
+  } | null>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -138,16 +153,33 @@ export function Users({ t, currentUserId }: Props) {
                       className="select"
                       value={user.role}
                       disabled={locked}
-                      onChange={(event) =>
-                        apply(user.id, () =>
-                          setUserRole(user.id, event.target.value as UserRole),
-                        )
-                      }
+                      onChange={(event) => {
+                        const role = event.target.value as UserRole;
+                        // A network account must name its network, and the
+                        // server refuses one that does not. Choosing it here,
+                        // in the same action, means the account is never left
+                        // scoped to nothing.
+                        if (role === "operator") {
+                          setPendingOperator({ id: user.id, current: user.scoped_operator ?? null });
+                          return;
+                        }
+                        apply(user.id, () => setUserRole(user.id, role));
+                      }}
                       aria-label={t.usersRole}
                     >
                       <option value="admin">{t.usersRoleAdmin}</option>
                       <option value="super_admin">{t.usersRoleSuperAdmin}</option>
+                      <option value="operator">{t.usersRoleOperator}</option>
                     </select>
+
+                    {/* Which network, shown wherever the role is. An operator
+                        row that did not say so would look like an ordinary
+                        account with less access for no visible reason. */}
+                    {user.role === "operator" && (
+                      <span className="device-meta">
+                        {user.scoped_operator ?? t.usersNoNetwork}
+                      </span>
+                    )}
                   </td>
 
                   <td>
@@ -187,6 +219,36 @@ export function Users({ t, currentUserId }: Props) {
           </tbody>
         </table>
       </div>
+      {pendingOperator && (
+        <div className="operator-picker" role="dialog" aria-label={t.usersChooseNetwork}>
+          <div className="operator-picker-card">
+            <h3>{t.usersChooseNetwork}</h3>
+            <p>{t.usersChooseNetworkWhy}</p>
+            <div className="operator-picker-options">
+              {LAO_NETWORKS.map((network) => (
+                <button
+                  key={network}
+                  className={
+                    network === pendingOperator.current
+                      ? "operator-option chosen"
+                      : "operator-option"
+                  }
+                  onClick={() => {
+                    const { id } = pendingOperator;
+                    setPendingOperator(null);
+                    apply(id, () => setUserRole(id, "operator", network));
+                  }}
+                >
+                  {network}
+                </button>
+              ))}
+            </div>
+            <button className="link" onClick={() => setPendingOperator(null)}>
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
