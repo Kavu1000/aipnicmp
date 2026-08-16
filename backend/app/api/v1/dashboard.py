@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.services.auth import deny_operator_accounts, operator_scope
 from app.models.tile import CandidateSite
+from app.services.changes import detect_changes
 from app.services.coverage import (
     collectors,
     tower_summary,
@@ -108,6 +109,24 @@ async def collector_fleet(session: AsyncSession = Depends(get_session)) -> dict[
         "count": len(fleet),
         "real": sum(1 for d in fleet if not d["is_simulated"]),
         "collectors": fleet,
+    }
+
+
+@router.get("/changes", dependencies=[Depends(deny_operator_accounts)])
+async def changes(
+    window_days: int = Query(default=7, ge=1, le=90),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Hexagons whose service moved between an earlier visit and a recent one.
+
+    Compares a hexagon against itself, so unlike anything predictive here it
+    needs no national coverage to be worth reading. Worst first.
+    """
+    found = await detect_changes(session, window_days=window_days)
+    return {
+        "window_days": window_days,
+        "worse": [item for item in found if item["direction"] == "worse"],
+        "better": [item for item in found if item["direction"] == "better"],
     }
 
 

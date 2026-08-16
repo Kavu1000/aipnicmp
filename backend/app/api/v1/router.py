@@ -22,6 +22,7 @@ from app.api.v1 import (
     auth,
     dashboard,
     devices,
+    exports,
     health,
     ingest,
     reports,
@@ -54,6 +55,7 @@ api_router.include_router(tiles.router, dependencies=signed_in)
 api_router.include_router(cells.router, dependencies=signed_in)
 api_router.include_router(reports.router, dependencies=signed_in)
 api_router.include_router(sites.router, dependencies=signed_in)
+api_router.include_router(exports.router, dependencies=signed_in)
 
 # Requires a super admin; the router enforces that itself.
 api_router.include_router(users.router)
