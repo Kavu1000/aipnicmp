@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
 from datetime import timedelta
 
 from sqlalchemy import func, select
@@ -20,6 +22,8 @@ running is not skipped by the next one. Rebuilding a hexagon is idempotent,
 so overlapping is free; missing one is not.
 """
 WATERMARK_OVERLAP = timedelta(minutes=5)
+
+log = logging.getLogger(__name__)
 
 
 async def _incremental() -> int:
@@ -81,18 +85,24 @@ def estimate_cell_sites_task() -> dict[str, int]:
     after the last manual run showed sixty-four measured hexagons and not one
     cell — twenty-four of which qualified and were simply never written.
 
-    Hourly rather than by the minute. A cell's estimate barely moves once a
-    stretch of road has been driven, and this recomputes every cell from its
-    whole history rather than only what changed. The delete and the insert
+    Every two minutes. This recomputes every cell from its whole history
+    rather than only what changed, which sounds expensive and is not: a pass
+    over the current fleet takes under a second. The delete and the insert
     share a transaction, so a reader sees the previous set or the new one,
     never an empty map.
 
-    Worth watching as the fleet grows: finding the widest separation between a
-    cell's readings compares every pair, so the cost per cell is quadratic in
-    how often it was heard. Fine at a few hundred readings per cell, and the
-    first thing to reach for if this task ever starts overrunning its hour.
+    The duration is logged because it will not stay under a second. Finding
+    the widest separation between a cell's readings compares every pair, so
+    the cost per cell is quadratic in how often that cell was heard. When this
+    starts approaching its two-minute window, the fix is to place only the
+    cells that gained readings rather than to slow the schedule back down —
+    the schedule is what somebody driving actually feels.
     """
-    return {"cells": asyncio.run(estimate_cell_sites())}
+    started = time.perf_counter()
+    placed = asyncio.run(estimate_cell_sites())
+    elapsed = time.perf_counter() - started
+    log.info("placed %d cells in %.1f s", placed, elapsed)
+    return {"cells": placed, "seconds": round(elapsed, 1)}
 
 
 async def _coarsen() -> int:

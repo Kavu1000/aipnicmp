@@ -49,19 +49,21 @@ celery_app.conf.update(
         },
         # Where each cell was heard, re-derived from the whole history.
         #
-        # Hourly at :20, clear of both the minute tick and the 03:10 full
-        # rebuild. Until this was scheduled the cell layer only moved when
-        # somebody ran the script by hand, so a freshly driven route showed
-        # measured hexagons and no cells at all.
+        # Every two minutes, because the work is not what made it slow. A full
+        # pass over the current fleet takes 0.7 s — about one per cent of a
+        # worker minute — while the hourly schedule it replaced meant a mast
+        # heard on a drive could sit unplaced for fifty-nine minutes beside
+        # hexagons that had updated within one.
         #
-        # Given its own expiry: the global 120 s default suits a task that is
-        # redone every minute and would quietly discard this one whenever the
-        # worker happened to be busy at :20, leaving the layer stale for an
-        # hour with nothing in the logs to say why.
+        # Two rather than one, offset from the tile tick, so a pass that grows
+        # slower than expected has a whole cycle of headroom before it starts
+        # overlapping itself. The cost per cell is quadratic in how often that
+        # cell was heard, so this figure will not stay at 0.7 s: the task logs
+        # its own duration, and that log is the thing to watch.
         "estimate-cell-sites": {
             "task": "app.workers.tasks.estimate_cell_sites_task",
-            "schedule": crontab(minute=20),
-            "options": {"expires": 1800},
+            "schedule": timedelta(minutes=2),
+            "options": {"expires": 240},
         },
         # Exact GPS fixes aged down to the hexagon they already sit in.
         #

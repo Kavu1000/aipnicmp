@@ -28,17 +28,31 @@ def test_the_cell_layer_refreshes_without_anyone_running_a_script():
     assert entry["task"] == "app.workers.tasks.estimate_cell_sites_task"
 
 
-def test_the_hourly_task_outlives_the_global_expiry():
+def test_cell_placement_outlives_the_global_expiry():
     """The default expiry suits the minute tick and would discard this one.
 
     `task_default_expires` is 120 s, which is right for work redone every
-    minute. Applied to an hourly task it means a worker busy at :20 drops the
-    run entirely, and the layer stays an hour stale with nothing in the log.
+    minute. This runs every two, so a worker busy when it fires would drop the
+    run under the default and leave the layer stale with nothing in the log.
     """
-    expires = _schedule()["estimate-cell-sites"]["options"]["expires"]
+    entry = _schedule()["estimate-cell-sites"]
+    expires = entry["options"]["expires"]
     assert expires > celery_app.conf.task_default_expires
-    # Long enough to outlast a slow tile rebuild queued ahead of it.
-    assert expires >= 900
+    # At least one whole cycle of grace, so a single slow pass costs a run
+    # rather than the run after it as well.
+    assert expires >= entry["schedule"].total_seconds()
+
+
+def test_cell_placement_keeps_pace_with_the_hexagons():
+    """A mast heard on a drive should not wait an hour beside a hexagon that
+    updated within a minute.
+
+    Placement is not what was slow — a pass over the current fleet takes under
+    a second — so the cadence is what somebody driving actually feels, and it
+    is pinned here rather than left to drift back to something restful.
+    """
+    cadence = _schedule()["estimate-cell-sites"]["schedule"].total_seconds()
+    assert cadence <= 300, "cell placement should be minutes behind, not hours"
 
 
 def test_the_schedule_still_carries_the_work_it_used_to():
