@@ -694,10 +694,15 @@ export function App() {
             {scopedTo && (
               <div className="scope-banner">
                 <strong>{t.scopeBanner.replace("%NETWORK%", scopedTo)}</strong>
-                <span>{t.scopeBannerDetail}</span>
+                <span>{t.scopeBannerDetail.replace("%NETWORK%", scopedTo)}</span>
               </div>
             )}
 
+            {/* The map and its rail sit side by side; the scope banner needs a
+                row of its own above them. Without this wrapper the banner became
+                a third column of the same row — a tall panel beside the map,
+                squeezing it into the right-hand third of the screen. */}
+            <div className="map-row">
             <div className="map-area">
             <MapView
               tiles={tiles}
@@ -789,6 +794,7 @@ export function App() {
                 </div>
               </aside>
             )}
+            </div>
           </div>
 
           {view !== "map" && (

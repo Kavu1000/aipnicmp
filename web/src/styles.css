@@ -2007,9 +2007,21 @@ main {
   thing it described — select a province and the province disappeared under
   its own summary. Docking costs some map width and hides nothing.
 */
+/* A column: the scope banner across the top, then the map and its rail
+   side by side beneath it. This was a row, which made the banner a third
+   column standing beside the map rather than a strip above it. */
 .map-shell {
   display: flex;
+  flex-direction: column;
+}
+
+.map-row {
+  display: flex;
   align-items: stretch;
+  flex: 1 1 auto;
+  /* Without this the row refuses to shrink below its content and the map
+     overflows the pane instead of filling what the banner left. */
+  min-height: 0;
 }
 
 .map-area {
