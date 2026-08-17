@@ -301,3 +301,43 @@ async def set_devices(
     await session.commit()
 
     return {"user_id": user_id, "install_ids": sorted(wanted)}
+
+
+@router.get("/devices/assignable")
+async def assignable_devices(
+    actor: User = Depends(require_super_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Every enrolled handset, with whoever already owns it.
+
+    Full install ids, unlike the fleet page, which shortens them to sixteen
+    characters so they are enough to tell two devices apart and not enough to
+    be worth correlating. Assigning one needs the whole id, and this endpoint
+    is a super admin's alone.
+
+    Owners are returned rather than filtered out, so the person choosing sees
+    that a handset is taken and by whom instead of wondering why it is missing.
+    """
+    devices = (
+        await session.scalars(select(Device).order_by(Device.records_accepted.desc()))
+    ).all()
+    owners = {
+        install_id: user_id
+        for install_id, user_id in (
+            await session.execute(select(UserDevice.install_id, UserDevice.user_id))
+        ).all()
+    }
+
+    return {
+        "devices": [
+            {
+                "install_id": device.install_id,
+                "model": device.model,
+                "manufacturer": device.manufacturer,
+                "records_accepted": device.records_accepted,
+                "last_seen_at": device.last_seen_at.isoformat() if device.last_seen_at else None,
+                "owner_user_id": owners.get(device.install_id),
+            }
+            for device in devices
+        ]
+    }

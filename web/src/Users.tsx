@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   decideUser,
+  fetchAssignableDevices,
   fetchUsers,
   setUserCredit,
+  setUserDevices,
   setUserRole,
   type AccountUser,
+  type AssignableDevice,
   type UserRole,
   type UserStatus,
 } from "./api";
@@ -51,6 +54,15 @@ export function Users({ t, currentUserId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   // Set while a super admin is choosing which network an account belongs to.
+  // Which collector account is having its handsets chosen, and what is on
+  // offer. Loaded when the picker opens rather than with the page: a list of
+  // every enrolled device is not something the users table needs.
+  const [pendingDevices, setPendingDevices] = useState<{
+    id: number;
+    chosen: Set<string>;
+  } | null>(null);
+  const [assignable, setAssignable] = useState<AssignableDevice[]>([]);
+
   const [pendingOperator, setPendingOperator] = useState<{
     id: number;
     current: string | null;
@@ -194,7 +206,32 @@ export function Users({ t, currentUserId }: Props) {
                       granting admin never does that on its own, and removing
                       admin never erases somebody from work they did. */}
                   <td>
-                    {user.role === "operator" ? (
+                    {user.role === "collector" ? (
+                      /* Ticking a box here decides whose movements somebody
+                         may look at, so it is its own action rather than a
+                         side effect of the role change above it. */
+                      <button
+                        className="link"
+                        disabled={busyId === user.id}
+                        onClick={() => {
+                          void fetchAssignableDevices()
+                            .then((body) => {
+                              setAssignable(body.devices);
+                              setPendingDevices({
+                                id: user.id,
+                                chosen: new Set(
+                                  body.devices
+                                    .filter((d) => d.owner_user_id === user.id)
+                                    .map((d) => d.install_id),
+                                ),
+                              });
+                            })
+                            .catch(() => undefined);
+                        }}
+                      >
+                        {t.usersDevicesButton}
+                      </button>
+                    ) : user.role === "operator" ? (
                       <span className="device-meta">—</span>
                     ) : (
                       <label className="credit-toggle">
@@ -264,6 +301,76 @@ export function Users({ t, currentUserId }: Props) {
           </tbody>
         </table>
       </div>
+      {pendingDevices && (
+        <div className="operator-picker" role="dialog" aria-label={t.usersChooseDevices}>
+          <div className="operator-picker-card">
+            <h3>{t.usersChooseDevices}</h3>
+            <p>{t.usersChooseDevicesWhy}</p>
+
+            <div className="device-picker-list">
+              {assignable.map((device) => {
+                // Held by somebody else: shown rather than hidden, so the
+                // reason it cannot be picked is visible instead of puzzling.
+                const takenBy =
+                  device.owner_user_id != null && device.owner_user_id !== pendingDevices.id
+                    ? device.owner_user_id
+                    : null;
+                const chosen = pendingDevices.chosen.has(device.install_id);
+                return (
+                  <label
+                    key={device.install_id}
+                    className={takenBy ? "device-option taken" : "device-option"}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={chosen}
+                      disabled={takenBy !== null}
+                      onChange={(event) => {
+                        const next = new Set(pendingDevices.chosen);
+                        if (event.target.checked) next.add(device.install_id);
+                        else next.delete(device.install_id);
+                        setPendingDevices({ ...pendingDevices, chosen: next });
+                      }}
+                    />
+                    <span className="legend-text">
+                      <strong>{device.model ?? device.install_id}</strong>
+                      <em>
+                        {device.manufacturer ? `${device.manufacturer} · ` : ""}
+                        {device.records_accepted.toLocaleString()} · {formatAge(device.last_seen_at, "—")}
+                        {takenBy !== null && ` · ${t.usersDeviceTaken}`}
+                      </em>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="operator-picker-options">
+              <button
+                className="button-approve"
+                onClick={() => {
+                  const { id, chosen } = pendingDevices;
+                  setPendingDevices(null);
+                  apply(id, async () => {
+                    await setUserDevices(id, [...chosen]);
+                    // The assignment is not on the user row, so the row does
+                    // not change — refetch rather than invent one.
+                    const body = await fetchUsers();
+                    return body.users.find((u) => u.id === id)!;
+                  });
+                }}
+              >
+                {t.usersSave}
+              </button>
+            </div>
+
+            <button className="link" onClick={() => setPendingDevices(null)}>
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
       {pendingOperator && (
         <div className="operator-picker" role="dialog" aria-label={t.usersChooseNetwork}>
           <div className="operator-picker-card">

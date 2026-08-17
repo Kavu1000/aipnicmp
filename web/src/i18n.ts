@@ -171,6 +171,11 @@ export interface Strings {
   usersNoNetwork: string;
   usersChooseNetwork: string;
   usersChooseNetworkWhy: string;
+  usersChooseDevices: string;
+  usersChooseDevicesWhy: string;
+  usersDevicesButton: string;
+  usersDeviceTaken: string;
+  usersSave: string;
   cancel: string;
   imageryLimit: string;
   mastLabel: string;
@@ -453,6 +458,12 @@ const en: Strings = {
   mineReadings: "Readings",
   usersNoNetwork: "no network set",
   usersChooseNetwork: "Which network does this account belong to?",
+  usersChooseDevices: "Which handsets belong to this collector?",
+  usersChooseDevicesWhy:
+    "Their readings are where this person went and when, so only the phones you tick appear on their page. A handset belongs to one account: one already taken cannot be picked here.",
+  usersDevicesButton: "Handsets",
+  usersDeviceTaken: "already assigned",
+  usersSave: "Save",
   usersChooseNetworkWhy:
     "A network account sees that network's coverage and the places with no service at all. It cannot see other networks, the collector fleet, or the national summary.",
   cancel: "Cancel",
@@ -747,6 +758,12 @@ const lo: Strings = {
   mineReadings: "ການວັດແທກ",
   usersNoNetwork: "ຍັງບໍ່ໄດ້ກຳນົດເຄືອຂ່າຍ",
   usersChooseNetwork: "ບັນຊີນີ້ຂຶ້ນກັບເຄືອຂ່າຍໃດ?",
+  usersChooseDevices: "ເຄື່ອງໃດແດ່ເປັນຂອງຜູ້ເກັບຂໍ້ມູນນີ້?",
+  usersChooseDevicesWhy:
+    "ການວັດແທກຂອງເຄື່ອງເຫຼົ່ານີ້ຄືບ່ອນທີ່ຄົນນີ້ໄປ ແລະ ເມື່ອໃດ ດັ່ງນັ້ນສະເພາະເຄື່ອງທີ່ທ່ານເລືອກຈຶ່ງຈະປາກົດຢູ່ໜ້າຂອງລາວ. ເຄື່ອງໜຶ່ງເປັນຂອງບັນຊີດຽວ: ເຄື່ອງທີ່ຖືກມອບໝາຍແລ້ວຈະເລືອກບໍ່ໄດ້.",
+  usersDevicesButton: "ເຄື່ອງ",
+  usersDeviceTaken: "ມອບໝາຍແລ້ວ",
+  usersSave: "ບັນທຶກ",
   usersChooseNetworkWhy:
     "ບັນຊີເຄືອຂ່າຍຈະເຫັນການຄຸ້ມຄອງຂອງເຄືອຂ່າຍນັ້ນ ແລະ ບ່ອນທີ່ບໍ່ມີສັນຍານເລີຍ. ຈະບໍ່ເຫັນເຄືອຂ່າຍອື່ນ, ກອງເກັບຂໍ້ມູນ, ຫຼື ສະຫຼຸບລວມທົ່ວປະເທດ.",
   cancel: "ຍົກເລີກ",

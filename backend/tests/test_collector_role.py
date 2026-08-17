@@ -288,3 +288,34 @@ async def test_the_collectors_map_carries_the_same_shape_as_the_public_one(
     assert shared <= set(mine["features"][0]["properties"])
     assert shared <= set(public["features"][0]["properties"])
     assert mine["features"][0]["geometry"]["type"] == "Polygon"
+
+
+async def test_the_picker_shows_full_ids_and_who_holds_them(
+    client, session, public_key_b64
+):
+    """The fleet page shortens install ids to sixteen characters, which is
+    enough to tell two devices apart and not enough to assign one. And a taken
+    handset is listed with its owner rather than hidden, so the person choosing
+    sees why it cannot be picked instead of wondering where it went."""
+    from sqlalchemy import select
+
+    from app.api.v1.users import assignable_devices
+    from app.models.device import Device
+    from tests.test_ingest_api import enroll
+
+    await enroll(client, public_key_b64)
+    device = (await session.scalars(select(Device))).first()
+
+    boss = _account(ROLE_SUPER_ADMIN, sub="sub-pick", email="pick@example.la")
+    owner = _account(sub="sub-owner", email="owner@example.la")
+    session.add_all([boss, owner])
+    await session.commit()
+    session.add(UserDevice(user_id=owner.id, install_id=device.install_id))
+    await session.commit()
+
+    body = await assignable_devices(actor=boss, session=session)
+    row = next(d for d in body["devices"] if d["install_id"] == device.install_id)
+
+    assert row["install_id"] == device.install_id, "the whole id, not a prefix"
+    assert len(row["install_id"]) > 16
+    assert row["owner_user_id"] == owner.id

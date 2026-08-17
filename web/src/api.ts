@@ -640,6 +640,21 @@ export async function fetchMyTiles(signal?: AbortSignal) {
   return getJson<TileCollection>("/mine/tiles", signal);
 }
 
+/** Every enrolled handset, with whoever already owns it. Super admin only. */
+export interface AssignableDevice {
+  /** The whole id, not the shortened one the fleet page shows. */
+  install_id: string;
+  model: string | null;
+  manufacturer: string | null;
+  records_accepted: number;
+  last_seen_at: string | null;
+  owner_user_id: number | null;
+}
+
+export async function fetchAssignableDevices(signal?: AbortSignal) {
+  return getJson<{ devices: AssignableDevice[] }>("/users/devices/assignable", signal);
+}
+
 /** Super admin only: which handsets a collector account owns. */
 export async function setUserDevices(userId: number, installIds: string[]) {
   return postJson<{ user_id: number; install_ids: string[] }>(`/users/${userId}/devices`, {

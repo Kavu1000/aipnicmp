@@ -2624,3 +2624,38 @@ main {
   font-size: 0.8rem;
   padding: 0.3rem 0.5rem;
 }
+
+/* Choosing which handsets a collector account may see. A scrolling list
+   because a growing fleet will outrun the dialog long before it outruns the
+   page, and a dialog that scrolls off-screen cannot be saved. */
+.device-picker-list {
+  max-block-size: 40vh;
+  overflow-y: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.device-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.device-option:last-child {
+  border-bottom: none;
+}
+
+.device-option:hover {
+  background: var(--page);
+}
+
+/* Held by another account: shown, not hidden, so the reason it cannot be
+   picked is visible instead of puzzling. */
+.device-option.taken {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
