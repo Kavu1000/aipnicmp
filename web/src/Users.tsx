@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   decideUser,
   fetchUsers,
+  setUserCredit,
   setUserRole,
   type AccountUser,
   type UserRole,
@@ -118,6 +119,7 @@ export function Users({ t, currentUserId }: Props) {
               <th>{t.usersPerson}</th>
               <th>{t.usersRole}</th>
               <th>{t.usersStatus}</th>
+              <th>{t.usersCredit}</th>
               <th>{t.usersRequested}</th>
               <th>{t.usersActions}</th>
             </tr>
@@ -184,6 +186,48 @@ export function Users({ t, currentUserId }: Props) {
 
                   <td>
                     <span className={STATUS_CLASS[user.status]}>{t[statusKey(user.status)]}</span>
+                  </td>
+
+                  {/* Credit is not access, so it is its own control. Ticking
+                      this publishes a name and portrait on the sign-in page;
+                      granting admin never does that on its own, and removing
+                      admin never erases somebody from work they did. */}
+                  <td>
+                    {user.role === "operator" ? (
+                      <span className="device-meta">—</span>
+                    ) : (
+                      <label className="credit-toggle">
+                        <input
+                          type="checkbox"
+                          checked={user.show_in_credits ?? false}
+                          disabled={busyId === user.id}
+                          onChange={(event) =>
+                            apply(user.id, () =>
+                              setUserCredit(
+                                user.id,
+                                event.target.checked,
+                                user.credit_title ?? null,
+                              ),
+                            )
+                          }
+                        />
+                        <input
+                          className="select credit-title"
+                          type="text"
+                          defaultValue={user.credit_title ?? ""}
+                          placeholder={t.usersCreditTitle}
+                          disabled={busyId === user.id}
+                          onBlur={(event) => {
+                            const title = event.target.value.trim();
+                            if (title === (user.credit_title ?? "")) return;
+                            apply(user.id, () =>
+                              setUserCredit(user.id, user.show_in_credits ?? false, title),
+                            );
+                          }}
+                          aria-label={t.usersCreditTitle}
+                        />
+                      </label>
+                    )}
                   </td>
 
                   <td className="small">{formatAge(user.requested_at, "—")}</td>

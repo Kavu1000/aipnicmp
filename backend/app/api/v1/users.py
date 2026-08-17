@@ -33,12 +33,20 @@ from app.models.user import (
     User,
 )
 from app.services.auth import require_super_admin
+from app.services.credits import cache_avatar, heading_for
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_super_admin)])
 
 
 class Decision(BaseModel):
     status: Literal["approved", "rejected", "pending"]
+
+
+class CreditChange(BaseModel):
+    """Whether somebody appears on the public sign-in page, and as what."""
+
+    show: bool
+    title: str | None = None
 
 
 class RoleChange(BaseModel):
@@ -173,4 +181,48 @@ async def set_role(
     target.role_changed_by = actor.email
     await session.commit()
 
+    return {"user": target.public_dict()}
+
+
+@router.post("/{user_id}/credit")
+async def set_credit(
+    user_id: int,
+    body: CreditChange,
+    actor: User = Depends(require_super_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Put somebody on the sign-in page, or take them off it.
+
+    A deliberate act, separate from granting access. Publishing a colleague's
+    name and photograph to every visitor should never be a side effect of a
+    permission change, and losing access should never erase somebody from work
+    they did.
+
+    Their portrait is copied on the way in, so the public page never sends a
+    visitor's browser to Google. A failed copy is not a failed request — the
+    page falls back to initials, which is a fine portrait and never expires.
+    """
+    target = await _load(session, user_id)
+
+    if body.show and heading_for(target.role) is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="only administrators and super admins appear in the credits",
+        )
+
+    target.show_in_credits = body.show
+    if body.title is not None:
+        target.credit_title = body.title.strip() or None
+    if not body.show:
+        # The portrait goes with the credit. Keeping it would leave a
+        # photograph in the database for a page that no longer shows it.
+        target.avatar_image = None
+        target.avatar_content_type = None
+    await session.commit()
+
+    if body.show and target.avatar_image is None:
+        await cache_avatar(session, target)
+
+    # The whole account, like every other mutation here returns, so the table
+    # can replace the row it has rather than patch two fields of it.
     return {"user": target.public_dict()}

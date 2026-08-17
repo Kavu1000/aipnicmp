@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "./api";
 import { LoginBackdrop } from "./LoginBackdrop";
 import { ADVISORS, AFFILIATION, TEAM, personName, personRole } from "./team";
+import { avatarUrl, fetchCredits, type CreditedPerson } from "./api";
 import type { Language, Strings } from "./i18n";
 
 /**
@@ -65,32 +66,122 @@ function loadGoogleScript(): Promise<void> {
   });
 }
 
+/**
+ * The first letters of a name, for somebody with no portrait stored.
+ *
+ * A perfectly good portrait, and the only one that never expires. Written to
+ * cope with a single-word name and with Lao script, where slicing by character
+ * is what the code point boundaries allow.
+ */
+function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return [...words[0]].slice(0, 2).join("");
+  return [...words[0]][0] + [...words[words.length - 1]][0];
+}
+
+function Portrait({ person }: { person: CreditedPerson }) {
+  const [broken, setBroken] = useState(false);
+  if (person.has_avatar && !broken) {
+    return (
+      <img
+        className="credit-avatar"
+        src={avatarUrl(person)}
+        alt=""
+        width={36}
+        height={36}
+        loading="lazy"
+        /* Served from this platform, so this never reaches Google — but a
+           stored portrait can still fail, and initials are better than a
+           broken-image icon beside somebody's name. */
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <span className="credit-avatar credit-initials" aria-hidden="true">
+      {initialsOf(person.name)}
+    </span>
+  );
+}
+
+function CreditList({ people }: { people: CreditedPerson[] }) {
+  return (
+    <ul className="credit-list">
+      {people.map((person) => (
+        <li key={person.id}>
+          <Portrait person={person} />
+          <span className="credit-text">
+            <strong>{person.name}</strong>
+            {person.title && <em>{person.title}</em>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The credits, from the accounts a super admin has chosen to publish.
+ *
+ * Falls back to the static list in team.ts when nobody has been published yet,
+ * so a fresh deployment shows the placeholders it always did rather than an
+ * empty panel that looks broken. The static file stays the answer for anyone
+ * who should be credited without holding an account at all.
+ */
 function Credits({ t, language }: { t: Strings; language: Language }) {
+  const [team, setTeam] = useState<CreditedPerson[] | null>(null);
+  const [advisors, setAdvisors] = useState<CreditedPerson[] | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCredits(controller.signal)
+      .then((body) => {
+        setTeam(body.team);
+        setAdvisors(body.advisors);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  const published = (team?.length ?? 0) + (advisors?.length ?? 0) > 0;
+
   return (
     <aside className="login-credits">
       <h2>{t.loginTeamTitle}</h2>
-      <ul>
-        {TEAM.map((person, index) => (
-          <li key={`${person.name}-${index}`}>
-            <strong>{personName(person, language)}</strong>
-            {personRole(person, language) && <em>{personRole(person, language)}</em>}
-          </li>
-        ))}
-      </ul>
-
-      {ADVISORS.length > 0 && (
-        <>
-          <h2>{t.loginAdvisorsTitle}</h2>
-          <ul>
-            {ADVISORS.map((person, index) => (
-              <li key={`${person.name}-${index}`}>
-                <strong>{personName(person, language)}</strong>
-                {personRole(person, language) && <em>{personRole(person, language)}</em>}
-              </li>
-            ))}
-          </ul>
-        </>
+      {published ? (
+        <CreditList people={team ?? []} />
+      ) : (
+        <ul>
+          {TEAM.map((person, index) => (
+            <li key={`${person.name}-${index}`}>
+              <strong>{personName(person, language)}</strong>
+              {personRole(person, language) && <em>{personRole(person, language)}</em>}
+            </li>
+          ))}
+        </ul>
       )}
+
+      {published
+        ? (advisors?.length ?? 0) > 0 && (
+            <>
+              <h2>{t.loginAdvisorsTitle}</h2>
+              <CreditList people={advisors ?? []} />
+            </>
+          )
+        : ADVISORS.length > 0 && (
+            <>
+              <h2>{t.loginAdvisorsTitle}</h2>
+              <ul>
+                {ADVISORS.map((person, index) => (
+                  <li key={`${person.name}-${index}`}>
+                    <strong>{personName(person, language)}</strong>
+                    {personRole(person, language) && <em>{personRole(person, language)}</em>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
       {AFFILIATION && <p className="login-affiliation">{AFFILIATION}</p>}
     </aside>

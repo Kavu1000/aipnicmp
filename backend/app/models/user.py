@@ -38,7 +38,7 @@ from datetime import datetime
 
 
 
-from sqlalchemy import Index, Integer, String, func
+from sqlalchemy import Boolean, Index, Integer, LargeBinary, String, func
 
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -172,6 +172,27 @@ class User(Base):
 
     login_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
+    #: Whether this person appears in the credits on the public sign-in page.
+    #:
+    #: Deliberately not derived from ``role``. Granting somebody admin would
+    #: otherwise publish their name and photograph to every visitor, and taking
+    #: their access away would erase them from work they did. The role decides
+    #: only which heading they appear under once a super admin has put them
+    #: there.
+    show_in_credits: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+
+    #: What they did — "Android collector", not "admin".
+    credit_title: Mapped[str | None] = mapped_column(String(120))
+
+    #: Their portrait, copied here rather than linked.
+    #:
+    #: Google's photo URLs expire, and linking one would make every visitor's
+    #: browser fetch it from Google before signing in to anything.
+    avatar_image: Mapped[bytes | None] = mapped_column(LargeBinary)
+    avatar_content_type: Mapped[str | None] = mapped_column(String(40))
+
 
 
     __table_args__ = (Index("ix_users_status_role", "status", "role"),)
@@ -242,6 +263,11 @@ class User(Base):
 
             "role": self.role,
             "scoped_operator": self.scoped_operator,
+            # Whether this person appears on the public sign-in page. Sent to
+            # the super admin who decides it; never to the page itself, which
+            # gets names and titles and nothing else.
+            "show_in_credits": self.show_in_credits,
+            "credit_title": self.credit_title,
             "role_changed_at": self.role_changed_at.isoformat() if self.role_changed_at else None,
             "role_changed_by": self.role_changed_by,
 

@@ -25,6 +25,13 @@ pyjwt[crypto]==2.10.1
 celery==5.4.0
 redis==5.2.1
 
+# Fetches a credited user's profile photo once, so the public sign-in page
+# serves it from this platform instead of asking every visitor's browser to
+# request it from Google. It is already present transitively; pinned here
+# because app code imports it directly and a transitive dependency is one
+# upgrade away from vanishing.
+httpx==0.28.1
+
 # Utilities
 python-multipart==0.0.20
 orjson==3.10.13

@@ -2547,3 +2547,74 @@ main {
   border-radius: 3px;
   background: transparent;
 }
+
+/* ---------- credits on the sign-in page ---------- */
+
+.credit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credit-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+
+.credit-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.credit-text strong {
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.credit-text em {
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.credit-avatar {
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  /* A hairline rather than a shadow: these sit on a pale panel and a ring
+     keeps a light portrait from dissolving into it. */
+  border: 1px solid var(--line);
+}
+
+/* The fallback, and the common case until portraits are fetched. Initials on
+   the sidebar navy rather than a grey blank, so a person without a photograph
+   still reads as a person. */
+.credit-initials {
+  display: grid;
+  place-items: center;
+  background: var(--sidebar);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-color: transparent;
+}
+
+/* The credit control in the users table: a tick and a title, together,
+   because publishing somebody without saying what they did is half a credit. */
+.credit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.credit-title {
+  inline-size: 11rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+}

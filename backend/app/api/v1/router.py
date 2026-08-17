@@ -19,6 +19,7 @@ from app.api.v1 import (
     admin,
     areas,
     cells,
+    credits,
     auth,
     dashboard,
     devices,
@@ -47,6 +48,9 @@ api_router.include_router(speedtest.router)
 
 # Open because signing in is how you stop being anonymous.
 api_router.include_router(auth.router)
+# Open: the credits appear on the sign-in page itself, and carry names and
+# titles only — never an address, and never who holds which access.
+api_router.include_router(credits.router)
 
 # Requires an approved account.
 signed_in = [Depends(require_user)]

@@ -251,6 +251,9 @@ export interface AccountUser {
   decided_by: string | null;
   last_login_at: string | null;
   login_count: number;
+  /** Whether they appear in the credits on the public sign-in page. */
+  show_in_credits?: boolean;
+  credit_title?: string | null;
 }
 
 export interface SessionState {
@@ -544,6 +547,42 @@ export async function fetchWeakAreas(
       properties: WeakArea;
     }[];
   }>(`/weak-areas?${query.toString()}`, signal);
+}
+
+/** One person on the sign-in page. Never carries an address or a role name. */
+export interface CreditedPerson {
+  id: number;
+  name: string;
+  title: string | null;
+  has_avatar: boolean;
+}
+
+export interface Credits {
+  team: CreditedPerson[];
+  advisors: CreditedPerson[];
+}
+
+/** Open, because the sign-in page is where these appear. */
+export async function fetchCredits(signal?: AbortSignal) {
+  return getJson<Credits>("/credits", signal);
+}
+
+/** Put somebody on the public sign-in page, or take them off it. */
+export async function setUserCredit(
+  userId: number,
+  show: boolean,
+  title?: string | null,
+): Promise<AccountUser> {
+  const body = await postJson<{ user: AccountUser }>(`/users/${userId}/credit`, {
+    show,
+    title: title ?? null,
+  });
+  return body.user;
+}
+
+/** Served from this platform, so no visitor's browser is sent to Google. */
+export function avatarUrl(person: CreditedPerson): string {
+  return `/api/v1/credits/${person.id}/avatar`;
 }
 
 export interface TowerCount {

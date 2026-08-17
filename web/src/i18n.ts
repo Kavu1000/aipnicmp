@@ -145,6 +145,8 @@ export interface Strings {
   usersPerson: string;
   usersRole: string;
   usersStatus: string;
+  usersCredit: string;
+  usersCreditTitle: string;
   usersRequested: string;
   usersActions: string;
   usersApprove: string;
@@ -411,6 +413,8 @@ const en: Strings = {
   usersPerson: "Person",
   usersRole: "Role",
   usersStatus: "Status",
+  usersCredit: "Credited",
+  usersCreditTitle: "Role shown publicly",
   usersRequested: "Requested",
   usersActions: "",
   usersApprove: "Approve",
@@ -689,6 +693,8 @@ const lo: Strings = {
   usersPerson: "ຜູ້ໃຊ້",
   usersRole: "ບົດບາດ",
   usersStatus: "ສະຖານະ",
+  usersCredit: "ສະແດງເຄຣດິດ",
+  usersCreditTitle: "ໜ້າທີ່ທີ່ສະແດງສາທາລະນະ",
   usersRequested: "ຮ້ອງຂໍເມື່ອ",
   usersActions: "",
   usersApprove: "ອະນຸມັດ",
