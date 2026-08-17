@@ -172,3 +172,53 @@ async def test_removing_the_credit_removes_the_portrait(session):
     assert person.show_in_credits is False
     assert person.avatar_image is None
     assert person.avatar_content_type is None
+
+
+def test_a_role_name_is_not_a_credit():
+    """"admin" is not something somebody did, it is what they may do.
+
+    The field once asked for a "role", so the first people credited went out
+    labelled with theirs on the public sign-in page — which also told every
+    visitor who held which access, on a page built never to say that.
+    """
+    from app.services.credits import is_role_name
+
+    for role in ("admin", "super_admin", "Admin", "SUPER ADMIN", " operator ", "collector"):
+        assert is_role_name(role) is True, role
+
+    for real in ("Project lead", "Backend and data", "Android collector", "Faculty advisor"):
+        assert is_role_name(real) is False, real
+
+    assert is_role_name(None) is False
+    assert is_role_name("") is False
+
+
+async def test_a_saved_role_name_is_suppressed_rather_than_shown(session):
+    """Fixes what is already stored without anybody editing data by hand."""
+    person = _person(sub="s-role", email="role@example.la", name="Titled Person")
+    person.credit_title = "admin"
+    session.add(person)
+    await session.commit()
+
+    people = await credited_people(session)
+    assert people["team"][0]["name"] == "Titled Person"
+    assert people["team"][0]["title"] is None
+
+
+async def test_a_role_name_cannot_be_saved_as_a_credit(session):
+    """And it is refused on the way in, with a sentence saying what to write."""
+    import pytest
+    from fastapi import HTTPException
+
+    from app.api.v1.users import CreditChange, set_credit
+
+    person = _person(sub="s-refuse", email="refuse@example.la", name="Somebody")
+    session.add(person)
+    await session.commit()
+
+    with pytest.raises(HTTPException) as refused:
+        await set_credit(
+            person.id, CreditChange(show=True, title="admin"), actor=person, session=session
+        )
+    assert refused.value.status_code == 400
+    assert "not what they may do" in refused.value.detail

@@ -36,7 +36,7 @@ from app.models.user import (
 from app.services.auth import require_super_admin
 from app.models.device import Device
 from app.models.user_device import UserDevice
-from app.services.credits import cache_avatar, heading_for
+from app.services.credits import cache_avatar, heading_for, is_role_name
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_super_admin)])
 
@@ -224,6 +224,15 @@ async def set_credit(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="only administrators and super admins appear in the credits",
+        )
+
+    if is_role_name(body.title):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "the credit says what somebody did, not what they may do — "
+                "try 'Project lead' or 'Android collector' rather than a role"
+            ),
         )
 
     target.show_in_credits = body.show

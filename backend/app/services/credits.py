@@ -24,7 +24,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_APPROVED, User
+from app.models.user import ROLE_ADMIN, ROLE_SUPER_ADMIN, ROLES, STATUS_APPROVED, User
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +71,22 @@ async def cache_avatar(session: AsyncSession, user: User) -> bool:
     return True
 
 
+def is_role_name(title: str | None) -> bool:
+    """Whether a credit title is really just an access level.
+
+    "admin" is not something somebody did, it is what they may do — and this
+    page is built never to say who holds which access, because a public list of
+    a system's administrators is a phishing target with a directory attached.
+    The field that collects a contribution once asked for a "role", so the
+    first people credited went out labelled with theirs; suppressing it here
+    fixes the ones already saved without anybody editing data by hand.
+    """
+    if not title:
+        return False
+    normalised = title.strip().lower().replace(" ", "_")
+    return normalised in {role.lower() for role in ROLES}
+
+
 def heading_for(role: str) -> str | None:
     """Which part of the credits a role belongs under.
 
@@ -113,7 +129,8 @@ async def credited_people(session: AsyncSession) -> dict[str, list[dict[str, Any
             {
                 "id": user.id,
                 "name": user.name or "",
-                "title": user.credit_title,
+                # Suppressed rather than shown when it is only a role name.
+                "title": None if is_role_name(user.credit_title) else user.credit_title,
                 "has_avatar": user.avatar_image is not None,
             }
         )
