@@ -160,6 +160,14 @@ export interface Strings {
   usersLastSuperAdmin: string;
   usersRoleAdmin: string;
   usersRoleOperator: string;
+  usersRoleCollector: string;
+  navMine: string;
+  navMineHint: string;
+  mineTitle: string;
+  mineSubtitle: string;
+  mineNoDevices: string;
+  mineHexagons: string;
+  mineReadings: string;
   usersNoNetwork: string;
   usersChooseNetwork: string;
   usersChooseNetworkWhy: string;
@@ -433,6 +441,16 @@ const en: Strings = {
   usersLastSuperAdmin: "the last super admin",
   usersRoleAdmin: "Admin",
   usersRoleOperator: "Network operator",
+  usersRoleCollector: "Collector",
+  navMine: "My collection",
+  navMineHint: "The ground you covered",
+  mineTitle: "My collection",
+  mineSubtitle:
+    "The readings from your own handsets, and the ground they covered. Nobody else's readings appear here, and yours do not appear on anybody else's page.",
+  mineNoDevices:
+    "No handset has been assigned to this account yet. A super admin links your phones to it before anything appears here.",
+  mineHexagons: "Hexagons covered",
+  mineReadings: "Readings",
   usersNoNetwork: "no network set",
   usersChooseNetwork: "Which network does this account belong to?",
   usersChooseNetworkWhy:
@@ -717,6 +735,16 @@ const lo: Strings = {
   usersLastSuperAdmin: "ຜູ້ດູແລສູງສຸດຄົນສຸດທ້າຍ",
   usersRoleAdmin: "ຜູ້ດູແລ",
   usersRoleOperator: "ຜູ້ໃຫ້ບໍລິການເຄືອຂ່າຍ",
+  usersRoleCollector: "ຜູ້ເກັບຂໍ້ມູນ",
+  navMine: "ການເກັບຂອງຂ້ອຍ",
+  navMineHint: "ພື້ນທີ່ທີ່ທ່ານເກັບໄດ້",
+  mineTitle: "ການເກັບຂອງຂ້ອຍ",
+  mineSubtitle:
+    "ການວັດແທກຈາກເຄື່ອງຂອງທ່ານເອງ ແລະ ພື້ນທີ່ທີ່ເກັບໄດ້. ຂໍ້ມູນຂອງຄົນອື່ນຈະບໍ່ປາກົດຢູ່ນີ້ ແລະ ຂໍ້ມູນຂອງທ່ານກໍບໍ່ປາກົດຢູ່ໜ້າຂອງຄົນອື່ນ.",
+  mineNoDevices:
+    "ຍັງບໍ່ມີເຄື່ອງໃດຖືກມອບໝາຍໃຫ້ບັນຊີນີ້. ຜູ້ດູແລສູງສຸດຈະເຊື່ອມໂຍງໂທລະສັບຂອງທ່ານກ່ອນ ຈຶ່ງຈະມີຂໍ້ມູນປາກົດ.",
+  mineHexagons: "ຮວງເຜິ້ງທີ່ເກັບໄດ້",
+  mineReadings: "ການວັດແທກ",
   usersNoNetwork: "ຍັງບໍ່ໄດ້ກຳນົດເຄືອຂ່າຍ",
   usersChooseNetwork: "ບັນຊີນີ້ຂຶ້ນກັບເຄືອຂ່າຍໃດ?",
   usersChooseNetworkWhy:

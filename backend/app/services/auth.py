@@ -31,6 +31,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_session
+from app.models.device import Device
+from app.models.user_device import UserDevice
 from app.models.user import (
     ROLE_ADMIN,
     ROLE_SUPER_ADMIN,
@@ -289,3 +291,53 @@ async def deny_operator_accounts(user: User = Depends(require_user)) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="not available to network accounts",
         )
+
+
+async def deny_collector_accounts(user: User = Depends(require_user)) -> None:
+    """Close an endpoint to collector accounts.
+
+    Applied to every signed-in router rather than to chosen endpoints, so an
+    endpoint added later is closed to collectors until somebody decides
+    otherwise. The operator role learned that lesson the expensive way: one
+    endpoint went out unscoped and a network account could see its
+    competitors' masts, because scoping was opt-in and the new endpoint simply
+    did not opt in.
+
+    A collector sees its own readings through /mine and nothing else. Not the
+    national map, not the fleet, not another network's coverage — the account
+    exists so somebody can check their own work, and everything else on this
+    platform is somebody else's.
+    """
+    if user.is_collector:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="collector accounts see only their own readings",
+        )
+
+
+async def own_devices(
+    user: User = Depends(require_user),
+    session: AsyncSession = Depends(get_session),
+) -> frozenset[str]:
+    """The handsets whose readings this account may see.
+
+    Empty for an account nobody has assigned a phone to, which means an empty
+    page rather than the whole fleet — the same direction NO_NETWORK fails in,
+    and for a stronger reason: these readings are a record of where a
+    particular person has been.
+
+    Administrators get every device, because they already see every reading
+    through the national views; a separate rule here would be a second place to
+    get wrong rather than a second layer of protection.
+    """
+    if user.role in (ROLE_SUPER_ADMIN, ROLE_ADMIN):
+        return frozenset(
+            (await session.scalars(select(Device.install_id))).all()
+        )
+
+    owned = (
+        await session.scalars(
+            select(UserDevice.install_id).where(UserDevice.user_id == user.id)
+        )
+    ).all()
+    return frozenset(owned)

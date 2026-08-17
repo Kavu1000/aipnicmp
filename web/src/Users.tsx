@@ -172,6 +172,7 @@ export function Users({ t, currentUserId }: Props) {
                       <option value="admin">{t.usersRoleAdmin}</option>
                       <option value="super_admin">{t.usersRoleSuperAdmin}</option>
                       <option value="operator">{t.usersRoleOperator}</option>
+                      <option value="collector">{t.usersRoleCollector}</option>
                     </select>
 
                     {/* Which network, shown wherever the role is. An operator

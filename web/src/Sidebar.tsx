@@ -8,6 +8,7 @@ export type View =
   | "priority"
   | "networks"
   | "collectors"
+  | "mine"
   | "method"
   | "users";
 
@@ -38,6 +39,54 @@ export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOu
   // doors that answer 403, which reads as a broken product rather than a
   // deliberate boundary.
   const scoped = user?.role === "operator";
+
+  // A collector sees one page: the ground its own handsets covered. Everything
+  // else on this platform belongs to somebody else, and the server refuses it
+  // — leaving the doors in the menu would advertise them.
+  const isCollector = user?.role === "collector";
+  if (isCollector) {
+    return (
+      <>
+        {open && <div className="scrim" onClick={onClose} />}
+        <aside className={open ? "sidebar open" : "sidebar"}>
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              <BrandMark />
+            </span>
+            <span className="brand-text">
+              <strong>AI-PNICMP</strong>
+              <em>{strings.brandSubtitle}</em>
+            </span>
+          </div>
+          <nav>
+            <button className="nav-item on" onClick={() => { onSelect("mine"); onClose(); }}>
+              <span className="nav-icon" aria-hidden="true">◉</span>
+              <span className="nav-label">
+                {strings.navMine}
+                <em>{strings.navMineHint}</em>
+              </span>
+            </button>
+          </nav>
+          <div className="sidebar-foot">
+            {user && (
+              <div className="sidebar-account">
+                {user.picture_url && (
+                  <img src={user.picture_url} alt="" width={28} height={28} />
+                )}
+                <span className="sidebar-account-text">
+                  <strong>{user.name ?? user.email}</strong>
+                  <em>{user.email}</em>
+                </span>
+                <button className="sidebar-signout" onClick={onSignOut}>
+                  {strings.signOut}
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+      </>
+    );
+  }
 
   const items: Array<{ id: View; label: string; icon: string; hint: string }> = [
     { id: "map", label: strings.navMap, icon: "◉", hint: strings.navMapHint },

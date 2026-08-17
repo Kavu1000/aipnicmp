@@ -247,7 +247,7 @@ export interface Collector {
   rejection_rate_pct: number;
 }
 
-export type UserRole = "super_admin" | "admin" | "operator";
+export type UserRole = "super_admin" | "admin" | "operator" | "collector";
 export type UserStatus = "pending" | "approved" | "rejected";
 
 export interface AccountUser {
@@ -598,6 +598,53 @@ export async function setUserCredit(
 /** Served from this platform, so no visitor's browser is sent to Google. */
 export function avatarUrl(person: CreditedPerson): string {
   return `/api/v1/credits/${person.id}/avatar`;
+}
+
+/** A handset assigned to the signed-in collector account. */
+export interface MyDevice {
+  id: string;
+  model: string | null;
+  manufacturer: string | null;
+  android_version: string | null;
+  app_version: string | null;
+  last_seen_at: string | null;
+  records_accepted: number;
+  records_rejected: number;
+  capability?: {
+    readings: number;
+    rsrp_pct: number;
+    sinr_pct: number;
+    cells_seen: number | null;
+  } | null;
+}
+
+export interface MySummary {
+  measurements: number;
+  hexagons: number;
+  by_state: Partial<Record<RadioState, number>>;
+  /** Networks this account's own handsets were on — not any operator's coverage. */
+  networks: string[];
+  latest: string | null;
+}
+
+export async function fetchMyDevices(signal?: AbortSignal) {
+  return getJson<{ devices: MyDevice[] }>("/mine/devices", signal);
+}
+
+export async function fetchMySummary(signal?: AbortSignal) {
+  return getJson<MySummary>("/mine/summary", signal);
+}
+
+/** The ground this account personally covered, never the shared hexagons. */
+export async function fetchMyTiles(signal?: AbortSignal) {
+  return getJson<TileCollection>("/mine/tiles", signal);
+}
+
+/** Super admin only: which handsets a collector account owns. */
+export async function setUserDevices(userId: number, installIds: string[]) {
+  return postJson<{ user_id: number; install_ids: string[] }>(`/users/${userId}/devices`, {
+    install_ids: installIds,
+  });
 }
 
 export interface TowerCount {

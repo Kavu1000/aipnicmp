@@ -68,13 +68,28 @@ ROLE_OPERATOR = "operator"
 
 
 
-ROLES = (ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_OPERATOR)
+# Somebody carrying a phone. Sees the ground they personally covered and
+# nothing else: not another collector's readings, not the fleet, not any
+# network's coverage but the ones their own handsets happened to be on. The
+# isolation runs the same way as an operator's — taken from the account on
+# every request, never from anything the client sends — because the thing it
+# protects is a record of where a particular person has been.
+ROLE_COLLECTOR = "collector"
+
+ROLES = (ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_OPERATOR, ROLE_COLLECTOR)
 
 # The scope given to an operator account with no network set. It matches no
 # real network, so a misconfigured account sees nothing rather than everything
 # — the only safe direction when the alternative is showing one company its
 # competitors' coverage.
 NO_NETWORK = "__no_network__"
+
+#: The device scope of a collector account that owns no handsets.
+#:
+#: Matches no install id, so an account nobody has assigned a phone to sees an
+#: empty page rather than the whole fleet. Same direction as NO_NETWORK, and
+#: for the same reason: the failure has to be "shows nothing".
+NO_DEVICES: frozenset[str] = frozenset()
 
 
 
@@ -217,6 +232,14 @@ class User(Base):
 
     @property
 
+    def is_collector(self) -> bool:
+
+        return self.role == ROLE_COLLECTOR
+
+
+
+    @property
+
     def operator_scope(self) -> str | None:
 
         """The network this account is confined to, or None for unrestricted.
@@ -266,6 +289,7 @@ class User(Base):
             # Whether this person appears on the public sign-in page. Sent to
             # the super admin who decides it; never to the page itself, which
             # gets names and titles and nothing else.
+            "is_collector": self.is_collector,
             "show_in_credits": self.show_in_credits,
             "credit_title": self.credit_title,
             "role_changed_at": self.role_changed_at.isoformat() if self.role_changed_at else None,

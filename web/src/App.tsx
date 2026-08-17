@@ -38,6 +38,7 @@ import { Login } from "./Login";
 import { Users } from "./Users";
 import { Legend } from "./Legend";
 import { Method } from "./Method";
+import { MyCollection } from "./MyCollection";
 import { TileInspector } from "./TileInspector";
 import { Networks, Overview, Priority } from "./Dashboard";
 import { Collectors } from "./Collectors";
@@ -112,6 +113,14 @@ export function App() {
   const [live, setLive] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
   const [sessionReachable, setSessionReachable] = useState(true);
+
+  // A collector account cannot load the national map — every endpoint behind
+  // it refuses them — so it opens on the one page it can read rather than on a
+  // map that would fill with errors.
+  const isCollector = session?.user?.role === "collector";
+  useEffect(() => {
+    if (isCollector) setView("mine");
+  }, [isCollector]);
 
   const t = TRANSLATIONS[language];
 
@@ -448,6 +457,7 @@ export function App() {
     networks: t.networksTitle,
     collectors: t.collectorsTitle,
     method: t.methodTitle,
+    mine: t.mineTitle,
     users: t.usersTitle,
   };
 
@@ -812,6 +822,7 @@ export function App() {
                 )}
                 {view === "collectors" && !scopedTo && <Collectors t={t} />}
                 {view === "method" && <Method t={t} />}
+                {view === "mine" && <MyCollection t={t} />}
                 {view === "users" && (
                   <Users t={t} currentUserId={session.user?.id ?? null} />
                 )}

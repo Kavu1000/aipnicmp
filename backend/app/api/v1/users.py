@@ -19,12 +19,13 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.core.operators import NETWORK_NAMES
 from app.models.user import (
+    ROLE_COLLECTOR,
     ROLE_OPERATOR,
     ROLE_SUPER_ADMIN,
     STATUS_APPROVED,
@@ -33,6 +34,8 @@ from app.models.user import (
     User,
 )
 from app.services.auth import require_super_admin
+from app.models.device import Device
+from app.models.user_device import UserDevice
 from app.services.credits import cache_avatar, heading_for
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_super_admin)])
@@ -40,6 +43,12 @@ router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(requir
 
 class Decision(BaseModel):
     status: Literal["approved", "rejected", "pending"]
+
+
+class DeviceAssignment(BaseModel):
+    """The handsets a collector account may see the readings of."""
+
+    install_ids: list[str]
 
 
 class CreditChange(BaseModel):
@@ -59,7 +68,7 @@ class RoleChange(BaseModel):
     never actually be given to anybody.
     """
 
-    role: Literal["super_admin", "admin", "operator"]
+    role: Literal["super_admin", "admin", "operator", "collector"]
     operator: str | None = None
 
 
@@ -233,3 +242,62 @@ async def set_credit(
     # The whole account, like every other mutation here returns, so the table
     # can replace the row it has rather than patch two fields of it.
     return {"user": target.public_dict()}
+
+
+@router.post("/{user_id}/devices")
+async def set_devices(
+    user_id: int,
+    body: DeviceAssignment,
+    actor: User = Depends(require_super_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Say which handsets a collector account owns.
+
+    This opens a window onto one person's movements — the readings of a
+    handset are where it went and when — so it is a super admin's decision,
+    recorded with an author, and replaced wholesale rather than added to, so
+    the assignment on screen is the assignment in force.
+
+    A handset belongs to one account. Assigning one that another account
+    already holds is refused rather than moved: two people each told the
+    readings are theirs is two people shown a third person's journey.
+    """
+    target = await _load(session, user_id)
+    if target.role != ROLE_COLLECTOR:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="only collector accounts own devices",
+        )
+
+    wanted = {install_id.strip() for install_id in body.install_ids if install_id.strip()}
+
+    known = set(
+        (await session.scalars(select(Device.install_id).where(Device.install_id.in_(wanted)))).all()
+    )
+    if wanted - known:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"no such device: {', '.join(sorted(wanted - known))}",
+        )
+
+    taken = (
+        await session.execute(
+            select(UserDevice.install_id, UserDevice.user_id).where(
+                UserDevice.install_id.in_(wanted), UserDevice.user_id != user_id
+            )
+        )
+    ).all()
+    if taken:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"already assigned to another account: {', '.join(x[0] for x in taken)}",
+        )
+
+    await session.execute(delete(UserDevice).where(UserDevice.user_id == user_id))
+    for install_id in sorted(wanted):
+        session.add(
+            UserDevice(user_id=user_id, install_id=install_id, assigned_by=actor.email)
+        )
+    await session.commit()
+
+    return {"user_id": user_id, "install_ids": sorted(wanted)}
