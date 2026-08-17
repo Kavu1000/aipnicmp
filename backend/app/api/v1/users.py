@@ -50,9 +50,16 @@ class CreditChange(BaseModel):
 
 
 class RoleChange(BaseModel):
-    """A role, and the network that goes with it when the role needs one."""
+    """A role, and the network that goes with it when the role needs one.
 
-    role: Literal["super_admin", "admin"]
+    Every assignable role belongs in this list. It once held only the two
+    administrator roles while the body of `set_role` had a whole branch for
+    operators — so the branch was unreachable, the network dialog could not
+    succeed, and the role this platform's whole scoping design rests on could
+    never actually be given to anybody.
+    """
+
+    role: Literal["super_admin", "admin", "operator"]
     operator: str | None = None
 
 

@@ -104,3 +104,86 @@ async def test_the_mast_layer_is_filtered_by_network(
         await client.get("/api/v1/cells", params={"operator": "Lao Telecom"})
     ).json()["features"]
     assert [f["properties"]["operator"] for f in only_ltc] == ["Lao Telecom"]
+
+
+async def test_an_account_can_actually_be_promoted_to_a_network(session):
+    """The role can be given, not merely honoured once somebody has it.
+
+    Everything else here tests what an operator account sees. Nothing tested
+    that one could be created, and it could not: the request model listed only
+    the administrator roles, so the network dialog failed at validation and the
+    branch below it had never run.
+    """
+    from app.api.v1.users import RoleChange, set_role
+    from app.models.user import ROLE_SUPER_ADMIN, STATUS_APPROVED
+
+    actor = User(
+        google_sub="sub-actor", email="boss@example.la", name="Boss",
+        role=ROLE_SUPER_ADMIN, status=STATUS_APPROVED,
+    )
+    target = User(
+        google_sub="sub-target", email="net@example.la", name="Network Person",
+        role=ROLE_ADMIN, status=STATUS_APPROVED,
+    )
+    session.add_all([actor, target])
+    await session.commit()
+
+    body = await set_role(
+        target.id, RoleChange(role="operator", operator="ETL"), actor=actor, session=session
+    )
+    assert body["user"]["role"] == ROLE_OPERATOR
+    assert body["user"]["scoped_operator"] == "ETL"
+
+    await session.refresh(target)
+    assert target.operator_scope == "ETL"
+
+
+async def test_promotion_without_a_real_network_is_refused(session):
+    """A scope of nothing resolves to a sentinel that matches nothing, so the
+    account would see an empty map and nobody would know why."""
+    import pytest
+    from fastapi import HTTPException
+
+    from app.api.v1.users import RoleChange, set_role
+    from app.models.user import ROLE_SUPER_ADMIN, STATUS_APPROVED
+
+    actor = User(
+        google_sub="sub-a2", email="boss2@example.la", role=ROLE_SUPER_ADMIN,
+        status=STATUS_APPROVED,
+    )
+    target = User(
+        google_sub="sub-t2", email="net2@example.la", role=ROLE_ADMIN, status=STATUS_APPROVED,
+    )
+    session.add_all([actor, target])
+    await session.commit()
+
+    with pytest.raises(HTTPException) as refused:
+        await set_role(
+            target.id, RoleChange(role="operator", operator="Not A Network"),
+            actor=actor, session=session,
+        )
+    assert refused.value.status_code == 400
+
+
+async def test_demotion_clears_the_network(session):
+    """A later promotion must not silently inherit a scope nobody chose."""
+    from app.api.v1.users import RoleChange, set_role
+    from app.models.user import ROLE_SUPER_ADMIN, STATUS_APPROVED
+
+    actor = User(
+        google_sub="sub-a3", email="boss3@example.la", role=ROLE_SUPER_ADMIN,
+        status=STATUS_APPROVED,
+    )
+    target = User(
+        google_sub="sub-t3", email="net3@example.la", role=ROLE_OPERATOR,
+        scoped_operator="Unitel", status=STATUS_APPROVED,
+    )
+    session.add_all([actor, target])
+    await session.commit()
+
+    await set_role(target.id, RoleChange(role="admin"), actor=actor, session=session)
+    await session.refresh(target)
+
+    assert target.role == ROLE_ADMIN
+    assert target.scoped_operator is None
+    assert target.operator_scope is None
