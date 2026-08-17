@@ -2326,12 +2326,6 @@ main {
   font-size: 0.9rem;
 }
 
-.scope-banner span {
-  color: var(--muted);
-  font-size: 0.8rem;
-  max-inline-size: 88ch;
-}
-
 /* ---------- choosing a network for an account ---------- */
 
 .operator-picker {

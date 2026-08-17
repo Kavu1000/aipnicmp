@@ -694,7 +694,6 @@ export function App() {
             {scopedTo && (
               <div className="scope-banner">
                 <strong>{t.scopeBanner.replace("%NETWORK%", scopedTo)}</strong>
-                <span>{t.scopeBannerDetail.replace("%NETWORK%", scopedTo)}</span>
               </div>
             )}
 

@@ -166,7 +166,6 @@ export interface Strings {
   mastStrongest: string;
   mastEstimate: string;
   scopeBanner: string;
-  scopeBannerDetail: string;
   usersRoleSuperAdmin: string;
   usersStatusPending: string;
   usersStatusApproved: string;
@@ -436,8 +435,6 @@ const en: Strings = {
   mastEstimate:
     "The centre of where collectors heard this cell — not the position of a mast. Readings taken along a road put this point on the road, so the mast itself may be well to one side. Two separate drives have placed the same cell about 2 km apart.",
   scopeBanner: "Showing %NETWORK% only",
-  scopeBannerDetail:
-    "Hexagons where %NETWORK% was measured, plus places with no network at all. Other operators are not shown, and an empty area means nobody has measured it rather than that there is no coverage.",
   usersRoleSuperAdmin: "Super admin",
   usersStatusPending: "Waiting",
   usersStatusApproved: "Approved",
@@ -716,8 +713,6 @@ const lo: Strings = {
   mastEstimate:
     "ຈຸດກາງຂອງບ່ອນທີ່ຜູ້ເກັບຂໍ້ມູນໄດ້ຍິນເຊວນີ້ — ບໍ່ແມ່ນຕຳແໜ່ງຂອງເສົາສັນຍານ. ການວັດແທກທີ່ເກັບຕາມເສັ້ນທາງ ຈະເຮັດໃຫ້ຈຸດນີ້ຢູ່ເທິງເສັ້ນທາງ ດັ່ງນັ້ນເສົາຈິງອາດຢູ່ຫ່າງອອກໄປທາງຂ້າງ. ການຂັບເກັບຂໍ້ມູນສອງຄັ້ງແຍກກັນ ວາງເຊວດຽວກັນຫ່າງກັນປະມານ 2 ກິໂລແມັດ.",
   scopeBanner: "ສະແດງສະເພາະ %NETWORK%",
-  scopeBannerDetail:
-    "ຮວງເຜິ້ງທີ່ວັດແທກ %NETWORK% ໄດ້, ພ້ອມທັງບ່ອນທີ່ບໍ່ມີເຄືອຂ່າຍເລີຍ. ບໍ່ສະແດງຜູ້ໃຫ້ບໍລິການອື່ນ, ແລະ ພື້ນທີ່ຫວ່າງໝາຍຄວາມວ່າຍັງບໍ່ມີໃຜວັດແທກ ບໍ່ແມ່ນວ່າບໍ່ມີສັນຍານ.",
   usersRoleSuperAdmin: "ຜູ້ດູແລສູງສຸດ",
   usersStatusPending: "ລໍຖ້າ",
   usersStatusApproved: "ອະນຸມັດແລ້ວ",
