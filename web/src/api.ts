@@ -214,6 +214,21 @@ export interface Collector {
   silent_for_s?: number | null;
   model: string | null;
   manufacturer: string | null;
+  /** Android version, not the API level — "15" rather than 35. */
+  android_version?: string | null;
+  /**
+   * What this handset manages to report.
+   *
+   * Null until it has sent a reading: absent rather than zero, because 0%
+   * would read as a phone that reports nothing rather than one nobody knows
+   * anything about yet.
+   */
+  capability?: {
+    readings: number;
+    rsrp_pct: number;
+    sinr_pct: number;
+    cells_seen: number | null;
+  } | null;
   /**
    * Networks this phone has reported on, busiest first. Usually one; a
    * dual-SIM handset or one that roamed can report several. Empty until it

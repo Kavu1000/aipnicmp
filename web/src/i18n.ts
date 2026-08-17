@@ -45,6 +45,11 @@ export interface Strings {
   collectorsRejected: string;
   collectorsRejectRate: string;
   collectorsSimulated: string;
+  collectorsSpec: string;
+  collectorsReports: string;
+  collectorsHasSignal: string;
+  collectorsCellsSeen: string;
+  collectorsSpecNote: string;
   towersTitle: string;
   towersSubtitle: string;
   towersOperator: string;
@@ -294,6 +299,12 @@ const en: Strings = {
   collectorsRejected: "Rejected",
   collectorsRejectRate: "Refused",
   collectorsSimulated: "simulated",
+  collectorsSpec: "Handset",
+  collectorsReports: "Reports",
+  collectorsHasSignal: "signal",
+  collectorsCellsSeen: "cells",
+  collectorsSpecNote:
+    "A reading with no signal strength is recorded as weak rather than credited, so a handset that reports it less often produces more weak hexagons on the same road. One that hears few neighbouring cells also gives the mast estimator less to work with.",
   collectorsNone: "No collectors have enrolled yet.",
   towersTitle: "Cells heard",
   towersSubtitle: "What the collectors have picked up, by operator — not an operator's own inventory",
@@ -578,6 +589,12 @@ const lo: Strings = {
   collectorsRejected: "ຖືກປະຕິເສດ",
   collectorsRejectRate: "ອັດຕາປະຕິເສດ",
   collectorsSimulated: "ຈຳລອງ",
+  collectorsSpec: "ເຄື່ອງ",
+  collectorsReports: "ລາຍງານ",
+  collectorsHasSignal: "ສັນຍານ",
+  collectorsCellsSeen: "ເຊວ",
+  collectorsSpecNote:
+    "ການວັດແທກທີ່ບໍ່ມີຄ່າຄວາມແຮງສັນຍານ ຈະຖືກບັນທຶກວ່າອ່ອນ ແທນທີ່ຈະຖືວ່າດີ ດັ່ງນັ້ນເຄື່ອງທີ່ລາຍງານໄດ້ໜ້ອຍ ຈະສ້າງຮວງເຜິ້ງອ່ອນຫຼາຍກວ່າ ເທິງເສັ້ນທາງດຽວກັນ. ເຄື່ອງທີ່ໄດ້ຍິນເຊວຂ້າງຄຽງໜ້ອຍ ກໍໃຫ້ຂໍ້ມູນແກ່ການປະເມີນຕຳແໜ່ງເສົາໜ້ອຍເຊັ່ນກັນ.",
   collectorsNone: "ຍັງບໍ່ມີອຸປະກອນລົງທະບຽນ.",
   towersTitle: "ເຊວທີ່ໄດ້ຍິນ",
   towersSubtitle: "ສິ່ງທີ່ຜູ້ເກັບຂໍ້ມູນຮັບໄດ້, ຕາມຜູ້ໃຫ້ບໍລິການ — ບໍ່ແມ່ນລາຍການຊັບສິນຂອງຜູ້ໃຫ້ບໍລິການເອງ",

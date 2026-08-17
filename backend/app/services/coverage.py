@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import h3
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -348,6 +348,71 @@ collector to silent and back.
 REPORTING_WINDOW = timedelta(minutes=10)
 
 
+#: Android API level to the version a person recognises.
+#:
+#: Only the levels the fleet has actually enrolled, plus room to grow. An
+#: unmapped level shows as the raw number rather than a wrong version — being
+#: told a phone runs "Android 30" is a smaller failure than being told it runs
+#: Android 11 when it does not.
+ANDROID_VERSIONS = {
+    28: "9", 29: "10", 30: "11", 31: "12", 32: "12L",
+    33: "13", 34: "14", 35: "15", 36: "16",
+}
+
+
+def android_version(api_level: int | None) -> str | None:
+    if api_level is None:
+        return None
+    return ANDROID_VERSIONS.get(api_level, str(api_level))
+
+
+async def reporting_capability(session: AsyncSession) -> dict[str, dict[str, Any]]:
+    """What each handset actually manages to report, per device.
+
+    The specification that decides what a reading is worth. Two phones on the
+    same road do not produce the same data: one reports signal strength on
+    every reading and hears ten neighbouring cells, another reports it on
+    seven readings in ten and hears three.
+
+    Both differences reach the findings. A reading with no RSRP is classified
+    pessimistically — the platform will not credit coverage it cannot verify —
+    so a handset that withholds the number produces more weak hexagons than one
+    that does not, on identical ground. And a handset that hears few neighbours
+    starves the cell estimator, which needs five sightings of a cell across
+    800 m before it can place anything.
+
+    So this is not an inventory column. It is the confounder, made visible.
+    """
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT device_id,
+                       count(*) AS readings,
+                       count(rsrp_dbm) AS with_rsrp,
+                       count(sinr_db) AS with_sinr,
+                       avg(cells_visible) AS cells_seen
+                FROM measurements
+                GROUP BY device_id
+                """
+            )
+        )
+    ).all()
+
+    return {
+        row.device_id: {
+            "readings": row.readings,
+            # Percentages rather than counts: the question is what share of
+            # this phone's readings carry the figure, and a count only answers
+            # that against a total the reader has to find elsewhere.
+            "rsrp_pct": round(100 * row.with_rsrp / row.readings, 1) if row.readings else None,
+            "sinr_pct": round(100 * row.with_sinr / row.readings, 1) if row.readings else None,
+            "cells_seen": round(float(row.cells_seen), 1) if row.cells_seen is not None else None,
+        }
+        for row in rows
+    }
+
+
 async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
     """The devices contributing measurements, most recently active first.
 
@@ -438,6 +503,8 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
         ).all()
     }
 
+    capability = await reporting_capability(session)
+
     now = datetime.now(timezone.utc)
 
     out: list[dict[str, Any]] = []
@@ -499,6 +566,7 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
                 "silent_for_s": int((now - last_seen).total_seconds()) if last_seen else None,
                 "model": device.model,
                 "manufacturer": device.manufacturer,
+                "android_version": android_version(device.android_api),
                 # Empty for a phone that has enrolled but not yet uploaded a
                 # reading with a network attached.
                 "networks": networks.get(device.install_id, []),
@@ -515,6 +583,9 @@ async def collectors(session: AsyncSession) -> list[dict[str, Any]]:
                 # being refused looks identical to a healthy one by any other
                 # measure, right up until the map stays empty.
                 "rejection_rate_pct": round(device.records_rejected / total * 100, 1) if total else 0.0,
+                # What this handset manages to report, which decides what its
+                # readings are worth. See reporting_capability.
+                "capability": capability.get(device.install_id),
             }
         )
     return out

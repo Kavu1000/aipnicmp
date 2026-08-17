@@ -65,11 +65,19 @@ export function Collectors({ t }: { t: Strings }) {
       {loaded && rows.length === 0 ? (
         <p className="empty">{t.collectorsNone}</p>
       ) : (
+        <>
+        {/* Without this the two new columns look like trivia. They are the
+            reason two phones on the same road can disagree, so the sentence
+            has to sit beside them. */}
+        <p className="caveat">{t.collectorsSpecNote}</p>
+
         <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
                 <th>{t.collectorsDevice}</th>
+                <th>{t.collectorsSpec}</th>
+                <th className="num">{t.collectorsReports}</th>
                 <th>{t.operator}</th>
                 <th>{t.collectorsLastSeen}</th>
                 <th className="num">{t.collectorsAccepted}</th>
@@ -87,6 +95,40 @@ export function Collectors({ t }: { t: Strings }) {
                       {row.is_simulated && ` · ${t.collectorsSimulated}`}
                     </span>
                   </td>
+                  {/* What it is. Held since enrolment and never shown until
+                      now, which left the page unable to say why two phones on
+                      the same road disagree. */}
+                  <td className="small">
+                    <span className="device-name">
+                      {row.manufacturer ?? "—"}
+                    </span>
+                    <span className="device-meta">
+                      {row.android_version ? `Android ${row.android_version}` : "—"}
+                      {row.app_version && ` · app ${row.app_version}`}
+                    </span>
+                  </td>
+
+                  {/* What it manages to report, which is the part that changes
+                      what its readings are worth. A reading with no signal
+                      strength is classified pessimistically, so a handset that
+                      withholds it produces more weak hexagons on the same
+                      ground; a handset that hears few neighbours starves the
+                      estimator that places masts. */}
+                  <td className="num small">
+                    {row.capability ? (
+                      <>
+                        <span className={row.capability.rsrp_pct < 95 ? "bad" : undefined}>
+                          {t.collectorsHasSignal}: {row.capability.rsrp_pct}%
+                        </span>
+                        <span className="device-meta">
+                          {t.collectorsCellsSeen}: {row.capability.cells_seen ?? "—"}
+                        </span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
                   {/* Which network the phone is on. Empty means it has
                       enrolled but not yet sent a reading with one attached —
                       not that it has no network. */}
@@ -123,6 +165,7 @@ export function Collectors({ t }: { t: Strings }) {
             </div>
           )}
         </div>
+        </>
       )}
     </section>
   );
