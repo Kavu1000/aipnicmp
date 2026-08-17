@@ -339,18 +339,17 @@ async def coverage_by_area(
             # show one state's name beside another state's colour.
             "state": state.value if state else None,
             "colour": (STATE_COLOUR[state] if state else TileColour.GREY).value,
-            # Same rule as a single hexagon: the colour is always published,
-            # the detail only when enough separate devices stand behind it.
+            # Same split as a single hexagon: how much evidence and what it
+            # averaged to are always published, because neither places anybody
+            # at a time. Only the timestamp waits for enough contributors.
             "low_confidence": not detailed,
-            "measurements": row["measurements"] if detailed else None,
+            "measurements": row["measurements"],
             "avg_rsrp_dbm": (
-                round(row["avg_rsrp_dbm"], 1)
-                if detailed and row["avg_rsrp_dbm"] is not None
-                else None
+                round(row["avg_rsrp_dbm"], 1) if row["avg_rsrp_dbm"] is not None else None
             ),
             "avg_download_kbps": (
                 round(row["avg_download_kbps"], 1)
-                if detailed and row["avg_download_kbps"] is not None
+                if row["avg_download_kbps"] is not None
                 else None
             ),
             "last_measured_at": (

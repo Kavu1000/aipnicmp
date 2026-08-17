@@ -24,10 +24,19 @@ MAX_TILES = 20_000
 def _feature(tile: H3Tile, *, detailed: bool) -> dict[str, Any]:
     """One hexagon as a GeoJSON feature.
 
-    ``detailed`` is false for tiles resting on very few contributors. The colour
-    still shows — suppressing it would blank out exactly the remote places this
-    project exists to reveal — but the counts and timestamps that could pin the
-    reading to one traveller's journey are withheld.
+    ``detailed`` is false for tiles resting on very few contributors, and it
+    governs *when* rather than *how much*.
+
+    What identifies a person is time. A hexagon is 0.84 km2, so "last measured
+    Tuesday 14:32" beside one is a record of where somebody was and when; an
+    average signal strength over that hexagon is not, and the colour has
+    already disclosed that a phone passed through. Withholding all of it
+    together left 98% of the map showing a colour and nothing else, which
+    protected nobody further and cost every reader the evidence.
+
+    So the count and the averages are always published. The timestamp, the
+    device count and the worst single reading — the fields that place a
+    traveller at a moment — wait for enough separate contributors.
     """
     properties: dict[str, Any] = {
         "h3": tile.h3_index,
@@ -44,16 +53,24 @@ def _feature(tile: H3Tile, *, detailed: bool) -> dict[str, Any]:
     }
     if tile.is_predicted:
         properties["confidence"] = tile.prediction_confidence
+    # Always: how much evidence, and what it averaged to. Neither places
+    # anybody at a time.
+    properties.update(
+        {
+            "measurements": tile.measurement_count,
+            "avg_rsrp_dbm": tile.avg_rsrp_dbm,
+            "avg_download_kbps": tile.avg_download_kbps,
+            "avg_latency_ms": tile.avg_latency_ms,
+        }
+    )
     if detailed:
         properties.update(
             {
-                "measurements": tile.measurement_count,
                 "devices": tile.device_count,
-                "avg_rsrp_dbm": tile.avg_rsrp_dbm,
-                "avg_download_kbps": tile.avg_download_kbps,
-                "avg_latency_ms": tile.avg_latency_ms,
                 "worst_state": tile.worst_state,
-                "last_measured_at": tile.last_measured_at.isoformat() if tile.last_measured_at else None,
+                "last_measured_at": (
+                    tile.last_measured_at.isoformat() if tile.last_measured_at else None
+                ),
             }
         )
     else:
@@ -81,15 +98,22 @@ def _operator_feature(tile: H3TileOperator, *, detailed: bool) -> dict[str, Any]
         "predicted": False,
         "operator": tile.operator_name,
     }
+    # Same split as above: evidence always, timing only with enough behind it.
+    properties.update(
+        {
+            "measurements": tile.measurement_count,
+            "avg_rsrp_dbm": tile.avg_rsrp_dbm,
+            "avg_download_kbps": tile.avg_download_kbps,
+        }
+    )
     if detailed:
         properties.update(
             {
-                "measurements": tile.measurement_count,
                 "devices": tile.device_count,
-                "avg_rsrp_dbm": tile.avg_rsrp_dbm,
-                "avg_download_kbps": tile.avg_download_kbps,
                 "worst_state": tile.worst_state,
-                "last_measured_at": tile.last_measured_at.isoformat() if tile.last_measured_at else None,
+                "last_measured_at": (
+                    tile.last_measured_at.isoformat() if tile.last_measured_at else None
+                ),
             }
         )
     else:

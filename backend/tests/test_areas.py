@@ -629,8 +629,18 @@ async def test_an_unknown_area_is_a_404_not_an_empty_map(client: AsyncClient):
 async def test_one_collector_does_not_publish_an_areas_detail(
     client: AsyncClient, session: AsyncSession, device_key, public_key_b64: str
 ):
-    """The same rule a single hexagon follows: the colour is always published,
-    the detail only when enough separate devices stand behind it."""
+    """The same rule a single hexagon follows, and it withholds *time*.
+
+    One collector's journey through a district must not be reconstructable from
+    the district's own page, and what would reconstruct it is the timestamp:
+    an area plus a moment is a record of where somebody was and when. How many
+    readings there were, and what they averaged to, place nobody — and the
+    colour has already disclosed that a phone passed through.
+
+    This test used to require the whole detail withheld. That withheld nothing
+    further and cost every reader the evidence on 98% of the map, since almost
+    every hexagon in the pilot rests on a single collector.
+    """
     await seed_areas(session)
     await seed_journey(client, device_key, public_key_b64)
     await rebuild_tiles(session)
@@ -638,9 +648,11 @@ async def test_one_collector_does_not_publish_an_areas_detail(
     coverage = (await client.get(f"/api/v1/areas/{DISTRICT_SOUTH}")).json()["coverage"]
 
     assert coverage["low_confidence"] is True
-    assert coverage["measurements"] is None
-    assert coverage["avg_rsrp_dbm"] is None
+    # The field that would place the traveller at a moment.
     assert coverage["last_measured_at"] is None
+    # The evidence behind the colour, which places nobody.
+    assert coverage["measurements"] is not None and coverage["measurements"] > 0
+    assert coverage["avg_rsrp_dbm"] is not None
     # The finding itself is not suppressed — that would blank out exactly the
     # remote places this project exists to reveal.
     assert coverage["tiles"] > 0

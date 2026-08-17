@@ -50,35 +50,49 @@ export function TileInspector({ tile, t, onClose }: Props) {
           {t.inspectorPredicted}
           {tile.confidence != null && ` ${(tile.confidence * 100).toFixed(0)}%`}
         </p>
-      ) : tile.low_confidence ? (
-        <p className="caveat">{t.inspectorLowConfidence}</p>
       ) : (
-        <dl>
-          <div>
-            <dt>{t.inspectorMeasurements}</dt>
-            <dd>{tile.measurements ?? "—"}</dd>
-          </div>
-          <div>
-            <dt>{t.inspectorDevices}</dt>
-            <dd>{tile.devices ?? "—"}</dd>
-          </div>
-          <div>
-            <dt>{t.inspectorSignal}</dt>
-            <dd>{formatSignal(tile.avg_rsrp_dbm)}</dd>
-          </div>
-          <div>
-            <dt>{t.inspectorDownload}</dt>
-            <dd>{formatSpeed(tile.avg_download_kbps)}</dd>
-          </div>
-          <div>
-            <dt>{t.inspectorLatency}</dt>
-            <dd>{tile.avg_latency_ms == null ? "—" : `${Math.round(tile.avg_latency_ms)} ms`}</dd>
-          </div>
-          <div>
-            <dt>{t.inspectorLastMeasured}</dt>
-            <dd>{formatWhen(tile.last_measured_at, "—")}</dd>
-          </div>
-        </dl>
+        /*
+          The evidence shows whoever measured it. What a single collector's
+          hexagon withholds is the timing — a hexagon plus a moment is a record
+          of where somebody was and when, while a hexagon plus an average is
+          not. So the rows that place a traveller are the ones that disappear,
+          and the panel is no longer all-or-nothing: it used to show this
+          caveat *instead of* the figures, which on a pilot where almost every
+          hexagon rests on one phone meant a panel with nothing in it.
+        */
+        <>
+          <dl>
+            <div>
+              <dt>{t.inspectorMeasurements}</dt>
+              <dd>{tile.measurements ?? "—"}</dd>
+            </div>
+            {tile.devices != null && (
+              <div>
+                <dt>{t.inspectorDevices}</dt>
+                <dd>{tile.devices}</dd>
+              </div>
+            )}
+            <div>
+              <dt>{t.inspectorSignal}</dt>
+              <dd>{formatSignal(tile.avg_rsrp_dbm)}</dd>
+            </div>
+            <div>
+              <dt>{t.inspectorDownload}</dt>
+              <dd>{formatSpeed(tile.avg_download_kbps)}</dd>
+            </div>
+            <div>
+              <dt>{t.inspectorLatency}</dt>
+              <dd>{tile.avg_latency_ms == null ? "—" : `${Math.round(tile.avg_latency_ms)} ms`}</dd>
+            </div>
+            {tile.last_measured_at != null && (
+              <div>
+                <dt>{t.inspectorLastMeasured}</dt>
+                <dd>{formatWhen(tile.last_measured_at, "—")}</dd>
+              </div>
+            )}
+          </dl>
+          {tile.low_confidence && <p className="caveat">{t.inspectorLowConfidence}</p>}
+        </>
       )}
 
       {showsDropouts && (

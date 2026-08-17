@@ -359,7 +359,7 @@ const en: Strings = {
   areaOfArea: "of this area",
   areaDevices: "Contributing devices",
   areaLowConfidence:
-    "Too few separate devices have measured this area to publish the details without risking identifying whoever travelled through.",
+    "One collector measured this area. The time it was measured is withheld, because an area plus a moment would record where somebody was and when.",
   areaApproximate:
     "This village has no published boundary. The circle shows everything within %R% of its recorded centre — an approximation, not a surveyed border.",
   areaSource: "Boundaries: %S%",
@@ -501,7 +501,7 @@ const en: Strings = {
   inspectorPredicted:
     "Predicted by the coverage model — nobody has measured this hexagon yet.",
   inspectorLowConfidence:
-    "Measured, but by too few devices to publish the details without risking identifying whoever travelled through.",
+    "One collector measured this. The time it was measured is withheld, because a hexagon this small plus a moment would record where somebody was and when.",
   inspectorDropout: "Service here is not always this good — at its worst it drops to",
   inspectorMeasurements: "Measurements",
   inspectorDevices: "Contributing devices",
@@ -640,7 +640,7 @@ const lo: Strings = {
   areaOfArea: "ຂອງພື້ນທີ່ນີ້",
   areaDevices: "ອຸປະກອນທີ່ຮ່ວມ",
   areaLowConfidence:
-    "ມີອຸປະກອນວັດແທກພື້ນທີ່ນີ້ໜ້ອຍເກີນໄປ ຈຶ່ງບໍ່ສະແດງລາຍລະອຽດ ເພື່ອປົກປ້ອງຄວາມເປັນສ່ວນຕົວຂອງຜູ້ເດີນທາງ.",
+    "ຜູ້ເກັບຂໍ້ມູນຄົນດຽວວັດແທກພື້ນທີ່ນີ້. ເວລາທີ່ວັດແທກຈຶ່ງບໍ່ຖືກສະແດງ ເພາະພື້ນທີ່ ບວກກັບເວລາ ຈະເປັນການບັນທຶກວ່າໃຜຢູ່ໃສ ແລະ ເມື່ອໃດ.",
   areaApproximate:
     "ບ້ານນີ້ບໍ່ມີເສັ້ນເຂດແດນທີ່ເຜີຍແຜ່ໄວ້. ວົງມົນສະແດງທຸກຢ່າງພາຍໃນ %R% ຈາກຈຸດໃຈກາງທີ່ບັນທຶກໄວ້ — ເປັນການປະມານ ບໍ່ແມ່ນເສັ້ນເຂດແດນຈິງ.",
   areaSource: "ເສັ້ນເຂດແດນ: %S%",
@@ -775,7 +775,7 @@ const lo: Strings = {
   inspectorRemedy: "ສິ່ງທີ່ຕ້ອງເຮັດ:",
   inspectorPredicted: "ຄາດຄະເນໂດຍແບບຈຳລອງ — ຍັງບໍ່ມີໃຜວັດແທກພື້ນທີ່ນີ້.",
   inspectorLowConfidence:
-    "ວັດແທກແລ້ວ ແຕ່ມີອຸປະກອນໜ້ອຍເກີນໄປ ຈຶ່ງບໍ່ສະແດງລາຍລະອຽດ ເພື່ອປົກປ້ອງຄວາມເປັນສ່ວນຕົວຂອງຜູ້ເດີນທາງ.",
+    "ຜູ້ເກັບຂໍ້ມູນຄົນດຽວວັດແທກບ່ອນນີ້. ເວລາທີ່ວັດແທກຈຶ່ງບໍ່ຖືກສະແດງ ເພາະຮວງເຜິ້ງນ້ອຍເທົ່ານີ້ ບວກກັບເວລາ ຈະເປັນການບັນທຶກວ່າໃຜຢູ່ໃສ ແລະ ເມື່ອໃດ.",
   inspectorDropout: "ສັນຍານຢູ່ນີ້ບໍ່ດີສະເໝີໄປ — ຮ້າຍແຮງທີ່ສຸດຫຼຸດລົງເປັນ",
   inspectorMeasurements: "ຈຳນວນການວັດແທກ",
   inspectorDevices: "ອຸປະກອນທີ່ຮ່ວມ",
