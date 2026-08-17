@@ -59,15 +59,37 @@ export function Sidebar({ view, strings, open, onSelect, onClose, user, onSignOu
             </span>
           </div>
           <nav>
-            <button className="nav-item on" onClick={() => { onSelect("mine"); onClose(); }}>
-              <span className="nav-icon" aria-hidden="true">◉</span>
-              <span className="nav-label">
-                {strings.navMine}
-                <em>{strings.navMineHint}</em>
-              </span>
-            </button>
+            {/* The map, and the numbers behind it. Both show this account's own
+                readings and nothing else — the server refuses the rest. */}
+            {(
+              [
+                { id: "map" as View, label: strings.navMap, icon: "◉", hint: strings.navMineHint },
+                { id: "mine" as View, label: strings.navMine, icon: "▮", hint: strings.navMineHint },
+              ]
+            ).map((item) => (
+              <button
+                key={item.id}
+                className={view === item.id ? "nav-item on" : "nav-item"}
+                onClick={() => {
+                  onSelect(item.id);
+                  onClose();
+                }}
+              >
+                <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+                <span className="nav-label">
+                  {item.label}
+                  <em>{item.hint}</em>
+                </span>
+              </button>
+            ))}
           </nav>
           <div className="sidebar-foot">
+            {/* The collector is the person carrying the phone, so the app is
+                the one link this account needs most. */}
+            <a className="get-app" href="/download/coverage-collector.apk" download>
+              {strings.getApp}
+            </a>
+
             {user && (
               <div className="sidebar-account">
                 {user.picture_url && (

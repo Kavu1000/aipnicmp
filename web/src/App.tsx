@@ -14,6 +14,7 @@ import {
   fetchPriorityAreas,
   fetchSummary,
   fetchTiles,
+  fetchMyTiles,
   type AreaChildren,
   type AreaDetail,
   type Bounds,
@@ -118,9 +119,33 @@ export function App() {
   // it refuses them — so it opens on the one page it can read rather than on a
   // map that would fill with errors.
   const isCollector = session?.user?.role === "collector";
+
+  /**
+   * A collector's map is its own readings, fetched whole.
+   *
+   * Not the viewport query the other roles use: that endpoint is refused to
+   * this account, and the answer is small enough to send in one piece — the
+   * ground one person covered, not a country. Refreshed on the same clock as
+   * everything else so a drive appears while it is still happening.
+   */
+  const loadMyTiles = useCallback((signal?: AbortSignal) => {
+    fetchMyTiles(signal)
+      .then((collection) => {
+        setTiles(collection);
+        setError(null);
+      })
+      .catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setError(cause instanceof Error ? cause.message : "could not load your readings");
+      });
+  }, []);
+
   useEffect(() => {
-    if (isCollector) setView("mine");
-  }, [isCollector]);
+    if (!isCollector) return;
+    const controller = new AbortController();
+    loadMyTiles(controller.signal);
+    return () => controller.abort();
+  }, [isCollector, loadMyTiles]);
 
   const t = TRANSLATIONS[language];
 
@@ -132,6 +157,10 @@ export function App() {
     (bounds: Bounds, options?: { silent?: boolean }) => {
       const silent = options?.silent === true;
       lastBounds.current = bounds;
+      // Refused to a collector account, which has its own whole-collection
+      // fetch above. Asking anyway would fill the console with 403s and show
+      // an error over a map that is working.
+      if (isCollector) return;
       // An area selection is not a viewport query. Panning inside a chosen
       // district must not silently widen the answer back out to the screen.
       if (areaCode) return;
@@ -157,7 +186,7 @@ export function App() {
           });
       }, silent ? 0 : 250);
     },
-    [operator, areaCode, state],
+    [operator, areaCode, state, isCollector],
   );
 
   // Switching network refetches the current viewport rather than waiting for
@@ -321,15 +350,20 @@ export function App() {
    */
   const loadWeakAreas = useCallback(
     (signal?: AbortSignal) => {
+      if (isCollector) return;
       fetchWeakAreas({ operator, area: areaCode, band: weakBand }, signal)
         .then((body) => setWeakAreas(body as unknown as GeoJsonData))
         .catch(() => undefined);
     },
-    [operator, areaCode, weakBand],
+    [operator, areaCode, weakBand, isCollector],
   );
 
   const refresh = useCallback(
     (signal?: AbortSignal) => {
+      if (isCollector) {
+        loadMyTiles(signal);
+        return;
+      }
       fetchSummary(signal).then(setSummary).catch(() => undefined);
       fetchCollectors(signal)
         .then((body) => setCollectors(body.collectors))
@@ -342,11 +376,11 @@ export function App() {
     },
     // `operator` was already reached through loadTiles rather than named here,
     // which worked by accident. Named now, with the rest.
-    [areaCode, operator, loadTiles, loadWeakAreas],
+    [areaCode, operator, loadTiles, loadWeakAreas, isCollector, loadMyTiles],
   );
 
   useEffect(() => {
-    if (!approved) return;
+    if (!approved || isCollector) return;
     const controller = new AbortController();
     fetchSummary(controller.signal).then(setSummary).catch(() => undefined);
     fetchNetworks(controller.signal).then(setNetworks).catch(() => undefined);
@@ -371,12 +405,13 @@ export function App() {
   }, [loadWeakAreas]);
 
   useEffect(() => {
+    if (isCollector) return;
     const controller = new AbortController();
     fetchCells(operator, controller.signal)
       .then((body) => setCells(body as unknown as GeoJsonData))
       .catch(() => undefined);
     return () => controller.abort();
-  }, [operator]);
+  }, [operator, isCollector]);
 
   /**
    * Keep the map current while it is being watched.
@@ -508,7 +543,7 @@ export function App() {
           </div>
 
           <div className="topbar-actions">
-            {view === "map" && (
+            {view === "map" && !isCollector && (
               <div className="segmented" role="group">
                 <button
                   className={basemap === "streets" ? "on" : ""}
@@ -543,7 +578,7 @@ export function App() {
             {/* Marking the priority hexagons is a second reading of the same
                 ground, so it sits beside 3D as another thing the reader turns
                 on rather than something the map decides for them. */}
-            {view === "map" && (
+            {view === "map" && !isCollector && (
               <button
                 className={showWeakAreas ? "toggle-3d on" : "toggle-3d"}
                 onClick={() => setShowWeakAreas((on) => !on)}
@@ -572,7 +607,7 @@ export function App() {
               </select>
             )}
 
-            {view === "map" && (
+            {view === "map" && !isCollector && (
               <AreaFilter
                 strings={t}
                 language={language}
@@ -611,7 +646,7 @@ export function App() {
                 key read the same way down. Named by what they mean rather than
                 by their colour: a reader filtering for dead zones is looking
                 for "no network at all", not for red. */}
-            {view === "map" && (
+            {view === "map" && !isCollector && (
               <select
                 className="select"
                 value={state ?? ""}

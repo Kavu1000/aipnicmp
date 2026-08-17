@@ -242,3 +242,49 @@ async def test_only_a_collector_account_owns_devices(client, session, public_key
             session=session,
         )
     assert refused.value.status_code == 400
+
+
+async def test_the_collectors_map_carries_the_same_shape_as_the_public_one(
+    client, session, device_key, public_key_b64
+):
+    """The map component draws whatever it is given, so the shape has to match.
+
+    A collector's hexagons come from a different endpoint and a different
+    aggregation; if the property names drifted the map would render nothing and
+    look like an empty collection rather than a bug.
+    """
+    from sqlalchemy import select
+
+    from app.api.v1.mine import my_tiles
+    from app.models.device import Device
+    from app.services.aggregate import rebuild_tiles
+    from tests.conftest import BASE_LAT, BASE_LON, make_record, sign_record
+    from tests.test_ingest_api import batch, enroll
+
+    await enroll(client, public_key_b64)
+    records = [
+        sign_record(
+            make_record(record_id=f"rec-shape{i:04d}", minutes_ago=60 - i, lat=BASE_LAT, lon=BASE_LON),
+            device_key,
+        )
+        for i in range(4)
+    ]
+    assert (
+        await client.post("/api/v1/measurements/batch", json=batch(records, batch_id="batch-shape"))
+    ).json()["accepted"] == 4
+    await rebuild_tiles(session)
+
+    device = (await session.scalars(select(Device))).first()
+    mine = await my_tiles(devices=frozenset({device.install_id}), session=session)
+
+    viewport = {
+        "min_lat": BASE_LAT - 0.5, "min_lon": BASE_LON - 0.5,
+        "max_lat": BASE_LAT + 0.5, "max_lon": BASE_LON + 0.5,
+    }
+    public = (await client.get("/api/v1/tiles", params=viewport)).json()
+
+    assert mine["features"] and public["features"]
+    shared = {"h3", "state", "colour", "predicted", "measurements"}
+    assert shared <= set(mine["features"][0]["properties"])
+    assert shared <= set(public["features"][0]["properties"])
+    assert mine["features"][0]["geometry"]["type"] == "Polygon"
