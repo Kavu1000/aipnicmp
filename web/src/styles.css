@@ -1168,10 +1168,18 @@ main {
   min-height: 100%;
   padding: 2rem 1rem;
   overflow: hidden;
+  /*
+    A ground for the card to sit on rather than a page it floats in.
+    The two corner washes it had were the same value as --page, so on a wide
+    screen the whole thing read as flat white and the country behind it never
+    arrived. A cool slate, deepening downward, with one light source above the
+    card: the card then reads as paper on a desk, which is the tone a ministry
+    portal wants and the one the map already has.
+  */
   background:
-    radial-gradient(circle at 15% 0%, #e8eef6 0%, transparent 55%),
-    radial-gradient(circle at 85% 100%, #eef1f5 0%, transparent 55%),
-    var(--page);
+    radial-gradient(ellipse 90% 60% at 50% -5%, #f2f6fb 0%, transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 105%, #cfd9e8 0%, transparent 70%),
+    linear-gradient(180deg, #e7edf6 0%, #dae2ee 100%);
 }
 
 /* ---------- the country behind the card ---------- */
@@ -1182,9 +1190,11 @@ main {
   display: grid;
   place-items: center;
   pointer-events: none;
-  /* Held well back. It should be noticed on the second look, not the first —
-     the task on this screen is signing in. */
-  opacity: 0.5;
+  /* Held back, but it has to arrive. At 0.5 against the old near-white ground
+     the country was invisible at a glance and at a stare — held back is not
+     the same as absent, and a backdrop nobody ever sees is weight with no
+     benefit. */
+  opacity: 0.85;
 }
 
 .login-backdrop svg {
@@ -1194,7 +1204,9 @@ main {
 }
 
 .backdrop-land {
-  fill: #dfe7f1;
+  /* A shade darker than the ground it sits on, not a shade lighter. The
+     country should read as land, and land is the solid thing here. */
+  fill: #ccd8e9;
   stroke: none;
 }
 
@@ -1202,20 +1214,24 @@ main {
   fill: none;
   stroke: #ffffff;
   stroke-width: 1.4;
-  stroke-opacity: 0.5;
+  stroke-opacity: 0.65;
 }
 
 .backdrop-border {
   fill: none;
-  stroke: #9fb0c6;
+  stroke: #8ba0bc;
   stroke-width: 2;
-  stroke-opacity: 0.65;
+  stroke-opacity: 0.8;
 }
 
 /* The measurement grid at rest. */
 .backdrop-hexes {
-  fill: #b9c8dc;
-  opacity: 0.55;
+  /* The unit this platform measures in, at rest behind the sign-in. Uniform
+     on purpose: the five coverage colours mean five specific things about
+     signal, and a decorative grid wearing any of them would be read as data
+     about a country nobody has finished measuring. */
+  fill: #a6bad4;
+  opacity: 0.6;
 }
 
 /*
