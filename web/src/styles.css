@@ -2675,3 +2675,54 @@ main {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* ---------- the survey route on the sign-in page ---------- */
+
+/* One colour for every hexagon on the route. The five coverage colours each
+   mean a specific thing about signal, and a decorative route wearing them
+   would be a claim about ground nobody has driven. */
+.backdrop-route {
+  fill: #7fa8b8;
+  opacity: 0.55;
+}
+
+.backdrop-mast {
+  fill: #46707f;
+  opacity: 0.85;
+}
+
+/* The broadcast: a ring swelling out of each mast and fading as it goes, so
+   it dissolves rather than stopping at an edge. An edge would read as the
+   limit of coverage, which is exactly what this page has not measured. */
+.backdrop-pulse {
+  fill: none;
+  stroke: #46707f;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: backdrop-pulse 4.5s cubic-bezier(0.25, 0.6, 0.4, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes backdrop-pulse {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+/* Motion carries no information here, so it is the first thing to go for
+   anyone who has asked for less of it. The masts and the route stay. */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-pulse {
+    animation: none;
+    opacity: 0;
+  }
+}
