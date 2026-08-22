@@ -24,7 +24,13 @@ FROM nginx:1.27-alpine AS runtime
 COPY --from=builder /build/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
+# Defaults describe the compose deployment: the API is a sibling container
+# called `api`, reached by Docker's own resolver, and it answers to whatever
+# host the browser asked for. A deployment where the API lives elsewhere sets
+# all three (see docs/deploy.md).
 ENV API_UPSTREAM=http://api:8000
+ENV API_HOST="\$host"
+ENV DNS_RESOLVER=127.0.0.11
 
 EXPOSE 80
 
