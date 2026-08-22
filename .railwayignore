@@ -1,0 +1,17 @@
+# What `railway up` must not upload. The all-in-one image (deploy/) needs only
+# client/ and backend/ sources; everything else here is either large, rebuilt
+# inside the image, or irrelevant to a deployment.
+.git/
+node_modules/
+**/node_modules/
+**/dist/
+**/.venv/
+**/.venv-mac/
+android/
+ml/
+data/
+docs/
+web/
+backend/tests/
+**/__pycache__/
+*.apk
