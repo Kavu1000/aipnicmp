@@ -280,6 +280,29 @@ If it is ever revisited, the conditions are known: admin-only, today's
 hexagons only, deleted nightly, disclosed to every collector, and 2.6 amended
 first.
 
+## 26. Per-network coverage is public; per-network operations are not
+
+`/api/v1/public/tiles` accepts `operator`, and answers with that network's
+own hexagons — the same quality data a signed-in operator account sees on
+its own network. This was not the original design: the first version of the
+public router refused an `operator` parameter outright, on the reasoning
+that a network's coverage quality is that company's competitive information
+and should stay behind sign-in.
+
+The platform's owner overrode that, deliberately and after the trade-off was
+stated plainly: publishing "Unitel is weaker than ETL here" is exactly the
+kind of finding a national coverage map exists to surface, and a map that
+hides it to spare an operator's reputation is answering to the operator
+rather than to the public it was built for.
+
+What stays gated is the *other* half of what a network account sees:
+`/dashboard/collectors` (the fleet), mast positions, device counts, and
+`/dashboard/priority-areas`'s ranked investment list. None of those describe
+a network's coverage — they describe this platform's own operations, or
+identify equipment and the people carrying it — and the case for keeping
+them closed never depended on protecting an operator's reputation in the
+first place.
+
 ## Open questions
 
 - **Play Integrity**: device attestation is accepted but not yet verified

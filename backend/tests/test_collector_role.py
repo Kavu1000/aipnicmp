@@ -119,10 +119,11 @@ async def test_every_signed_in_router_is_closed_to_collectors():
 
     # What remains must be a route no signed-in person reaches at all:
     # enrolment, upload, sign-in, the speed test, the public credits, the
-    # health checks and the worker's own admin token.
+    # health checks, the worker's own admin token, and the public preview —
+    # which is reachable by *anyone*, signed in or not, on purpose.
     open_by_design = (
         "/devices", "/measurements", "/auth", "/speedtest",
-        "/credits", "/admin", "/health", "/stats",
+        "/credits", "/admin", "/health", "/stats", "/public",
     )
     leaked = [p for p in reachable if not p.startswith(open_by_design)]
     assert leaked == [], f"reachable by a collector account: {leaked}"

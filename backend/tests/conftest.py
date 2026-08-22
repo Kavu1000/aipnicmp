@@ -15,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("ENV", "test")
 
-from app.db.session import get_session  # noqa: E402
+from app.api.v1.public import _TILE_CACHE  # noqa: E402
+from app.db.session import get_read_session, get_session  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.schemas.measurement import MeasurementIn  # noqa: E402
@@ -26,6 +27,18 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 # Somewhere on Route 13 north of Luang Prabang — inside the survey area.
 BASE_LAT = 19.8845
 BASE_LON = 102.1350
+
+
+@pytest.fixture(autouse=True)
+def _empty_public_tile_cache() -> None:
+    """The public tile cache lives for the life of the process.
+
+    That is right in a server and wrong in a test run, where the next test
+    builds a different world behind the same viewport — without this, one
+    test's hexagons would be served to another and the failure would look
+    like a query bug.
+    """
+    _TILE_CACHE.clear()
 
 
 @pytest_asyncio.fixture
@@ -73,6 +86,10 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         )
 
     app.dependency_overrides[get_session] = _override
+    # The public router asks for the read-only session; in a test it is the
+    # same one, so that a fixture setting data up through `get_session` is
+    # visible to the endpoint reading it back.
+    app.dependency_overrides[get_read_session] = _override
     app.dependency_overrides[require_user] = _test_user
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
@@ -92,6 +109,7 @@ async def anon_client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None
         yield session
 
     app.dependency_overrides[get_session] = _override
+    app.dependency_overrides[get_read_session] = _override
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="https://test") as c:
         yield c

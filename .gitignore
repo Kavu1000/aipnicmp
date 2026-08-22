@@ -32,6 +32,8 @@ ml/.cache/
 node_modules/
 web/dist/
 web/.vite/
+client/dist/
+client/.vite/
 
 # Android
 android/.gradle/
@@ -58,6 +60,12 @@ android/.idea/
 
 # Vite incremental typecheck cache
 web/tsconfig.tsbuildinfo
+client/tsconfig.tsbuildinfo
+
+# Per-machine Claude Code permissions, not the project's
+.claude/settings.local.json
 
 # The APK is bundled into the site by CI, never committed
 web/public/download/
+client/public/download/
+.venv-mac/

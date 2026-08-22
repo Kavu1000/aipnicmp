@@ -6,6 +6,7 @@ built on the server.
 ```
 push to main ──► GitHub Actions ──► ghcr.io/OWNER/aipnicmp-backend:latest
                   (tests first)      ghcr.io/OWNER/aipnicmp-web:latest
+                                     ghcr.io/OWNER/aipnicmp-client:latest
                                               │
                                               ▼
                                      Portainer stack pulls and runs
@@ -16,14 +17,22 @@ push to main ──► GitHub Actions ──► ghcr.io/OWNER/aipnicmp-backend:l
 | Image | Contents | Size |
 | --- | --- | --- |
 | `aipnicmp-backend` | FastAPI + Alembic + Celery, Python 3.12-slim, non-root | ~250 MB |
-| `aipnicmp-web` | The map, built to static files and served by nginx | ~60 MB |
+| `aipnicmp-web` | The admin dashboard — every filter, 3D, the fleet, the ranked priority list, behind sign-in | ~60 MB |
+| `aipnicmp-client` | The public site — landing page, live map, methodology, its own sign-in that unlocks nothing more | ~60 MB |
+
+`web` and `client` are separate apps on separate subdomains (`aipn.chax.site`
+and `map.chax.site`), not one app with two routes — see `client/README.md`
+for why. They deploy independently: a `client`-only rebuild never touches
+`web`, and vice versa.
 
 The Android APK is built by the same workflow and attached to each run as an
-artifact, so a collector build is always downloadable without a local toolchain.
+artifact, then bundled into **both** `web` and `client` at `/download/`, so a
+collector build is downloadable from whichever site somebody landed on.
 
-Both images are pushed only after the backend tests, the migration round-trip,
-the web typecheck and the Android unit tests have passed. A broken canonical
-signing string can therefore never reach the server.
+All three images are pushed only after the backend tests, the migration
+round-trip, the web typecheck, the client typecheck and the Android unit
+tests have passed. A broken canonical signing string can therefore never
+reach the server.
 
 ## 1. The repository
 
@@ -89,32 +98,49 @@ Four things Portainer will not warn you about:
 | --- | --- | --- |
 | `BACKEND_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-backend:latest` |
 | `WEB_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-web:latest` |
+| `CLIENT_IMAGE` | *(optional)* | defaults to `ghcr.io/tsabxyooj2018/aipnicmp-client:latest` |
 | `DATABASE_URL` | `postgresql+asyncpg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | `@` in the password **must** be `%40` |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg://aiadmin:PASSWORD@192.168.15.21:5432/aipnicmp` | same database, sync driver, for Alembic |
-| `CORS_ORIGINS` | `https://map.yourdomain.la` | comma-separated; no trailing slash |
+| `CORS_ORIGINS` | `https://aipn.chax.site,https://map.chax.site` | comma-separated; no trailing slash; **both** sites' real origins |
 | `JWT_SECRET` | 48 random bytes | `python -c "import secrets; print(secrets.token_urlsafe(48))"` — **also signs the sign-in sessions**, so anyone who learns it can mint a session for any account |
 | `ADMIN_TOKEN` | another random string | empty keeps the admin endpoints closed |
-| `GOOGLE_CLIENT_ID` | `…apps.googleusercontent.com` | OAuth **Web application** client id; public by design. No client secret is used |
+| `GOOGLE_CLIENT_ID` | `…apps.googleusercontent.com` | OAuth **Web application** client id; public by design. No client secret is used. **Shared by both sites** — one client id, two authorized origins (below) |
 | `SUPER_ADMIN_EMAILS` | `chaxiong@fe-nuol.edu.la` | comma-separated. Without at least one, **nobody can ever be approved** |
 | `AUTH_ENABLED` | `true` | leave true; `false` serves the platform to anyone |
-| `WEB_PORT` | `8090` | host port for nginx |
+| `WEB_PORT` | `8090` | host port for the admin dashboard's nginx |
+| `CLIENT_PORT` | `8091` | host port for the public site's nginx |
 
 ### Sign in with Google
 
-Create the client in Google Cloud Console → **APIs & Services → Credentials →
-Create credentials → OAuth client ID → Web application**, and add the site to
-**Authorised JavaScript origins**:
+One OAuth client, shared by both sites — they are the same Google app as far
+as sign-in is concerned, since they share the same backend and the same
+`users` table. Create it in Google Cloud Console → **APIs & Services →
+Credentials → Create credentials → OAuth client ID → Web application**, and
+add **both** sites to **Authorised JavaScript origins**:
 
 ```
 https://aipn.chax.site
+https://map.chax.site
 ```
 
-Add `http://localhost:5173` as well **only if somebody develops locally** — it
-is the Vite dev server's address and has no part in the deployed site. Listing
-it means any program on port 5173, on any machine, can ask Google for a token
-issued to this client; the sign-in still needs the person's consent and a super
-admin's approval, so the risk is small, but an unused origin is a door with no
-purpose behind it. It can be added in one click later.
+Missing either one breaks sign-in on that site specifically — the button
+renders (it only needs the client id) and then does nothing when clicked,
+with "no registered origin" in the browser console. Add `http://localhost:5173`
+and `http://localhost:5175` too **only if somebody develops locally** — they
+are the two Vite dev servers' addresses and have no part in the deployed
+sites. Listing them means any program on those ports, on any machine, can ask
+Google for a token issued to this client; the sign-in still needs the
+person's consent and (for `web`) a super admin's approval, so the risk is
+small, but an unused origin is a door with no purpose behind it.
+
+**The consent screen must be Published, not left in Testing.** Testing mode
+only allows the email addresses explicitly added as test users to sign in at
+all — fine for a team pilot, a hard block for a demo audience (judges, a
+ministry contact) whose addresses were never added. Google Cloud Console →
+**APIs & Services → OAuth consent screen → Publish App**. This app requests
+only the basic profile/email scope, which is not a "sensitive" or
+"restricted" scope, so publishing does not require Google's manual
+verification review — it takes effect immediately.
 
 Origins are exact — scheme, host and port, no path and no trailing slash. A
 missing origin is the usual cause of a sign-in button that renders and then
@@ -123,7 +149,9 @@ does nothing.
 The addresses in `SUPER_ADMIN_EMAILS` become approved super admins on first
 sign-in, and are restored to that on every sign-in. That is deliberate: it is
 what makes losing access to every super admin account recoverable by editing
-configuration instead of the database.
+configuration instead of the database. Signing in on `client` never grants
+this or any other elevated access — see `client/README.md` — so it is safe
+to let anyone attempt it once the consent screen is published.
 
 ### The database host: 192.168.15.21
 
@@ -167,35 +195,43 @@ Then pick that registry when deploying the stack.
 as **exited (0)** — that is success, not a crash. `api` waits for it to finish
 before starting, so the schema is never half-applied under a live API.
 
-Only `web` publishes a host port. `api` is reachable solely from inside the
-Docker network, through nginx, because the only thing that should face the
-internet is something terminating TLS.
+`web` and `client` each publish their own host port. `api` is reachable
+solely from inside the Docker network, through each nginx, because the only
+thing that should face the internet is something terminating TLS.
 
 ## 6. TLS is not optional
 
 Android 9+ refuses cleartext HTTP, so **the collector app cannot upload to a
-plain `http://` server**. Put one of these in front of `WEB_PORT`:
+plain `http://` server**. Put one of these in front of *both* `WEB_PORT` and
+`CLIENT_PORT`:
 
-- a Cloudflare tunnel to `http://localhost:8090` — no certificate management,
-  and the account is already in use for the database
-- nginx or Traefik with a Let's Encrypt certificate
+- a Cloudflare tunnel to `http://localhost:8090` (web) and
+  `http://localhost:8091` (client) — no certificate management, and the
+  account is already in use for the database; two tunnels, one hostname each
+- nginx or Traefik with a Let's Encrypt certificate for each hostname
 
-Then set the app's server address to that HTTPS hostname.
+Then set the collector app's server address to `web`'s HTTPS hostname —
+`client` never receives measurement uploads.
 
 ## 7. Verify
 
 ```bash
-curl https://YOUR_HOST/api/v1/health/db
+curl https://aipn.chax.site/api/v1/health/db
 ```
 
 Expect `{"status":"ok","postgis":"not installed"}` — PostGIS being absent is
-expected and documented in [setup.md](setup.md).
+expected and documented in [setup.md](setup.md). `client` proxies to the same
+`api` container, so this only needs checking once.
 
 ```bash
-curl https://YOUR_HOST/api/v1/stats
+curl https://aipn.chax.site/api/v1/stats
 ```
 
-Then open `https://YOUR_HOST/` for the map.
+Then open **`https://aipn.chax.site/`** for the admin dashboard (sign-in
+wall) and **`https://map.chax.site/`** for the public site (no sign-in
+needed for the map itself — see `client/README.md`). Try signing in on each:
+the same Google account should reach the pending/approved screen on `web`
+and land back on the same public map on `client`.
 
 ## Updating
 
@@ -206,9 +242,13 @@ full reference and change it deliberately:
 ```
 BACKEND_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-backend:sha-497b81d
 WEB_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-web:sha-497b81d
+CLIENT_IMAGE=ghcr.io/tsabxyooj2018/aipnicmp-client:sha-497b81d
 ```
 
-Rolling back is then editing those two lines back to the previous sha.
+Rolling back is then editing those lines back to the previous sha. The three
+images share a git sha but are independent releases — pinning only `web` to
+an older sha while `client` tracks `latest` is a legitimate, sometimes
+useful thing to do, since they deploy independently.
 
 ## If the stack fails to deploy
 
@@ -216,7 +256,8 @@ Rolling back is then editing those two lines back to the previous sha.
 Almost always an environment variable that resolved to empty, leaving a double
 slash or a bare `:tag`. The image names now carry complete defaults, so the
 stack deploys with no variables set at all — if you still see this, something
-is overriding `BACKEND_IMAGE` or `WEB_IMAGE` with a malformed value.
+is overriding `BACKEND_IMAGE`, `WEB_IMAGE` or `CLIENT_IMAGE` with a malformed
+value.
 
 **`manifest unknown` / `denied`** means the pull failed, not the parse. The
 packages are private, so add the `ghcr.io` registry credential in step 4.

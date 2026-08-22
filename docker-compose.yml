@@ -79,6 +79,21 @@ services:
       - "${WEB_PORT:-8090}:80"
     networks: [aipnicmp]
 
+  # The public site (client/) — landing page, live map, methodology, and its
+  # own Google sign-in. A separate container from `web` on purpose: it is a
+  # separate app, built from a separate image, meant for a separate audience
+  # and (in production) a separate subdomain. See client/README.md.
+  client:
+    image: ${CLIENT_IMAGE:-ghcr.io/tsabxyooj2018/aipnicmp-client:latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_UPSTREAM: http://api:8000
+    ports:
+      - "${CLIENT_PORT:-8091}:80"
+    networks: [aipnicmp]
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped

@@ -1,0 +1,813 @@
+/**
+ * Client for the AI-PNICMP API.
+ *
+ * Types here mirror `backend/app/api/v1`. When the backend contract changes,
+ * change this file in the same commit.
+ *
+ * Cloned wholesale from web/src/api.ts (the admin dashboard's client) rather
+ * than trimmed to size. This app is public and signs in nobody, so it only
+ * ever calls the "Public preview" section at the bottom — everything above
+ * that line exists for the types MapView, Legend and coverage.ts need
+ * (TileProperties, Collector, AreaChildren, …), not because this app calls
+ * those endpoints. Keeping the whole file is what lets MapView.tsx stay a
+ * byte-for-byte copy of the admin dashboard's; trimming it would have meant
+ * maintaining a second, slightly different set of shared types by hand.
+ */
+
+export type TileColour = "green" | "yellow" | "orange" | "red_orange" | "red" | "grey";
+
+export type RadioState =
+  | "NO_CELL"
+  | "CELLS_VISIBLE_UNREGISTERED"
+  | "REGISTERED_2G_3G"
+  | "LTE_WEAK"
+  | "LTE_GOOD";
+
+/** What a state implies for spending — the project's whole policy argument. */
+export type InvestmentAction = "new_tower" | "upgrade" | "optimisation" | "none";
+
+export interface TileProperties {
+  h3: string;
+  /** Centre of the hexagon — never finer than the hexagon itself. */
+  lat?: number;
+  lon?: number;
+  colour: TileColour;
+  state: RadioState | null;
+  predicted: boolean;
+  operator?: string;
+  confidence?: number | null;
+  measurements?: number;
+  devices?: number;
+  avg_rsrp_dbm?: number | null;
+  avg_download_kbps?: number | null;
+  avg_latency_ms?: number | null;
+  worst_state?: RadioState | null;
+  last_measured_at?: string | null;
+  /** Set when the tile rests on too few devices to publish its detail. */
+  low_confidence?: boolean;
+  /**
+   * Set only by the /public/* endpoints this app actually calls.
+   * `updated_at` is the tile's own aggregation-run timestamp, shared by
+   * every hexagon rebuilt in the same pass — not `last_measured_at`, which
+   * this client never receives, because that one names a moment a
+   * particular phone was there.
+   */
+  measured?: boolean;
+  updated_at?: string | null;
+}
+
+export interface TileFeature {
+  type: "Feature";
+  geometry: { type: "Polygon"; coordinates: number[][][] };
+  properties: TileProperties;
+}
+
+export interface TileCollection {
+  type: "FeatureCollection";
+  operator?: string;
+  features: TileFeature[];
+}
+
+export interface Bounds {
+  minLat: number;
+  minLon: number;
+  maxLat: number;
+  maxLon: number;
+}
+
+export interface Summary {
+  measurements: number;
+  devices: number;
+  /** Everything ever enrolled, including handsets that reinstalled. */
+  devices_enrolled?: number;
+  tiles: number;
+  no_service_measurements: number;
+  measured_area_km2: number;
+  country_area_km2: number;
+  measured_share_pct: number;
+  tile_area_km2: number;
+  h3_resolution: number;
+  latest_measurement_at: string | null;
+  tiles_updated_at: string | null;
+  by_state: Partial<Record<RadioState, number>>;
+  by_action: Record<InvestmentAction, number>;
+  area_by_action_km2: Record<InvestmentAction, number>;
+  bounds: { min_lat: number; min_lon: number; max_lat: number; max_lon: number } | null;
+}
+
+export interface OperatorCoverage {
+  operator: string;
+  tiles: number;
+  area_km2: number;
+  by_state: Partial<Record<RadioState, number>>;
+  good_pct: number;
+  unusable_pct: number;
+  avg_rsrp_dbm: number | null;
+}
+
+export interface PriorityArea {
+  rank: number;
+  h3: string;
+  lat: number;
+  lon: number;
+  state: RadioState;
+  colour: TileColour;
+  action: InvestmentAction;
+  measurements: number;
+  devices: number;
+  area_km2: number;
+  avg_rsrp_dbm: number | null;
+  last_measured_at: string | null;
+}
+
+/** 0 country, 1 province, 2 district, 3 village — mirrors app/models/area.py. */
+export type AreaLevel = 0 | 1 | 2 | 3;
+
+export interface GeoBounds {
+  min_lat: number;
+  min_lon: number;
+  max_lat: number;
+  max_lon: number;
+}
+
+export type Geometry =
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] }
+  | { type: "Point"; coordinates: number[] };
+
+export interface Area {
+  code: string;
+  level: AreaLevel;
+  name_en: string;
+  name_lo: string | null;
+  parent_code: string | null;
+  centroid: { lat: number; lon: number };
+  bounds: GeoBounds;
+  area_km2: number | null;
+  /**
+   * False for a village published as a point rather than a polygon. The map
+   * must draw a stated-radius circle in that case, never a border — see
+   * backend/app/models/area.py.
+   */
+  has_boundary: boolean;
+  radius_m: number | null;
+  source: string | null;
+  /** Present only on the single-area endpoint. */
+  boundary?: Geometry;
+}
+
+export interface AreaCoverage {
+  tiles: number;
+  devices: number;
+  measured_area_km2: number;
+  by_state: Partial<Record<RadioState, number>>;
+  by_action: Record<InvestmentAction, number>;
+  good_pct: number;
+  unusable_pct: number;
+  /** The area's median state — always the one `colour` describes. */
+  state: RadioState | null;
+  colour: TileColour;
+  /** Too few separate devices to publish the detail below. */
+  low_confidence: boolean;
+  measurements: number | null;
+  avg_rsrp_dbm: number | null;
+  avg_download_kbps: number | null;
+  last_measured_at: string | null;
+}
+
+export interface AreaDetail {
+  area: Area;
+  operator: string | null;
+  /** Null means nothing has been measured here — not that coverage is zero. */
+  coverage: AreaCoverage | null;
+}
+
+export interface AreaChildFeature {
+  type: "Feature";
+  geometry: Geometry;
+  properties: Area & { coverage: AreaCoverage | null; colour: TileColour };
+}
+
+export interface AreaChildren {
+  type: "FeatureCollection";
+  parent: string;
+  level: AreaLevel | null;
+  level_name: string | null;
+  operator: string | null;
+  features: AreaChildFeature[];
+}
+
+/**
+ * Where a phone last reported from, to the nearest hexagon.
+ *
+ * Never the GPS fix the handset recorded — the server publishes the hexagon
+ * centroid, about 740 m across, and only the latest one. There is no history
+ * here by design: a sequence of these would be a movement record.
+ */
+export interface CollectorPosition {
+  h3_index: string;
+  lat: number;
+  lon: number;
+  resolution: number;
+  at: string;
+}
+
+/** The mast serving a collector, when the platform has managed to place it. */
+export interface ServingTower {
+  lat: number;
+  lon: number;
+  operator: string | null;
+  cell: string;
+  distance_m: number;
+  /** Both ends are estimates, so the distance carries their doubt. */
+  distance_uncertainty_m: number;
+}
+
+export interface Collector {
+  id: string;
+  position?: CollectorPosition | null;
+  /** Uploaded recently enough to count as active. See REPORTING_WINDOW. */
+  is_reporting?: boolean;
+  serving_tower?: ServingTower | null;
+  silent_for_s?: number | null;
+  model: string | null;
+  manufacturer: string | null;
+  /** Android version, not the API level — "15" rather than 35. */
+  android_version?: string | null;
+  /**
+   * What this handset manages to report.
+   *
+   * Null until it has sent a reading: absent rather than zero, because 0%
+   * would read as a phone that reports nothing rather than one nobody knows
+   * anything about yet.
+   */
+  capability?: {
+    readings: number;
+    rsrp_pct: number;
+    sinr_pct: number;
+    cells_seen: number | null;
+  } | null;
+  /**
+   * Networks this phone has reported on, busiest first. Usually one; a
+   * dual-SIM handset or one that roamed can report several. Empty until it
+   * uploads a reading with a network attached.
+   */
+  networks: string[];
+  app_version: string | null;
+  key_algorithm: string;
+  trust_level: string;
+  is_blocked: boolean;
+  is_simulated: boolean;
+  enrolled_at: string | null;
+  last_seen_at: string | null;
+  records_accepted: number;
+  records_rejected: number;
+  rejection_rate_pct: number;
+}
+
+export type UserRole = "super_admin" | "admin" | "operator" | "collector";
+export type UserStatus = "pending" | "approved" | "rejected";
+
+export interface AccountUser {
+  id: number;
+  email: string;
+  name: string | null;
+  picture_url: string | null;
+  role: UserRole;
+  /** The network an operator account is confined to. Null for other roles. */
+  scoped_operator?: string | null;
+  role_changed_at?: string | null;
+  role_changed_by?: string | null;
+  status: UserStatus;
+  requested_at: string | null;
+  decided_at: string | null;
+  decided_by: string | null;
+  last_login_at: string | null;
+  login_count: number;
+  /** Whether they appear in the credits on the public sign-in page. */
+  show_in_credits?: boolean;
+  credit_title?: string | null;
+}
+
+export interface SessionState {
+  auth_enabled: boolean;
+  /** Public by design — it identifies this application to Google. */
+  google_client_id: string;
+  authenticated: boolean;
+  approved: boolean;
+  user: AccountUser | null;
+}
+
+const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
+
+/** The server refuses a viewport wider than this; see backend tiles.py. */
+export const MAX_BBOX_DEGREES = 6;
+
+/**
+ * Thrown when the server refused the request for a stated reason, as opposed to
+ * failing. Carries the status so callers can tell "this area holds too many
+ * hexagons to draw" from "the server is down" — the first is answerable by
+ * showing the summary instead, the second is not.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(detail);
+    this.name = "ApiError";
+  }
+}
+
+async function postJson<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // The session is an httpOnly cookie, so it has to be sent explicitly.
+    credentials: "same-origin",
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
+  });
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((payload: { detail?: string }) => payload?.detail)
+      .catch(() => undefined);
+    throw new ApiError(response.status, detail ?? `${path} responded ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${BASE}${path}`, { credentials: "same-origin", signal });
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((body: { detail?: string }) => body?.detail)
+      .catch(() => undefined);
+    throw new ApiError(response.status, detail ?? `${path} responded ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+export interface TileQuery {
+  /** Ignored when `area` is set: an area bounds its own query. */
+  bounds?: Bounds | null;
+  operator?: string | null;
+  area?: string | null;
+  /** One radio state, so a reader can ask where a single problem is. */
+  state?: RadioState | null;
+}
+
+export async function fetchTiles(query: TileQuery, signal?: AbortSignal): Promise<TileCollection> {
+  const params = new URLSearchParams();
+  if (query.area) {
+    params.set("area", query.area);
+  } else if (query.bounds) {
+    params.set("min_lat", String(query.bounds.minLat));
+    params.set("min_lon", String(query.bounds.minLon));
+    params.set("max_lat", String(query.bounds.maxLat));
+    params.set("max_lon", String(query.bounds.maxLon));
+  }
+  if (query.operator) params.set("operator", query.operator);
+  if (query.state) params.set("state", query.state);
+  return getJson<TileCollection>(`/tiles?${params}`, signal);
+}
+
+/**
+ * Who is signed in, and what the sign-in screen needs to render.
+ *
+ * Always resolves — "nobody is signed in" is the application's normal first
+ * state, not a failure.
+ */
+export async function fetchSession(signal?: AbortSignal): Promise<SessionState> {
+  return getJson<SessionState>("/auth/session", signal);
+}
+
+/** Exchange a Google id token for a session on this platform. */
+export async function signInWithGoogle(credential: string): Promise<SessionState> {
+  const body = await postJson<{
+    authenticated: boolean;
+    approved: boolean;
+    user: AccountUser;
+  }>("/auth/google", { credential });
+  return { auth_enabled: true, google_client_id: "", ...body };
+}
+
+export async function signOut(): Promise<void> {
+  await postJson("/auth/logout");
+}
+
+export async function fetchUsers(
+  signal?: AbortSignal,
+): Promise<{ count: number; pending: number; users: AccountUser[] }> {
+  return getJson("/users", signal);
+}
+
+export async function decideUser(id: number, status: UserStatus): Promise<AccountUser> {
+  const body = await postJson<{ user: AccountUser }>(`/users/${id}/decision`, { status });
+  return body.user;
+}
+
+export async function setUserRole(
+  id: number,
+  role: UserRole,
+  operator?: string | null,
+): Promise<AccountUser> {
+  // The network travels with the role. Sending it separately would leave a
+  // moment where an operator account exists with no network, and that account
+  // is scoped to nothing — an empty map with no explanation.
+  const body = await postJson<{ user: AccountUser }>(`/users/${id}/role`, { role, operator });
+  return body.user;
+}
+
+/** One level of the Country → Province → District → Village cascade. */
+export async function fetchAreas(
+  parent: string | null,
+  signal?: AbortSignal,
+): Promise<Area[]> {
+  const params = new URLSearchParams();
+  if (parent) params.set("parent", parent);
+  const body = await getJson<{ areas: Area[] }>(`/areas?${params}`, signal);
+  return body.areas;
+}
+
+export async function fetchArea(
+  code: string,
+  operator?: string | null,
+  signal?: AbortSignal,
+): Promise<AreaDetail> {
+  const params = new URLSearchParams();
+  if (operator) params.set("operator", operator);
+  return getJson<AreaDetail>(`/areas/${encodeURIComponent(code)}?${params}`, signal);
+}
+
+/** Every child area with its border and its coverage — the choropleth. */
+export async function fetchAreaChildren(
+  code: string,
+  operator?: string | null,
+  signal?: AbortSignal,
+): Promise<AreaChildren> {
+  const params = new URLSearchParams();
+  if (operator) params.set("operator", operator);
+  return getJson<AreaChildren>(`/areas/${encodeURIComponent(code)}/children?${params}`, signal);
+}
+
+export async function fetchSummary(signal?: AbortSignal): Promise<Summary> {
+  return getJson<Summary>("/dashboard/summary", signal);
+}
+
+export interface Network {
+  operator: string;
+  mcc: string | null;
+  mnc: string | null;
+  tiles: number;
+  /**
+   * False for a network that exists but nobody has measured. A phone can only
+   * measure the network its own SIM is attached to, so an unmeasured operator
+   * means no collector carries that SIM — not that it has no coverage.
+   */
+  measured: boolean;
+}
+
+export async function fetchOperatorNames(signal?: AbortSignal): Promise<string[]> {
+  const body = await getJson<{ operators: string[] }>("/dashboard/operator-names", signal);
+  return body.operators;
+}
+
+/** Every Lao network, including the ones with no measurements yet. */
+export async function fetchNetworks(signal?: AbortSignal): Promise<Network[]> {
+  const body = await getJson<{ networks: Network[] }>("/dashboard/operator-names", signal);
+  return body.networks ?? [];
+}
+
+export async function fetchOperatorCoverage(signal?: AbortSignal): Promise<OperatorCoverage[]> {
+  const body = await getJson<{ operators: OperatorCoverage[] }>("/dashboard/operators", signal);
+  return body.operators;
+}
+
+export interface PriorityResponse {
+  count: number;
+  areas: PriorityArea[];
+  /** "measured" until the Layer 4 model exists — the dashboard must say which. */
+  source: string;
+  modelled_sites_available: boolean;
+}
+
+export async function fetchPriorityAreas(
+  limit = 25,
+  signal?: AbortSignal,
+): Promise<PriorityResponse> {
+  return getJson<PriorityResponse>(`/dashboard/priority-areas?limit=${limit}`, signal);
+}
+
+export async function fetchCollectors(
+  signal?: AbortSignal,
+): Promise<{ count: number; real: number; collectors: Collector[] }> {
+  return getJson<{ count: number; real: number; collectors: Collector[] }>(
+    "/dashboard/collectors",
+    signal,
+  );
+}
+
+
+/**
+ * A base station the fleet has placed, with the doubt that came with it.
+ *
+ * Derived from our own readings rather than a purchased database. The server
+ * publishes only cells whose observations were spread widely enough to
+ * constrain a position, and `uncertainty_m` is never smaller than half that
+ * spread — so the circle can be drawn rather than a point that would be
+ * believed.
+ */
+export interface ObservedCell {
+  operator: string | null;
+  cell: string;
+  observations: number;
+  uncertainty_m: number;
+  spread_m: number;
+  best_rsrp_dbm: number | null;
+  last_seen_at: string | null;
+}
+
+export async function fetchCells(operator?: string | null, signal?: AbortSignal) {
+  return getJson<{
+    type: "FeatureCollection";
+    features: {
+      type: "Feature";
+      geometry: { type: "Point"; coordinates: [number, number] };
+      properties: ObservedCell;
+    }[];
+  }>(`/cells${operator ? `?operator=${encodeURIComponent(operator)}` : ""}`, signal);
+}
+
+
+/** One weak-4G hexagon, with the evidence that ranked it. */
+export interface WeakArea {
+  rank: number;
+  h3_index: string;
+  province: string;
+  district: string;
+  avg_rsrp_dbm: number;
+  shortfall_db: number;
+  shortfall_band: WeakBand;
+  population: number;
+  people_times_shortfall: number;
+  measurements: number;
+  distance_to_nearest_cell_m: number | "";
+  terrain_ruggedness_m: number | "";
+}
+
+export type WeakBand = "under_5db" | "5_to_10db" | "over_10db";
+
+export async function fetchWeakAreas(
+  options: { operator?: string | null; area?: string | null; band?: WeakBand | null } = {},
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({ limit: "20" });
+  if (options.operator) query.set("operator", options.operator);
+  if (options.area) query.set("area", options.area);
+  if (options.band) query.set("band", options.band);
+  return getJson<{
+    type: "FeatureCollection";
+    /** Weak hexagons in scope, before the area and band filters. */
+    total: number;
+    /** How many survived those filters, against however many are returned. */
+    matched: number;
+    features: {
+      type: "Feature";
+      geometry: { type: "Polygon"; coordinates: number[][][] };
+      properties: WeakArea;
+    }[];
+  }>(`/weak-areas?${query.toString()}`, signal);
+}
+
+/** One person on the sign-in page. Never carries an address or a role name. */
+export interface CreditedPerson {
+  id: number;
+  name: string;
+  title: string | null;
+  has_avatar: boolean;
+}
+
+export interface Credits {
+  team: CreditedPerson[];
+  advisors: CreditedPerson[];
+}
+
+/** Open, because the sign-in page is where these appear. */
+export async function fetchCredits(signal?: AbortSignal) {
+  return getJson<Credits>("/credits", signal);
+}
+
+/** Put somebody on the public sign-in page, or take them off it. */
+export async function setUserCredit(
+  userId: number,
+  show: boolean,
+  title?: string | null,
+): Promise<AccountUser> {
+  const body = await postJson<{ user: AccountUser }>(`/users/${userId}/credit`, {
+    show,
+    title: title ?? null,
+  });
+  return body.user;
+}
+
+/** Served from this platform, so no visitor's browser is sent to Google. */
+export function avatarUrl(person: CreditedPerson): string {
+  return `/api/v1/credits/${person.id}/avatar`;
+}
+
+/** A handset assigned to the signed-in collector account. */
+export interface MyDevice {
+  id: string;
+  model: string | null;
+  manufacturer: string | null;
+  android_version: string | null;
+  app_version: string | null;
+  last_seen_at: string | null;
+  records_accepted: number;
+  records_rejected: number;
+  capability?: {
+    readings: number;
+    rsrp_pct: number;
+    sinr_pct: number;
+    cells_seen: number | null;
+  } | null;
+}
+
+export interface MySummary {
+  measurements: number;
+  hexagons: number;
+  by_state: Partial<Record<RadioState, number>>;
+  /** Networks this account's own handsets were on — not any operator's coverage. */
+  networks: string[];
+  latest: string | null;
+}
+
+export async function fetchMyDevices(signal?: AbortSignal) {
+  return getJson<{ devices: MyDevice[] }>("/mine/devices", signal);
+}
+
+export async function fetchMySummary(signal?: AbortSignal) {
+  return getJson<MySummary>("/mine/summary", signal);
+}
+
+/** The ground this account personally covered, never the shared hexagons. */
+export async function fetchMyTiles(signal?: AbortSignal) {
+  return getJson<TileCollection>("/mine/tiles", signal);
+}
+
+/** Every enrolled handset, with whoever already owns it. Super admin only. */
+export interface AssignableDevice {
+  /** The whole id, not the shortened one the fleet page shows. */
+  install_id: string;
+  model: string | null;
+  manufacturer: string | null;
+  records_accepted: number;
+  last_seen_at: string | null;
+  owner_user_id: number | null;
+}
+
+export async function fetchAssignableDevices(signal?: AbortSignal) {
+  return getJson<{ devices: AssignableDevice[] }>("/users/devices/assignable", signal);
+}
+
+/** Super admin only: which handsets a collector account owns. */
+export async function setUserDevices(userId: number, installIds: string[]) {
+  return postJson<{ user_id: number; install_ids: string[] }>(`/users/${userId}/devices`, {
+    install_ids: installIds,
+  });
+}
+
+export interface TowerCount {
+  operator: string;
+  /** Distinct broadcast identities heard. */
+  cells: number;
+  /** Those the readings placed. Only these can be mapped or clustered. */
+  cells_placed: number;
+  /** Placed cells grouped by proximity — the closest thing to a mast count. */
+  sites: number;
+}
+
+export async function fetchTowers(area: string | null, signal?: AbortSignal) {
+  const query = area ? `?area=${encodeURIComponent(area)}` : "";
+  return getJson<{ area: string | null; operators: TowerCount[]; cells: number; sites: number }>(
+    `/dashboard/towers${query}`,
+    signal,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public preview — the only section this app actually calls. Needs no
+// session. See backend/app/api/v1/public.py.
+//
+// No function here takes an `operator` argument. That mirrors the backend on
+// purpose: the signed-in endpoints accept one and the server enforces who may
+// use it, but the public ones were never given the parameter to accept, so
+// there is no path through this client that could ask them for one network's
+// slice of the map.
+// ---------------------------------------------------------------------------
+
+/** The server refuses a public viewport wider than this — narrower than
+ * MAX_BBOX_DEGREES, the signed-in limit; see backend public.py. */
+export const PUBLIC_MAX_BBOX_DEGREES = 3;
+
+interface PublicTileProperties {
+  h3_index: string;
+  dominant_state: RadioState | null;
+  colour: TileColour;
+  is_predicted: boolean;
+  measured: boolean;
+  updated_at: string | null;
+}
+
+/**
+ * A public hexagon, reshaped into the same `TileProperties` the signed-in
+ * `/tiles` endpoint returns.
+ *
+ * MapView reads `h3`, `state` and `predicted`; the public endpoint carries a
+ * smaller, differently-named set of fields on purpose (see public.py's
+ * `_public_feature`). Reconciled here, once, rather than teaching MapView a
+ * second vocabulary — the whole point of sharing that component is that it
+ * only has to know one.
+ */
+function toTileFeature(feature: {
+  type: "Feature";
+  geometry: TileFeature["geometry"];
+  properties: PublicTileProperties;
+}): TileFeature {
+  const { h3_index, dominant_state, colour, is_predicted, measured, updated_at } =
+    feature.properties;
+  return {
+    type: "Feature",
+    geometry: feature.geometry,
+    properties: {
+      h3: h3_index,
+      colour,
+      state: dominant_state,
+      predicted: is_predicted,
+      measured,
+      updated_at,
+    },
+  };
+}
+
+export async function fetchPublicSummary(signal?: AbortSignal): Promise<Summary> {
+  return getJson<Summary>("/public/summary", signal);
+}
+
+export async function fetchPublicTiles(
+  bounds: Bounds,
+  operator?: string | null,
+  signal?: AbortSignal,
+): Promise<TileCollection> {
+  const params = new URLSearchParams({
+    min_lat: String(bounds.minLat),
+    min_lon: String(bounds.minLon),
+    max_lat: String(bounds.maxLat),
+    max_lon: String(bounds.maxLon),
+  });
+  if (operator) params.set("operator", operator);
+  const body = await getJson<{
+    type: "FeatureCollection";
+    features: {
+      type: "Feature";
+      geometry: TileFeature["geometry"];
+      properties: PublicTileProperties;
+    }[];
+  }>(`/public/tiles?${params}`, signal);
+  return { type: "FeatureCollection", features: body.features.map(toTileFeature) };
+}
+
+/** Every Lao network, measured or not — see backend public.py's
+ * `/public/networks` and decision 26 in docs/decisions.md for why a
+ * network's own coverage is public, on request, by name. */
+export async function fetchPublicNetworks(signal?: AbortSignal): Promise<Network[]> {
+  const body = await getJson<{ networks: Network[] }>("/public/networks", signal);
+  return body.networks;
+}
+
+/** The hierarchy at one level — a dropdown's worth, no boundaries. */
+export async function fetchPublicAreas(
+  level: AreaLevel,
+  signal?: AbortSignal,
+): Promise<Area[]> {
+  const body = await getJson<{ areas: Area[] }>(`/public/areas?level=${level}`, signal);
+  return body.areas;
+}
+
+export async function fetchPublicArea(
+  code: string,
+  signal?: AbortSignal,
+): Promise<{ area: Area; coverage: AreaCoverage | null }> {
+  return getJson(`/public/areas/${encodeURIComponent(code)}`, signal);
+}
+
+/** Every child area, with its border and its coverage — the public choropleth. */
+export async function fetchPublicAreaChildren(
+  code: string,
+  signal?: AbortSignal,
+): Promise<AreaChildren> {
+  return getJson<AreaChildren>(`/public/areas/${encodeURIComponent(code)}/children`, signal);
+}

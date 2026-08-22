@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     # closed, not open. Set AUTH_ENABLED=false only for local development.
     auth_enabled: bool = True
 
+    # Whether a stranger with no account may see the public preview — the
+    # combined-network map and headline numbers only, at /api/v1/public/*.
+    #
+    # On by default, because letting an anonymous visitor in is the entire
+    # purpose of that router. Set PUBLIC_PREVIEW_ENABLED=false if a data
+    # owner ever asks for it to come down; every route under /public then
+    # answers 404, not 403 — 403 would confirm the router still exists.
+    public_preview_enabled: bool = True
+
     # The accounts that may approve others, as a comma-separated list of email
     # addresses. Without at least one, nobody can ever be approved — the first
     # super admin cannot approve themselves into existence.

@@ -1,0 +1,3174 @@
+:root {
+  --ink: #131a24;
+  --muted: #64707f;
+  --line: #e3e7ed;
+  --panel: #ffffff;
+  --page: #f5f7fa;
+  --accent: #c1121f;
+  --good: #1f9d55;
+
+  --sidebar: #16202c;
+  --sidebar-ink: #cfd8e3;
+  --sidebar-muted: #7f8ea1;
+  --sidebar-active: #1f2c3c;
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgb(16 32 44 / 6%), 0 4px 16px rgb(16 32 44 / 6%);
+
+  font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans Lao", "Phetsarath OT", sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Lao script has taller ascenders and descenders than Latin; without extra
+   leading the sidebar and table rows collide with themselves. */
+:root:lang(lo) {
+  line-height: 1.65;
+}
+
+/* ---------- shell ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 100%;
+  background: var(--page);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- sidebar ---------- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar);
+  color: var(--sidebar-ink);
+  overflow-y: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand-text strong {
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.brand-text em {
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--sidebar-muted);
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.75rem 0.6rem;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--sidebar-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: rgb(255 255 255 / 5%);
+}
+
+.nav-item.on {
+  background: var(--sidebar-active);
+  color: #fff;
+}
+
+/* A left rule rather than a filled block: it marks the current page without
+   competing with the map's own colours, which carry meaning here. */
+.nav-item.on .nav-icon {
+  color: var(--accent);
+}
+
+.nav-icon {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  color: var(--sidebar-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.nav-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.88rem;
+}
+
+.nav-label em {
+  font-style: normal;
+  font-size: 0.71rem;
+  color: var(--sidebar-muted);
+  line-height: 1.35;
+}
+
+.sidebar-foot {
+  padding: 1rem 1.25rem 1.4rem;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.sidebar-foot p {
+  margin: 0.7rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--sidebar-muted);
+}
+
+.get-app {
+  display: block;
+  padding: 0.55rem 0.9rem;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.get-app:hover {
+  filter: brightness(1.08);
+}
+
+.scrim {
+  display: none;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  /* Wraps at every width, not only below 900px. The controls have grown —
+     network, state, basemap, 3D, priority, shortfall, language — and with a
+     non-wrapping row the title was squeezed to about a hundred pixels and set
+     one word per line. Wrapping moves the controls to their own row instead of
+     destroying the heading, at whatever width that happens to be. */
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  padding: 0.95rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-title {
+  /* A basis rather than `flex: 1`, so the heading holds a readable width and
+     is what forces the wrap when the controls stop fitting beside it. */
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+/* Breaking a heading mid-word to fit is worse than letting it overflow its
+   basis, and `balance` keeps a two-line title from leaving one orphan word. */
+.topbar-title h1 {
+  overflow-wrap: normal;
+  text-wrap: balance;
+}
+
+.topbar-title h1 {
+  margin: 0;
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
+}
+
+.topbar-title p {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  /* Wrap among themselves before the row overflows, and sit to the right of
+     the heading while they still fit beside it. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+}
+
+.select {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.segmented {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.segmented button {
+  border: none;
+  background: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmented button.on {
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(16 32 44 / 12%);
+}
+
+/* Matches the segmented control beside it, but stands alone: it answers a
+   different question from the basemap and either can be on. */
+.toggle-3d {
+  flex: none;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-3d:hover {
+  color: var(--ink);
+}
+
+.toggle-3d.on {
+  background: var(--sidebar);
+  border-color: var(--sidebar);
+  color: #ffffff;
+}
+
+.menu-button {
+  display: none;
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+/* ---------- metric strip ---------- */
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2.5rem;
+  margin: 0;
+  padding: 0.85rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.metrics div {
+  display: flex;
+  flex-direction: column;
+}
+
+.metrics dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.metrics dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.metrics dd.small {
+  font-size: 1.05rem;
+  font-weight: 550;
+}
+
+.metrics .sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* The number that makes the case for investment deserves to look like it. */
+.metrics .highlight dd {
+  color: var(--accent);
+}
+
+.stat-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-bottom: 1px dashed currentColor;
+}
+
+.stat-link:hover {
+  opacity: 0.75;
+}
+
+/* ---------- panes ---------- */
+
+main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane {
+  position: absolute;
+  inset: 0;
+}
+
+.pane.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pane.scrollable {
+  overflow-y: auto;
+  background: var(--page);
+  z-index: 3;
+}
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- panels ---------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.35rem 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
+}
+
+.panel-head p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+  max-width: 78ch;
+  line-height: 1.5;
+}
+
+.pill {
+  flex: none;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--page);
+  border: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---------- investment cards ---------- */
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.95rem 1rem 1.05rem;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--line);
+  border-radius: 10px;
+}
+
+.action-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.action-count {
+  font-size: 1.8rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-area {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ---------- proportional state bar ---------- */
+
+.state-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--page);
+}
+
+.state-bar span {
+  display: block;
+  height: 100%;
+}
+
+.state-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+}
+
+.state-legend li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.state-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- tables ---------- */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.6rem 0.8rem;
+  text-align: start;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.data-table th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom-width: 2px;
+}
+
+.data-table tbody tr:hover {
+  background: var(--page);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table .num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table .rank {
+  color: var(--muted);
+}
+
+.data-table .good {
+  color: var(--good);
+}
+
+.data-table .bad {
+  color: var(--accent);
+}
+
+.data-table .coords {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.muted-row {
+  color: var(--muted);
+}
+
+.device-name {
+  display: block;
+  font-weight: 550;
+}
+
+.device-meta {
+  display: block;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-inline-end: 0.45rem;
+  vertical-align: 1px;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.caveat {
+  margin: 0 0 1.1rem;
+  padding: 0.65rem 0.85rem;
+  background: #fff8e8;
+  border-inline-start: 3px solid #e3b505;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #6b4e00;
+}
+
+/* ---------- legend (map) ---------- */
+
+.legend {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 1rem;
+  width: 288px;
+  padding: 0.9rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 1;
+
+  /* Anchored to the bottom, so it grows upward. Without a ceiling it ran off
+     the top of the window and the heading and first colour went with it —
+     silently, because an overflowing absolute box does not clip or scroll, it
+     just leaves. The heading stays put and the rest scrolls under it. */
+  display: flex;
+  flex-direction: column;
+  /* border-box so the ceiling counts the panel's own padding and border.
+     Without it the cap applies to the content alone, and on a short window the
+     panel grew past its own limit until it sat flush against the top edge. */
+  box-sizing: border-box;
+  /* Of the map area, not the window: the legend sits inside the map, and a
+     viewport-height ceiling would let it climb over the topbar instead of
+     stopping at the map it belongs to. The short-screen rule further down
+     tightens this to 1rem, and only ever tightens it. */
+  max-height: calc(100% - 2rem);
+}
+
+.legend-body {
+  overflow-y: auto;
+  /* A flex child will not shrink below its content without this, which would
+     put the ceiling back exactly where it was. */
+  min-height: 0;
+  overscroll-behavior: contain;
+  /* Let the scrollbar sit in the panel's own padding rather than pushing the
+     text in by its width only when it happens to appear. */
+  margin-inline-end: -0.5rem;
+  padding-inline-end: 0.5rem;
+}
+
+.legend-more {
+  margin-top: 0.55rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+
+.legend-more summary {
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--muted);
+  /* The default triangle sits too far from the text at this size. */
+  list-style-position: outside;
+  padding-inline-start: 0.1rem;
+}
+
+.legend-more summary:hover {
+  color: var(--ink);
+}
+
+.legend-more summary:focus-visible {
+  /* Not var(--accent): that is red, which on this map is the colour of an
+     area with no network at all. A focus ring must not read as a reading. */
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.legend-more p {
+  margin-top: 0.45rem;
+}
+
+.legend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.legend-head {
+  /* A hairline under the title, so the colour scale reads as a list under a
+     heading rather than as one undifferentiated block of text. */
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.legend-head h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.legend-head button {
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  /* No negative offset: the title no longer carries the gap below it, so the
+     close button can simply sit on the same line. */
+  padding: 0;
+}
+
+.legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.legend li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.legend-text strong {
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.legend-text em {
+  font-size: 0.73rem;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.swatch {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  border-radius: 4px;
+  border: 1px solid rgb(0 0 0 / 12%);
+}
+
+.swatch.large {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.swatch-predicted {
+  display: inline-block;
+  background: repeating-linear-gradient(45deg, #b9c1cc 0 4px, #eef1f5 4px 8px);
+  vertical-align: -2px;
+}
+
+.legend-note {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.legend-note p {
+  margin: 0 0 0.4rem;
+  font-size: 0.73rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.legend-note p:last-child {
+  margin-bottom: 0;
+}
+
+.legend-toggle {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.legend-swatches {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.legend-swatches span {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+/* ---------- tile inspector ---------- */
+
+.inspector {
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.inspector .close {
+  position: absolute;
+  top: 0.4rem;
+  inset-inline-end: 0.5rem;
+  border: none;
+  background: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.inspector-head {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding-inline-end: 1.2rem;
+}
+
+.inspector-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.inspector .muted {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.operator-tag {
+  display: inline-block;
+  margin: 0.7rem 0 0;
+  padding: 0.15rem 0.55rem;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.73rem;
+  color: var(--muted);
+}
+
+.remedy {
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--page);
+  border-inline-start: 3px solid var(--ink);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.inspector dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem 1rem;
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+}
+
+.inspector dl div {
+  display: contents;
+}
+
+.inspector dt {
+  color: var(--muted);
+}
+
+.inspector dd {
+  margin: 0;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+.hexid {
+  margin: 1rem 0 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* Coordinates and the way there, under the hexagon's figures. */
+.inspector-place {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.inspector-place dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.inspector-place dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0;
+}
+
+.inspector-place .coords {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: absolute;
+  inset-inline-start: 50%;
+  bottom: 1.4rem;
+  transform: translateX(-50%);
+  max-width: 440px;
+  padding: 0.55rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  z-index: 1;
+}
+
+.toast.error {
+  color: #7a1018;
+  background: #fdecee;
+  border-color: #f6c9ce;
+}
+
+/* ---------- area filter ---------- */
+
+.area-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* The cascade can reach four controls. On a laptop that is wider than the
+     rest of the toolbar put together, so it scrolls rather than pushing the
+     language and basemap controls off the edge. */
+  max-width: 46vw;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.area-filter.busy {
+  opacity: 0.65;
+}
+
+.area-filter .select {
+  max-width: 11rem;
+}
+
+/* ---------- selected area summary ---------- */
+
+.area-summary {
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.area-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.area-summary-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.area-summary-head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.area-summary-head button {
+  flex: none;
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.area-caveat {
+  margin: 0.8rem 0 0;
+}
+
+.area-empty {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.area-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.area-headline span:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.area-headline strong {
+  font-size: 0.9rem;
+}
+
+.area-headline em {
+  font-size: 0.73rem;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.area-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.9rem;
+  margin: 0.95rem 0 0;
+}
+
+.area-stats div {
+  margin: 0;
+}
+
+.area-stats dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.area-stats dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.area-stats dd.good {
+  color: var(--good);
+}
+
+.area-stats dd.bad {
+  color: var(--accent);
+}
+
+.area-stats .sub {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.area-note {
+  margin: 0.9rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.area-source {
+  margin: 0.5rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* ---------- sign in ---------- */
+
+.boot {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.login {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 2rem 1rem;
+  overflow: hidden;
+  /*
+    A ground for the card to sit on rather than a page it floats in.
+    The two corner washes it had were the same value as --page, so on a wide
+    screen the whole thing read as flat white and the country behind it never
+    arrived. A cool slate, deepening downward, with one light source above the
+    card: the card then reads as paper on a desk, which is the tone a ministry
+    portal wants and the one the map already has.
+  */
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -5%, #f2f6fb 0%, transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 105%, #cfd9e8 0%, transparent 70%),
+    linear-gradient(180deg, #e7edf6 0%, #dae2ee 100%);
+}
+
+/* ---------- the country behind the card ---------- */
+
+.login-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  /* Held back, but it has to arrive. At 0.5 against the old near-white ground
+     the country was invisible at a glance and at a stare — held back is not
+     the same as absent, and a backdrop nobody ever sees is weight with no
+     benefit. */
+  opacity: 0.85;
+}
+
+.login-backdrop svg {
+  width: min(115vh, 96vw);
+  height: 100%;
+  overflow: visible;
+}
+
+.backdrop-land {
+  /* A shade darker than the ground it sits on, not a shade lighter. The
+     country should read as land, and land is the solid thing here. */
+  fill: #ccd8e9;
+  stroke: none;
+}
+
+.backdrop-provinces path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.4;
+  stroke-opacity: 0.65;
+}
+
+.backdrop-border {
+  fill: none;
+  stroke: #8ba0bc;
+  stroke-width: 2;
+  stroke-opacity: 0.8;
+}
+
+/* The measurement grid at rest. */
+.backdrop-hexes {
+  /* The unit this platform measures in, at rest behind the sign-in. Uniform
+     on purpose: the five coverage colours mean five specific things about
+     signal, and a decorative grid wearing any of them would be read as data
+     about a country nobody has finished measuring. */
+  fill: #a6bad4;
+  opacity: 0.6;
+}
+
+/*
+  The one moving thing on the page: a band of light travelling west to east
+  across the hexagons, the way a survey crosses the country.
+
+  Transform only, so it stays on the compositor and costs a phone almost
+  nothing — no repaint, no layout, and no per-hexagon animation.
+*/
+.backdrop-sweep {
+  fill-opacity: 0.85;
+  animation: backdrop-sweep 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+
+@keyframes backdrop-sweep {
+  from {
+    transform: translateX(var(--sweep-from));
+  }
+  to {
+    transform: translateX(var(--sweep-to));
+  }
+}
+
+/*
+  Motion is decoration here and carries no information, so it is the first
+  thing to go for anyone who has asked for less of it. The grid stays.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-sweep {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.login-card {
+  position: relative;
+  width: min(920px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgb(16 32 44 / 5%), 0 18px 50px rgb(16 32 44 / 10%);
+  overflow: hidden;
+}
+
+.login-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.4rem 1.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.login-head h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.login-head p {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.login-language {
+  margin-inline-start: auto;
+}
+
+.login-body {
+  display: grid;
+  /* The credits are not a footnote, but they are not the task either. */
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.login-action {
+  padding: 2.2rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.login-action h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+}
+
+.login-why {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* Google's icon button, with our own label beside it — so the words on this
+   screen are always the same words, never somebody's address. */
+/*
+  No pill of our own around Google's button any more. A container styled to
+  look like a button, with the real one inside it, is a false affordance: most
+  of it was not clickable and there was no way to tell by looking.
+*/
+.login-google {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.3rem;
+}
+
+/*
+  Google's rendered button, laid over the entire card and made invisible.
+
+  It has to stay the element that is clicked: the sign-in flow starts only from
+  Google's own element, and a click forwarded to it from ours is ignored. So
+  rather than shrink it to an icon and put our label beside it — which left
+  seven eighths of a 238px button inert — it is stretched across everything and
+  the visible face is drawn underneath by us.
+
+  opacity, not visibility or display: a transparent element is still hit-tested,
+  a hidden one is not. Verified in the browser at five points across the card.
+*/
+/*
+  Google's button, left exactly as Google draws it.
+
+  It lives in a cross-origin iframe, so its clickable area is whatever size
+  Google was asked to render — CSS that stretches the frame stretches only the
+  frame. Overriding these dimensions is what made the button unpressable, so
+  nothing here touches them.
+*/
+.login-button {
+  display: flex;
+  justify-content: center;
+}
+
+.login-google-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.login-google-label-old {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.login-google-label strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.login-google-label em {
+  font-style: normal;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.login-note {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.login-error {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: #fdecee;
+  border: 1px solid #f6c9ce;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #7a1018;
+}
+
+.login-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.login-pending-mark {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.login-pending h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.login-pending p {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.login-account {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.login-account img {
+  border-radius: 50%;
+}
+
+.login-account span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.login-account em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.login-credits {
+  padding: 2.2rem 1.8rem;
+  background: var(--page);
+  border-inline-start: 1px solid var(--line);
+}
+
+.login-credits h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.login-credits h2:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
+.login-credits ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.login-credits li {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.login-credits strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.login-credits em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.login-affiliation {
+  margin: 1.6rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------- account, in the sidebar ---------- */
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.65rem;
+  background: var(--sidebar-active);
+  border-radius: 10px;
+}
+
+.sidebar-account img {
+  border-radius: 50%;
+  flex: none;
+}
+
+.sidebar-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.sidebar-account-text strong {
+  font-size: 0.8rem;
+  color: var(--sidebar-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-account-text em {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--sidebar-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-signout {
+  margin-inline-start: auto;
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0.2rem;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--sidebar-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sidebar-signout:hover {
+  color: var(--sidebar-ink);
+}
+
+/* ---------- access ---------- */
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.user-cell img {
+  border-radius: 50%;
+  flex: none;
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.button-approve,
+.button-reject {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.3rem 0.7rem;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button-approve {
+  border-color: #bfe3cc;
+  background: #f0faf3;
+  color: #146c39;
+}
+
+.button-reject {
+  border-color: #f6c9ce;
+  background: #fdf3f4;
+  color: #7a1018;
+}
+
+.button-approve:disabled,
+.button-reject:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pill.good {
+  color: #146c39;
+  background: #f0faf3;
+  border-color: #bfe3cc;
+}
+
+.pill.bad {
+  color: #7a1018;
+  background: #fdf3f4;
+  border-color: #f6c9ce;
+}
+
+/* ---------- narrow screens ---------- */
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 274px;
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
+    z-index: 20;
+  }
+
+  .sidebar.open {
+    transform: none;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgb(10 16 22 / 45%);
+    z-index: 19;
+  }
+
+  .menu-button {
+    display: block;
+  }
+
+  .metrics {
+    gap: 0 1.4rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .metrics dd {
+    font-size: 1.1rem;
+  }
+
+  /* The controls no longer fit beside the title, so they take a row of their
+     own and wrap within it. Without this the toolbar simply ran off the side
+     of the screen and took the whole document's width with it. */
+  .topbar {
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+  }
+
+  .topbar-title {
+    flex: 1 1 100%;
+  }
+
+  /* Below this the sidebar is gone and the controls have their own row. Seven
+     of them wrapped there cost 337px of a 768px tablet — a third of the screen
+     taken from the map they control. One scrolling strip instead: every
+     control stays reachable and the bar costs one row. Wrapping is right when
+     there is width to wrap into, and here there is not. */
+  .topbar-actions {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    /* Momentum scrolling on iOS, and no scrollbar gutter stealing height. */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Controls keep their natural width inside the strip rather than being
+     squeezed until their labels truncate. */
+  .topbar-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .page {
+    padding: 1rem 1rem 3rem;
+  }
+
+  /* Panels keep their natural width here. A tablet has room for a 300 px card
+     beside the map; stretching it across a 768 px screen buries the map it is
+     describing. Full width is a phone measure, applied further down. */
+  .inspector {
+    max-height: 55%;
+  }
+
+  .area-summary {
+    max-height: 50%;
+  }
+
+  /* The toolbar wraps on a phone, so the cascade may use the full width and
+     wrap its own selects rather than scroll them out of reach. */
+  .area-filter {
+    max-width: 100%;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* A basis small enough that two selects share a row rather than each
+     claiming one — province and district are read together. */
+  .area-filter .select {
+    flex: 1 1 6.5rem;
+    min-width: 0;
+    max-width: none;
+  }
+
+}
+
+/* ---------- phones ----------
+
+   The map is the product. On a 375 px screen the header and the metric strip
+   were taking 571 px of an 812 px viewport and leaving the map 240 px, which
+   is a caption with a map attached rather than the other way round. Everything
+   below buys that space back.
+*/
+
+@media (max-width: 640px) {
+  /* The tagline is two lines of prose the map itself already makes. */
+  .topbar-title p {
+    display: none;
+  }
+
+  .topbar {
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  .topbar-title h1 {
+    font-size: 1rem;
+  }
+
+  .topbar-actions {
+    gap: 0.4rem;
+  }
+
+  .select {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* One scrolling row instead of a wrapped block: five stacked statistics cost
+     more vertical space than they are worth next to the map they describe. */
+  .metrics {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0 1.5rem;
+    padding: 0.55rem 0.9rem;
+    scrollbar-width: none;
+  }
+
+  .metrics::-webkit-scrollbar {
+    display: none;
+  }
+
+  .metrics div {
+    flex: 0 0 auto;
+  }
+
+  .metrics dd {
+    font-size: 1rem;
+  }
+
+  .metrics dt,
+  .metrics .sub {
+    font-size: 0.62rem;
+  }
+
+  /*
+    Two panels that sit on opposite sides of a desktop map land on top of each
+    other once both are full width. The area summary keeps the top; the tile
+    inspector becomes a bottom sheet, which is where a phone expects detail
+    about the thing it just tapped anyway.
+  */
+  .legend,
+  .area-summary {
+    width: calc(100% - 2rem);
+  }
+
+  .area-summary {
+    max-height: 42%;
+  }
+
+  .inspector {
+    top: auto;
+    bottom: 0;
+    inset-inline: 0;
+    width: 100%;
+    max-height: 48%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: none;
+    z-index: 4;
+  }
+
+  .toast {
+    max-width: calc(100% - 2rem);
+    font-size: 0.75rem;
+  }
+
+  /* ---------- sign in, on a phone ----------
+
+     The card stacks only here, not at the shell's 900 px breakpoint. That one
+     exists because the sidebar has to fold away; this card has no sidebar and
+     two columns fit comfortably at 800 px. Stacking it there made the card
+     884 px tall on a 375 px-tall landscape screen for no reason at all.
+  */
+
+  .login {
+    padding: 1rem 0.75rem;
+  }
+
+  .login-card {
+    border-radius: 14px;
+  }
+
+  .login-body {
+    grid-template-columns: 1fr;
+  }
+
+  .login-credits {
+    border-inline-start: none;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Every panel loses roughly a third of its padding: on a 375 px screen that
+     is the difference between the sign-in button being on the first screen and
+     below it. */
+  .login-head {
+    gap: 0.7rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .login-head h1 {
+    font-size: 1rem;
+  }
+
+  .login-head p {
+    font-size: 0.72rem;
+  }
+
+  .login-action {
+    padding: 1.5rem 1.1rem;
+  }
+
+  .login-action h2 {
+    font-size: 1.25rem;
+  }
+
+  .login-why {
+    font-size: 0.84rem;
+  }
+
+  .login-credits {
+    padding: 1.4rem 1.1rem;
+  }
+
+  .login-credits ul {
+    gap: 0.45rem;
+  }
+
+  .login-affiliation {
+    margin-top: 1.1rem;
+  }
+
+  .login-pending p,
+  .login-note {
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- short viewports ----------
+
+   A phone held sideways is 375 px tall, and the header plus the metric strip
+   were taking 301 px of it — leaving 74 px of map, which is a sliver. Width
+   breakpoints cannot see this: the same 812x375 screen is "desktop-wide".
+
+   So the strip goes. It is the least load-bearing thing on the page — every
+   figure in it is on the Overview page in more detail — and it is the only one
+   whose removal buys the map a usable amount of height.
+*/
+
+@media (max-height: 560px) {
+  .metrics {
+    display: none;
+  }
+
+  .topbar-title p {
+    display: none;
+  }
+
+  .topbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .topbar-title h1 {
+    font-size: 1rem;
+  }
+
+  /* Sideways there is width to spare, so the title stops claiming a full row
+     and the controls sit beside it again. They still wrap if they genuinely do
+     not fit. */
+  .topbar-title {
+    flex: 1 1 auto;
+  }
+
+  .topbar-actions {
+    flex: 0 1 auto;
+  }
+
+  .legend,
+  .inspector,
+  .area-summary {
+    max-height: calc(100% - 1rem);
+  }
+
+  /* Sideways there is width but almost no height, so the sign-in card spends
+     as little of it as possible on padding. */
+  .login {
+    padding: 0.75rem;
+  }
+
+  .login-head {
+    padding: 0.75rem 1.2rem;
+  }
+
+  .login-action,
+  .login-credits {
+    padding: 1.3rem 1.3rem;
+  }
+}
+
+/* --- live updates ------------------------------------------------------- */
+
+/*
+  The live control doubles as the fleet count, because the two questions are
+  really one: "is this page still listening, and is anything being collected".
+  A dashboard that has quietly stopped refreshing looks exactly like one where
+  nothing is happening, and the difference matters at 3am on a wall display.
+*/
+.live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+}
+
+.live-toggle .live-dot {
+  inline-size: 0.55em;
+  block-size: 0.55em;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.live-toggle.live-on {
+  color: #1f7a3d;
+}
+
+.live-toggle.live-on .live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* A steady dot reads as a status light; a pulsing one reads as a heartbeat.
+   Only the live state pulses, so "paused" is legible at a glance. */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-toggle.live-on .live-dot { animation: none; }
+}
+
+/* ---------- docked detail rail ---------- */
+
+/*
+  The map and its explanation share the width rather than fighting for it.
+
+  Both panels used to float over the map, which put the answer on top of the
+  thing it described — select a province and the province disappeared under
+  its own summary. Docking costs some map width and hides nothing.
+*/
+/* A column: the scope banner across the top, then the map and its rail
+   side by side beneath it. This was a row, which made the banner a third
+   column standing beside the map rather than a strip above it. */
+.map-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-row {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  /* Without this the row refuses to shrink below its content and the map
+     overflows the pane instead of filling what the banner left. */
+  min-height: 0;
+}
+
+.map-area {
+  position: relative;
+  flex: 1 1 auto;
+  /* Without this a flex child refuses to shrink below its content, and the
+     rail pushes the map off the side instead of narrowing it. */
+  min-width: 0;
+}
+
+.detail-rail {
+  position: relative;
+  flex: 0 0 340px;
+  display: flex;
+  border-inline-start: 1px solid var(--line);
+  background: var(--page);
+  transition: flex-basis 0.18s ease;
+}
+
+.detail-rail.collapsed {
+  flex-basis: 0;
+}
+
+.rail-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.detail-rail.collapsed .rail-body {
+  display: none;
+}
+
+/* Sits on the map side of the border so it stays reachable when collapsed —
+   a rail with no way back is just a closed panel. */
+.rail-handle {
+  position: absolute;
+  inset-inline-start: -22px;
+  top: 1rem;
+  inline-size: 22px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-inline-end: 0;
+  border-start-start-radius: var(--radius);
+  border-end-start-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.rail-handle:hover {
+  color: var(--text);
+}
+
+/*
+  Below this the rail would leave too little map to be worth looking at, so it
+  becomes a sheet across the bottom instead — the same panel, docked to the
+  edge with the most room on a phone held upright.
+*/
+@media (max-width: 900px) {
+  .map-shell {
+    flex-direction: column;
+  }
+
+  .detail-rail {
+    flex: 0 0 auto;
+    max-block-size: 45vh;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--line);
+  }
+
+  .detail-rail.collapsed {
+    max-block-size: 0;
+    border-block-start: 0;
+  }
+
+  .rail-handle {
+    inset-inline-start: 50%;
+    top: -22px;
+    transform: translateX(-50%) rotate(90deg);
+  }
+}
+
+/* ---------- language picker ---------- */
+
+/*
+  Not a <select>: that element holds text only, so a flag cannot go inside one,
+  and the emoji alternative renders as the letters "LA" on Windows — which is
+  what the whole pilot runs on. Styled to sit level with the real selects
+  beside it, so replacing the element does not show.
+*/
+.language-picker {
+  position: relative;
+}
+
+.language-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  /* Room for the caret drawn below, matching a native select's arrow gutter. */
+  padding-inline-end: 1.6rem;
+}
+
+.language-button svg,
+.language-option svg {
+  /* A hairline keeps a white-edged flag from dissolving into a light panel. */
+  border: 0.5px solid rgb(0 0 0 / 0.25);
+  border-radius: 1px;
+  flex: none;
+}
+
+.language-caret {
+  position: absolute;
+  inset-inline-end: 0.6rem;
+  inline-size: 0;
+  block-size: 0;
+  border-inline-start: 4px solid transparent;
+  border-inline-end: 4px solid transparent;
+  border-block-start: 5px solid currentColor;
+  opacity: 0.55;
+}
+
+.language-menu {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: 0;
+  min-inline-size: 100%;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /* Above the map and its controls, which draw their own stacking context. */
+  z-index: 40;
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  inline-size: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: none;
+  font: inherit;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.language-option:hover,
+.language-option:focus-visible {
+  background: var(--hover, rgb(127 127 127 / 0.14));
+}
+
+/* Weight rather than a tick: the row is already short, and a tick column would
+   indent every label to make room for a mark on one of them. */
+.language-option.chosen {
+  font-weight: 600;
+}
+
+/* Matches the map marker exactly, so the legend and the map cannot drift. */
+/* The legend swatch alternates with the marker, so the two cannot disagree
+   about what a collector looks like. Static under reduced motion, matching
+   the map. */
+.swatch-collector {
+  background: #e11d2f;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 18%);
+  animation: collector-beacon 1.4s steps(1, end) infinite;
+}
+
+@keyframes collector-beacon {
+  0%, 50% { background: #e11d2f; }
+  50.01%, 100% { background: #1d4ed8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swatch-collector { animation: none; }
+}
+
+/* The swatches that sit inline in a sentence rather than in the list.
+   `.swatch` is laid out for a flex row, where `margin-top` centres it; in a
+   paragraph that margin just pushes it off the line. */
+.legend-note .swatch {
+  display: inline-block;
+  margin-top: 0;
+  vertical-align: -2px;
+}
+
+/* Enrolments with no readings — present, but not counted as a fleet. */
+.dormant {
+  margin-block-start: 1.25rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.dormant h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.dormant-why {
+  margin: 0.3rem 0 0.7rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-inline-size: 60ch;
+}
+
+.dormant ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.4rem 1rem;
+}
+
+.dormant li {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.75;
+}
+
+/* ---------- collector hover ---------- */
+
+.collector-popup .maplibregl-popup-content {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.collector-popup .maplibregl-popup-tip {
+  border-top-color: var(--panel);
+  border-bottom-color: var(--panel);
+}
+
+/* Tabular figures so the two coordinates line up under each other rather than
+   jittering as the digits change. */
+.collector-popup-coords {
+  display: block;
+  margin-block-start: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.collector-popup-note {
+  display: block;
+  margin-block-start: 0.3rem;
+  max-inline-size: 22ch;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* The caveat under the tower counts. Part of the figure, not decoration:
+   these are lower bounds on a network, and the table must not read as a
+   register of what an operator owns. */
+.towers-note {
+  margin: 0.9rem 0 0;
+  max-inline-size: 78ch;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+/* ---------- network-account scope ---------- */
+
+/*
+  Says what is being shown before the reader draws a conclusion from it. A
+  filtered map looks exactly like a complete one, and an operator seeing few
+  hexagons should understand they are seeing their own network rather than a
+  country with little coverage.
+*/
+.scope-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  padding: 0.6rem 1rem;
+  border-block-end: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+.scope-banner strong {
+  font-size: 0.9rem;
+}
+
+/* ---------- choosing a network for an account ---------- */
+
+.operator-picker {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(16 32 44 / 45%);
+  z-index: 60;
+}
+
+.operator-picker-card {
+  max-inline-size: 34rem;
+  padding: 1.25rem 1.4rem 1.1rem;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.operator-picker-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.operator-picker-card p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.operator-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block-end: 0.9rem;
+}
+
+.operator-option {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.operator-option:hover {
+  border-color: var(--accent);
+}
+
+.operator-option.chosen {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Says the photograph has run out, not that the map has failed. Sits by the
+   scale bar, where a reader already looks to judge distance. */
+.imagery-limit {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 3.4rem;
+  max-inline-size: 30ch;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+  background: rgb(16 32 44 / 72%);
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Which colour is whose mast. */
+.legend-masts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+}
+
+.legend-mast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.swatch-mast {
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 20%);
+}
+
+/* The uncertainty halo, drawn the way the map draws it: a wide pale disc with
+   a small solid dot at its centre, so the swatch itself shows that the circle
+   is about the dot's position rather than the mast's reach. */
+.swatch-mast-halo {
+  border-radius: 50%;
+  border: 1px solid rgb(15 118 110 / 45%);
+  background:
+    radial-gradient(circle, #0f766e 0 2.5px, rgb(15 118 110 / 12%) 2.5px 100%);
+}
+
+.swatch-mast-vague {
+  border-radius: 50%;
+  border: 1px solid rgb(15 118 110 / 18%);
+  background:
+    radial-gradient(circle, rgb(15 118 110 / 45%) 0 2.5px, rgb(15 118 110 / 5%) 2.5px 100%);
+}
+
+/* ---------- the methods note ---------- */
+
+/* Rendered from docs/METHOD.md, so this styles a document rather than a
+   dashboard: one column, generous line height, and a measure short enough to
+   read a paragraph of prose in. The pages either side of it are tables and
+   figures, which is why none of their styling fits here. */
+.method {
+  max-width: 46rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.method-language {
+  margin: 0 0 1.75rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--page);
+  border-inline-start: 3px solid var(--line);
+  border-radius: 0 4px 4px 0;
+}
+
+.method h1 {
+  font-size: 1.45rem;
+  line-height: 1.25;
+  margin: 0 0 1rem;
+}
+
+.method h2 {
+  font-size: 1.1rem;
+  margin: 2.4rem 0 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.method h3 {
+  font-size: 0.95rem;
+  margin: 1.8rem 0 0.5rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.method p {
+  margin: 0 0 1rem;
+}
+
+.method ul {
+  margin: 0 0 1.1rem;
+  padding-inline-start: 1.2rem;
+}
+
+.method li {
+  margin-bottom: 0.4rem;
+}
+
+.method hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.method code {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  background: var(--page);
+  border-radius: 3px;
+}
+
+/* A wide table scrolls inside its own box. Without this the whole page scrolls
+   sideways and the prose goes with it. */
+.method-table {
+  overflow-x: auto;
+  margin: 0 0 1.3rem;
+}
+
+.method-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.method-table th,
+.method-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: start;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.method-table th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom-width: 2px;
+  white-space: nowrap;
+}
+
+.method-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* The priority mark: an outline and a number, no fill — the same claim the map
+   makes, which is "this one" rather than a new fact about the signal. */
+.swatch-weak-mark {
+  border: 2px solid #131a24;
+  border-radius: 3px;
+  background: transparent;
+}
+
+/* ---------- credits on the sign-in page ---------- */
+
+.credit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credit-list li {
+  display: flex;
+  /* Explicit, because the static list above sets `flex-direction: column` on
+     the same element at the same specificity. Without this the portrait sat
+     above the name instead of beside it and the whole panel read as a centred
+     column of stacked cards. */
+  flex-direction: row;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+/* The two lists sit under the same headings and must line up with each other,
+   so the fallback keeps the portrait column's width even with no portrait. */
+.login-credits .credit-list li:last-child {
+  margin-bottom: 0;
+}
+
+.credit-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.credit-text strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  /* A long name wraps rather than pushing the panel wider. */
+  overflow-wrap: anywhere;
+}
+
+.credit-text em {
+  font-style: normal;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.credit-avatar {
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  /* A hairline rather than a shadow: these sit on a pale panel and a ring
+     keeps a light portrait from dissolving into it. */
+  border: 1px solid var(--line);
+}
+
+/* The fallback, and the common case until portraits are fetched. Initials on
+   the sidebar navy rather than a grey blank, so a person without a photograph
+   still reads as a person. */
+.credit-initials {
+  display: grid;
+  place-items: center;
+  background: var(--sidebar);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-color: transparent;
+}
+
+/* The credit control in the users table: a tick and a title, together,
+   because publishing somebody without saying what they did is half a credit. */
+.credit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.credit-title {
+  inline-size: 11rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+}
+
+/* Choosing which handsets a collector account may see. A scrolling list
+   because a growing fleet will outrun the dialog long before it outruns the
+   page, and a dialog that scrolls off-screen cannot be saved. */
+.device-picker-list {
+  max-block-size: 40vh;
+  overflow-y: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.device-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.device-option:last-child {
+  border-bottom: none;
+}
+
+.device-option:hover {
+  background: var(--page);
+}
+
+/* Held by another account: shown, not hidden, so the reason it cannot be
+   picked is visible instead of puzzling. */
+.device-option.taken {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------- the survey route on the sign-in page ---------- */
+
+/* One colour for every hexagon on the route. The five coverage colours each
+   mean a specific thing about signal, and a decorative route wearing them
+   would be a claim about ground nobody has driven. */
+.backdrop-route {
+  fill: #7fa8b8;
+  opacity: 0.55;
+}
+
+.backdrop-mast {
+  fill: #46707f;
+  opacity: 0.85;
+}
+
+/* The broadcast: a ring swelling out of each mast and fading as it goes, so
+   it dissolves rather than stopping at an edge. An edge would read as the
+   limit of coverage, which is exactly what this page has not measured. */
+.backdrop-pulse {
+  fill: none;
+  stroke: #46707f;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: backdrop-pulse 4.5s cubic-bezier(0.25, 0.6, 0.4, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes backdrop-pulse {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+/* ---------- public preview (/map, and later /) ---------- */
+
+.public-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--page);
+}
+
+.public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.public-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 650;
+}
+
+.public-brand .brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--accent);
+}
+
+.public-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.public-nav a {
+  position: relative;
+  padding: 0.35rem 0;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.public-nav a:hover {
+  color: var(--accent);
+}
+
+/* The current page gets an underline, not just a colour change — a colour
+   alone is easy to miss at a glance, which is the exact complaint this
+   nav existed to fix. */
+.public-nav a.on {
+  color: var(--accent);
+}
+
+.public-nav a.on::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.public-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.public-signin-button {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.public-signin-button:hover {
+  opacity: 0.9;
+}
+
+.public-account {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.public-account-name {
+  color: var(--muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-signout {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.public-signout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .public-account-name {
+    display: none;
+  }
+}
+
+.preview-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  padding: 0.5rem 1.5rem;
+  background: #fdf1e8;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.preview-badge {
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.preview-body {
+  flex: 1 1 320px;
+  color: var(--muted);
+}
+
+.preview-signin {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.preview-signin:hover {
+  text-decoration: underline;
+}
+
+.public-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .public-toolbar {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Top-left, not top-right: MapLibre's own NavigationControl (compass and
+   zoom) already owns the top-right corner, and a fixed offset here can never
+   safely clear a stack whose height depends on whether the compass happens
+   to be showing. Bottom-right holds the scale bar, bottom-left the legend —
+   top-left is the one corner nothing else claims. */
+.public-basemap {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: 1rem;
+}
+
+.public-terrain {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: 3.1rem;
+}
+
+@media (max-width: 720px) {
+  .public-header {
+    padding: 0.6rem 1rem;
+  }
+
+  .public-brand span:last-child {
+    display: none;
+  }
+
+  .public-nav {
+    display: none;
+  }
+
+  .preview-banner {
+    padding: 0.5rem 1rem;
+  }
+
+  .preview-banner .preview-body {
+    display: none;
+  }
+}
+
+/* ---------- landing page ---------- */
+
+.landing-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.landing-hero {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 2rem;
+  text-align: center;
+}
+
+.landing-hero h1 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.01em;
+}
+
+.landing-hero p {
+  margin: 0 0 1.6rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.landing-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.landing-cta-primary,
+.landing-cta-secondary {
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.landing-cta-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.landing-cta-primary:hover {
+  opacity: 0.9;
+}
+
+.landing-cta-secondary {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--panel);
+}
+
+.landing-cta-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.landing-section {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.landing-section h2 {
+  margin: 0 0 1.1rem;
+  font-size: 1.15rem;
+}
+
+.landing-concept p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.landing-steps ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.landing-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+}
+
+.landing-steps li:not(:last-child)::after {
+  content: "→";
+  margin-inline-start: 1rem;
+  color: var(--muted);
+}
+
+.landing-step-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.landing-status ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.landing-status li {
+  padding: 0.55rem 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.landing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 1.5rem 3rem;
+  font-size: 0.85rem;
+}
+
+.landing-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.landing-footer a:hover {
+  color: var(--accent);
+}
+
+.landing-footer .get-app {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.map-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.map-preview-frame {
+  position: relative;
+  width: 100%;
+  height: min(50vh, 380px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+
+.map-preview-cta {
+  padding: 0.5rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.map-preview-cta:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .landing-hero {
+    padding: 2.25rem 1.25rem 1.5rem;
+  }
+
+  .landing-section {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .landing-steps li:not(:last-child)::after {
+    display: none;
+  }
+}
+
+/* Motion carries no information here, so it is the first thing to go for
+   anyone who has asked for less of it. The masts and the route stay. */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-pulse {
+    animation: none;
+    opacity: 0;
+  }
+}

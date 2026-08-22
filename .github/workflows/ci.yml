@@ -129,6 +129,44 @@ jobs:
         run: |
           docker run --rm             -v "$PWD/web/nginx.conf:/etc/nginx/templates/default.conf.template:ro"             -e API_UPSTREAM=http://api:8000             nginx:1.27-alpine nginx -t
 
+  client:
+    name: Client build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      # Same reason as web's: the client image is built with `client` as its
+      # Docker context, so an import reaching outside it fails minutes later
+      # in the image build rather than here, where it is quick to read.
+      - name: No imports escape the Docker context
+        working-directory: client
+        run: node scripts/check-imports.mjs
+
+      - name: Typecheck
+        working-directory: client
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: client
+        run: npm run build
+
+      - name: Validate the nginx config
+        run: |
+          docker run --rm \
+            -v "$PWD/client/nginx.conf:/etc/nginx/templates/default.conf.template:ro" \
+            -e API_UPSTREAM=http://api:8000 \
+            nginx:1.27-alpine nginx -t
+
   android:
     name: Android build
     runs-on: ubuntu-latest
@@ -161,7 +199,7 @@ jobs:
   images:
     name: Build and push images
     # Only after everything that could tell us the code is broken.
-    needs: [backend, migrations, web, android]
+    needs: [backend, migrations, web, client, android]
     # workflow_dispatch included on purpose: without it a manual re-run could
     # never publish, which is exactly what you want after a cancelled run.
     if: >-
@@ -178,23 +216,27 @@ jobs:
             context: backend
           - name: web
             context: web
+          - name: client
+            context: client
     steps:
       - uses: actions/checkout@v4
 
-      # Vite copies web/public verbatim into the built site, so the APK needs
-      # no Dockerfile change and a local build without it still works.
+      # Vite copies <context>/public verbatim into the built site, so the APK
+      # needs no Dockerfile change and a local build without it still works.
+      # Bundled into both web and client: web/nginx.conf and
+      # client/nginx.conf each serve their own copy at /download/.
       - name: Bundle the collector APK into the site
-        if: matrix.name == 'web'
+        if: matrix.name == 'web' || matrix.name == 'client'
         uses: actions/download-artifact@v4
         with:
           name: coverage-collector-debug
-          path: web/public/download
+          path: ${{ matrix.name }}/public/download
 
       - name: Name the APK for download
-        if: matrix.name == 'web'
+        if: matrix.name == 'web' || matrix.name == 'client'
         run: |
-          mv web/public/download/app-debug.apk web/public/download/coverage-collector.apk
-          ls -lh web/public/download/
+          mv ${{ matrix.name }}/public/download/app-debug.apk ${{ matrix.name }}/public/download/coverage-collector.apk
+          ls -lh ${{ matrix.name }}/public/download/
 
       - uses: docker/setup-buildx-action@v3
 

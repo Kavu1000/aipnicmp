@@ -27,6 +27,7 @@ from app.api.v1 import (
     exports,
     health,
     ingest,
+    public,
     reports,
     sites,
     speedtest,
@@ -52,6 +53,12 @@ api_router.include_router(auth.router)
 # Open: the credits appear on the sign-in page itself, and carry names and
 # titles only — never an address, and never who holds which access.
 api_router.include_router(credits.router)
+
+# Open: the public preview. Every endpoint on it answers combined-network
+# aggregates only — see app/api/v1/public.py for exactly what that excludes.
+# No `dependencies=` here is the point: this is the one router allowed to
+# answer a request with no cookie at all.
+api_router.include_router(public.router)
 
 # Requires an approved account — and is closed to collector accounts.
 #

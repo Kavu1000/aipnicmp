@@ -20,8 +20,14 @@ system rather than blank gaps on the map.
 | `backend/` | FastAPI ingestion + map API, schema, H3 aggregation (Layers 2, 3, 5) | working on live Postgres, 75 tests passing |
 | `android/` | Kotlin collector app (Layer 1) | builds; 6 tests passing; not yet run on a handset |
 | `ml/` | Coverage prediction, satellite CV, site ranking (Layer 4) | not started |
-| `web/` | MapLibre public coverage map (Layer 5) | working; operator dashboard not started |
+| `web/` | Admin dashboard (Layer 5) — every filter, 3D, the fleet, the ranked priority list, behind sign-in | working |
+| `client/` | Public site (Layer 5) — landing page, live map, methodology, its own sign-in that unlocks nothing more | working |
 | `docs/` | Proposal, architecture figures, API contract, decisions | written |
+
+`web` and `client` are separate apps, separate images, separate subdomains —
+not one app with two routes. See [client/README.md](client/README.md) for
+why, and [docs/deploy.md](docs/deploy.md) for how they deploy alongside one
+another.
 
 ## Quick start (backend)
 
