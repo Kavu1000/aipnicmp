@@ -44,6 +44,16 @@ from app.models.user import (
 GOOGLE_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
 GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 
+# Firebase mints its own tokens rather than passing Google's through, so they
+# carry a different issuer, a different audience and a different key set. The
+# audience is the bare project id — not a client id — and the issuer names the
+# same project, which is what stops a token from somebody else's Firebase
+# project verifying here.
+FIREBASE_ISSUER_PREFIX = "https://securetoken.google.com/"
+FIREBASE_JWKS_URL = (
+    "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
+)
+
 SESSION_ALGORITHM = "HS256"
 
 # Google's signing keys rotate; the client caches them and refetches on a key
@@ -59,36 +69,91 @@ def _jwks() -> PyJWKClient:
     return _jwk_client
 
 
+_firebase_jwk_client: PyJWKClient | None = None
+
+
+def _firebase_jwks() -> PyJWKClient:
+    """Firebase's own signing keys — a different set, rotated on its own clock."""
+    global _firebase_jwk_client
+    if _firebase_jwk_client is None:
+        _firebase_jwk_client = PyJWKClient(FIREBASE_JWKS_URL, cache_keys=True)
+    return _firebase_jwk_client
+
+
+def _issuer_of(id_token: str) -> str:
+    """The issuer a token *claims*, read without trusting any of it.
+
+    Used only to choose which verification to run. Nothing is believed on the
+    strength of this: both branches below check the signature, the issuer and
+    the audience in full, so a token that lies here simply fails the other one.
+    """
+    try:
+        return str(jwt.decode(id_token, options={"verify_signature": False}).get("iss") or "")
+    except jwt.InvalidTokenError:
+        return ""
+
+
+def _verify_firebase_id_token(id_token: str) -> dict[str, Any]:
+    project = settings.firebase_project_id
+    if not project:
+        raise AuthError(
+            "Firebase sign-in is not configured on this server",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    return jwt.decode(
+        id_token,
+        _firebase_jwks().get_signing_key_from_jwt(id_token).key,
+        algorithms=["RS256"],
+        # The bare project id, which is what Firebase puts in `aud`.
+        audience=project,
+        issuer=f"{FIREBASE_ISSUER_PREFIX}{project}",
+        options={"require": ["exp", "iat", "aud", "iss", "sub"]},
+        leeway=30,
+    )
+
+
+def _verify_google_button_token(id_token: str) -> dict[str, Any]:
+    if not settings.google_client_id:
+        raise AuthError(
+            "Google sign-in is not configured on this server",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    return jwt.decode(
+        id_token,
+        _jwks().get_signing_key_from_jwt(id_token).key,
+        algorithms=["RS256"],
+        # Without this, a token minted for any other Google application
+        # would verify here.
+        audience=settings.google_client_id,
+        issuer=GOOGLE_ISSUERS,
+        options={"require": ["exp", "iat", "aud", "iss", "sub"]},
+        leeway=30,
+    )
+
+
 class AuthError(HTTPException):
     def __init__(self, detail: str, code: int = status.HTTP_401_UNAUTHORIZED) -> None:
         super().__init__(status_code=code, detail=detail)
 
 
 def verify_google_id_token(id_token: str) -> dict[str, Any]:
-    """Check a Google id token and return its claims.
+    """Check a signed sign-in token and return its claims.
+
+    Accepts both of the ways somebody can arrive: a token from the Google
+    button in the page, and one from Firebase Authentication. Which one is in
+    hand is decided by the issuer the token names, and then that branch checks
+    everything — signature, issuer, audience, expiry — so naming an issuer buys
+    a token nothing except the right to be refused by a different check.
 
     Raises :class:`AuthError` for anything that fails, with a reason vague
     enough not to help someone probing and specific enough to debug against the
     logs.
     """
-    if not settings.google_client_id:
-        raise AuthError(
-            "Google sign-in is not configured on this server",
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
+    firebase = _issuer_of(id_token).startswith(FIREBASE_ISSUER_PREFIX)
 
     try:
-        key = _jwks().get_signing_key_from_jwt(id_token).key
-        claims = jwt.decode(
-            id_token,
-            key,
-            algorithms=["RS256"],
-            # Without this, a token minted for any other Google application
-            # would verify here.
-            audience=settings.google_client_id,
-            issuer=GOOGLE_ISSUERS,
-            options={"require": ["exp", "iat", "aud", "iss", "sub"]},
-            leeway=30,
+        claims = (
+            _verify_firebase_id_token(id_token) if firebase else _verify_google_button_token(id_token)
         )
     except jwt.ExpiredSignatureError as error:
         raise AuthError("sign-in has expired, please try again") from error

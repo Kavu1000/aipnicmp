@@ -57,6 +57,23 @@ class Settings(BaseSettings):
     # leak without adding a check.
     google_client_id: str = ""
 
+    # Sign-in through Firebase Authentication, as an alternative to the Google
+    # button above.
+    #
+    # Both end in the same place — a signed token this server verifies and an
+    # address it trusts — and both are accepted at once, because they differ
+    # only in who keeps the list of sites allowed to sign people in. With the
+    # Google button that list lives in the Cloud Console project that owns the
+    # client id; with Firebase it is the Authorized domains list in the
+    # Firebase console. A deployment that cannot reach the first can own the
+    # second, which is the whole reason this exists.
+    #
+    # Empty means Firebase tokens are refused outright — a server that was
+    # never told which Firebase project it belongs to has no audience to check
+    # against, and an unchecked audience would accept a token minted by any
+    # Firebase project on earth.
+    firebase_project_id: str = ""
+
     # Whether the map and dashboard require an approved account.
     #
     # On by default: a deployment that forgets to configure this should be

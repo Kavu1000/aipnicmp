@@ -105,10 +105,38 @@ Four things Portainer will not warn you about:
 | `JWT_SECRET` | 48 random bytes | `python -c "import secrets; print(secrets.token_urlsafe(48))"` — **also signs the sign-in sessions**, so anyone who learns it can mint a session for any account |
 | `ADMIN_TOKEN` | another random string | empty keeps the admin endpoints closed |
 | `GOOGLE_CLIENT_ID` | `…apps.googleusercontent.com` | OAuth **Web application** client id; public by design. No client secret is used. **Shared by both sites** — one client id, two authorized origins (below) |
+| `FIREBASE_PROJECT_ID` | *(optional)* `connect4all-a014e` | Accept sign-ins from Firebase Authentication as well as the Google button. The bare project id — it is the audience every Firebase token is checked against, so an empty value refuses them all. See the section below |
 | `SUPER_ADMIN_EMAILS` | `chaxiong@fe-nuol.edu.la` | comma-separated. Without at least one, **nobody can ever be approved** |
 | `AUTH_ENABLED` | `true` | leave true; `false` serves the platform to anyone |
 | `WEB_PORT` | `8090` | host port for the admin dashboard's nginx |
 | `CLIENT_PORT` | `8091` | host port for the public site's nginx |
+
+### Sign in through Firebase, as well
+
+The Google button needs its site listed in the Cloud Console project that owns
+the client id. When that project belongs to somebody else — a site deployed
+somewhere the client id's owner has not authorised — the browser is refused
+with `origin_mismatch`, and no amount of application code changes it.
+
+Firebase Authentication is the same sign-in with that list moved into a console
+this project owns: **Authentication → Settings → Authorized domains**. The
+server accepts both kinds of token at once (see `verify_google_id_token`), so
+this is an addition rather than a migration, and a deployment can carry the
+Google button, Firebase, or both.
+
+Two things have to agree, or sign-in fails in a way that looks like a bug:
+
+- `FIREBASE_PROJECT_ID` on the backend — the audience each token is checked
+  against.
+- The four `VITE_FIREBASE_*` **build arguments** on the client image. Vite folds
+  them into the bundle at build time, so unlike `API_UPSTREAM` they cannot be
+  set on a running container: changing them means rebuilding the image. Left
+  empty, the app keeps the Google button.
+
+None of the `VITE_FIREBASE_*` values are secrets. They identify the project to
+Google exactly as the client id does, and they are readable in the shipped
+JavaScript. What protects the account is the Authorized domains list and the
+server's check of the token.
 
 ### Sign in with Google
 

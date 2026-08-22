@@ -32,6 +32,7 @@ from app.services import auth as auth_service
 from tests.conftest import make_record, sign_record
 
 CLIENT_ID = "test-client-id.apps.googleusercontent.com"
+FIREBASE_PROJECT = "test-project-a014e"
 
 _key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
@@ -75,12 +76,48 @@ def google_token(
     )
 
 
+def firebase_token(
+    *,
+    sub: str = "firebase-uid-1",
+    email: str = "person@example.com",
+    email_verified: bool = True,
+    audience: str = FIREBASE_PROJECT,
+    issuer: str | None = None,
+    expires_in: int = 600,
+    name: str = "A Person",
+) -> str:
+    """A token shaped like the one Firebase Authentication issues.
+
+    Different from Google's in every field the verification depends on: the
+    issuer names the project, the audience *is* the project, and `sub` is a
+    Firebase uid rather than a Google account id.
+    """
+    now = int(time.time())
+    return jwt.encode(
+        {
+            "sub": sub,
+            "email": email,
+            "email_verified": email_verified,
+            "name": name,
+            "picture": "https://example.com/a.png",
+            "aud": audience,
+            "iss": issuer or f"https://securetoken.google.com/{audience}",
+            "iat": now,
+            "exp": now + expires_in,
+        },
+        _key,
+        algorithm="RS256",
+    )
+
+
 @pytest.fixture(autouse=True)
 def google_configured(monkeypatch):
     monkeypatch.setattr(settings, "google_client_id", CLIENT_ID)
+    monkeypatch.setattr(settings, "firebase_project_id", FIREBASE_PROJECT)
     monkeypatch.setattr(settings, "auth_enabled", True)
     monkeypatch.setattr(settings, "super_admin_emails", ["boss@example.com"])
     monkeypatch.setattr(auth_service, "_jwk_client", _FakeJwks())
+    monkeypatch.setattr(auth_service, "_firebase_jwk_client", _FakeJwks())
     yield
 
 
@@ -131,6 +168,59 @@ def test_a_token_signed_by_the_wrong_key_is_refused():
     )
     with pytest.raises(auth_service.AuthError):
         auth_service.verify_google_id_token(forged)
+
+
+# --------------------------------------------------------------------------
+# Verifying Firebase's token
+# --------------------------------------------------------------------------
+
+
+def test_a_firebase_token_is_accepted():
+    claims = auth_service.verify_google_id_token(firebase_token())
+    assert claims["email"] == "person@example.com"
+    assert claims["sub"] == "firebase-uid-1"
+
+
+def test_a_firebase_token_from_another_project_is_refused():
+    """The audience is the project id, so this is the same mistake as
+    accepting another application's Google token — and just as fatal: anyone
+    with a free Firebase project could otherwise sign in here as anybody."""
+    with pytest.raises(auth_service.AuthError) as caught:
+        auth_service.verify_google_id_token(firebase_token(audience="somebody-elses-project"))
+    assert caught.value.status_code == 401
+
+
+def test_a_firebase_token_claiming_our_project_from_the_wrong_issuer_is_refused():
+    with pytest.raises(auth_service.AuthError):
+        auth_service.verify_google_id_token(
+            firebase_token(issuer="https://securetoken.google.com/somebody-else")
+        )
+
+
+def test_a_firebase_token_is_refused_when_no_firebase_project_is_configured(monkeypatch):
+    monkeypatch.setattr(settings, "firebase_project_id", "")
+    with pytest.raises(auth_service.AuthError) as caught:
+        auth_service.verify_google_id_token(firebase_token())
+    assert caught.value.status_code == 503
+
+
+async def test_signing_in_through_firebase_reaches_the_same_account(
+    anon_client: AsyncClient, session: AsyncSession
+):
+    """The two routes are one account, matched by address.
+
+    Firebase's `sub` is its own uid, not the Google account id, so somebody who
+    signed in with the button and then through Firebase must not arrive as a
+    second person waiting in the approval queue.
+    """
+    assert (await sign_in(anon_client, google_token(email="dual@example.com"))).status_code == 200
+    assert (
+        await sign_in(anon_client, firebase_token(email="dual@example.com"))
+    ).status_code == 200
+
+    users = (await session.scalars(select(User).where(User.email == "dual@example.com"))).all()
+    assert len(users) == 1
+    assert users[0].google_sub == "firebase-uid-1"
 
 
 # --------------------------------------------------------------------------

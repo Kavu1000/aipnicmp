@@ -2,6 +2,7 @@ import { BrandMark } from "../BrandMark";
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, type SessionState } from "../api";
 import { LoginBackdrop } from "./LoginBackdrop";
+import { firebaseConfigured, signInWithGoogleFirebase } from "./firebase";
 import { ADVISORS, AFFILIATION, TEAM, personName, personRole } from "../team";
 import { avatarUrl, fetchCredits, type CreditedPerson } from "../api";
 import type { Language, Strings } from "../i18n";
@@ -18,6 +19,37 @@ import type { Language, Strings } from "../i18n";
  * institution's work, and the sign-in screen is the one page every visitor
  * sees — including the ones who never get approved.
  */
+
+/**
+ * Google's mark, drawn here rather than fetched.
+ *
+ * A remote image on the sign-in page is a request to a third party before
+ * anybody has agreed to anything, and one that fails leaves a broken icon on
+ * the first screen every visitor sees. Google's brand guidelines require the
+ * four-colour mark on a sign-in button, which is what this is.
+ */
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.96 10.71a5.4 5.4 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58Z"
+      />
+    </svg>
+  );
+}
 
 /** Google Identity Services, loaded on demand rather than bundled. */
 const GSI_SRC = "https://accounts.google.com/gsi/client";
@@ -222,8 +254,36 @@ export function Login({
   const awaitingApproval = session.authenticated && !session.approved;
   const rejected = session.user?.status === "rejected";
 
+  /**
+   * Sign in through Firebase, when this build was given a project.
+   *
+   * Our own button rather than a rendered one, because nothing here is drawn
+   * by anybody else: `signInWithPopup` opens a window this page owns, so the
+   * click lands on an ordinary element and the label is ours to translate. The
+   * whole apparatus below — the loaded script, the cross-origin frame, the
+   * width handed to Google — exists only for the other route.
+   */
+  const signInThroughFirebase = () => {
+    setBusy(true);
+    setError(null);
+    signInWithGoogleFirebase()
+      .then(signInWithGoogle)
+      .then(onSignedIn)
+      .catch((cause: unknown) => {
+        // A closed popup is a decision, not a failure, and saying "sign-in
+        // failed" to somebody who changed their mind is noise.
+        const code = (cause as { code?: string } | null)?.code ?? "";
+        if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+        setError(cause instanceof Error ? cause.message : t.loginFailed);
+      })
+      .finally(() => setBusy(false));
+  };
+
   useEffect(() => {
     if (awaitingApproval) return;
+    // Firebase draws its own button below; loading Google's script here would
+    // put two sign-in buttons on the card.
+    if (firebaseConfigured) return;
     if (!session.google_client_id) {
       setError(serverReachable ? t.loginNotConfigured : t.loginUnreachable);
       return;
@@ -356,7 +416,21 @@ export function Login({
                 {/* The label is ours, so it never carries an address. Hidden
                     when Google is unconfigured: an empty button beside an
                     error explaining there is no button would be a puzzle. */}
-                {session.google_client_id && (
+                {firebaseConfigured ? (
+                  <div className="login-google">
+                    <button
+                      type="button"
+                      className="login-firebase-button"
+                      onClick={signInThroughFirebase}
+                      disabled={busy}
+                    >
+                      <GoogleMark />
+                      <span>{t.loginWithGoogle}</span>
+                    </button>
+                    <span className="login-google-label">{t.loginChooseAccount}</span>
+                  </div>
+                ) : (
+                  session.google_client_id && (
                   <div className="login-google">
                     {/* Google's own button, visible and full size. Our wording
                         goes underneath rather than inside it: text laid over a
@@ -373,6 +447,7 @@ export function Login({
                     <div className="login-button" ref={buttonHost} />
                     <span className="login-google-label">{t.loginChooseAccount}</span>
                   </div>
+                  )
                 )}
 
                 {busy && <p className="login-note">{t.loginSigningIn}</p>}

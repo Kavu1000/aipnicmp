@@ -1369,6 +1369,48 @@ main {
   justify-content: center;
 }
 
+/*
+  The Firebase sign-in button, which is ours rather than Google's.
+
+  Nothing here fights a cross-origin frame, because there is not one: the popup
+  is opened by our own click handler, so this is an ordinary button and the
+  whole of it is pressable. Sized and shaped like the rendered Google button it
+  replaces, so the card looks the same either way — the two routes should not
+  be tellable apart by a reader who does not care which one is configured.
+*/
+.login-firebase-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-width: 240px;
+  padding: 0.65rem 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms, background 120ms;
+}
+
+.login-firebase-button:hover:not(:disabled) {
+  border-color: #c8cfd9;
+  box-shadow: var(--shadow);
+}
+
+.login-firebase-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.login-firebase-button:disabled {
+  cursor: progress;
+  color: var(--muted);
+}
+
 .login-google-label {
   font-size: 0.85rem;
   color: var(--muted);

@@ -16,6 +16,21 @@ COPY . .
 # on the pilot server and anywhere else without a rebuild. No other build
 # arg is needed: this app signs in through its own /signin, never by
 # pointing at another app (see src/App.tsx's note).
+# Firebase Authentication's configuration, which Vite folds into the bundle at
+# build time rather than reading at runtime — so unlike API_UPSTREAM below,
+# these have to arrive here, as build arguments, and a rebuild is what changes
+# them. Public by design: they identify the project to Google and are readable
+# in the shipped JavaScript. Left empty, the app keeps the Google button
+# instead (see src/auth/firebase.ts).
+ARG VITE_FIREBASE_API_KEY=""
+ARG VITE_FIREBASE_AUTH_DOMAIN=""
+ARG VITE_FIREBASE_PROJECT_ID=""
+ARG VITE_FIREBASE_APP_ID=""
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY \
+    VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN \
+    VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID \
+    VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+
 RUN npm run build
 
 # ---- runtime -------------------------------------------------------------
