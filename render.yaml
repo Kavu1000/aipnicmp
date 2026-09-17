@@ -1,0 +1,59 @@
+# Render Blueprint for the API alone — the site stays on Vercel, which already
+# proxies /api/* to whatever this deploys to (see client/vercel.json).
+#
+# Not "Infrastructure as Code" that runs unattended: Render still asks, in its
+# dashboard, for every var below marked `sync: false` — the ones this file
+# cannot know (the database it should use, the domains allowed to call it).
+# `generateValue: true` on JWT_SECRET is the one exception, and it is exactly
+# that: a value nobody needs to choose, only to have.
+#
+# docker-compose.yml is the deployment this backend was actually designed for
+# — three containers, sized and restarted independently. This file exists
+# because that is not always available for free, not because it is preferred.
+services:
+  - type: web
+    name: aipnicmp-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore
+    healthCheckPath: /api/v1/health
+    # Render assigns the port through $PORT; the image's own CMD binds the
+    # fixed 8000 that docker-compose expects, so it is overridden here rather
+    # than in the Dockerfile, which compose still uses unmodified.
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_SYNC
+        sync: false
+      - key: ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      # Safe to leave on: `alembic upgrade head` against an up-to-date schema
+      # does nothing, and a free single-instance service has no second
+      # replica to race it.
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: PUBLIC_PREVIEW_ENABLED
+        value: "true"
+      - key: FIREBASE_PROJECT_ID
+        value: connect4all-a014e
+      - key: SUPER_ADMIN_EMAILS
+        value: chaxiong@fe-nuol.edu.la,kavuthao350@gmail.com
+      # The Vercel site's own origin(s), comma-separated, no trailing slash —
+      # this is what lets its browser calls past CORS.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: REQUIRE_RECORD_SIGNATURE
+        value: "true"
+      - key: H3_RESOLUTION
+        value: "8"
+      - key: TILE_MIN_DEVICES
+        value: "2"
