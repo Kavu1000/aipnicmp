@@ -1,0 +1,14 @@
+# Cloudflare Pages reads this at the built site's root (Vite copies public/
+# straight into dist/) — the equivalent of client/vercel.json's rewrites for
+# this host. Order matters: the API rule must come before the catch-all, or
+# every /api request would be swallowed by the SPA fallback first.
+#
+# Status 200 (not 301/302) is what makes this a reverse proxy rather than a
+# redirect: the browser's address bar and cookie origin stay this site, which
+# is required for the session cookie (SameSite=Lax) to ever be sent — see
+# backend/app/api/v1/auth.py's cookie and client/nginx.conf's identical
+# arrangement in the container build.
+/api/*  https://aipnicmp-api.onrender.com/api/:splat  200
+
+# Single-page app: unknown paths are routes, not missing files.
+/*      /index.html  200
